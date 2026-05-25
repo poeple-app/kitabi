@@ -1,6 +1,6 @@
 [project]
 name = "kitabi"
-version = "1.0.1"
+version = "1.0.2"
 description = "Personal reading-tracker Telegram bot with voice notes and AI assistance"
 readme = "README.md"
 license = { text = "MIT" }

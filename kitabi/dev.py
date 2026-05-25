@@ -60,8 +60,14 @@ class DevSettings(BaseSettings):
     @field_validator("allowed_tg_user_ids", mode="before")
     @classmethod
     def _parse_user_ids(cls, v: object) -> object:
+        """Same multi-form parser as main.Settings — accepts int / str / list."""
+        if isinstance(v, int):
+            return [v]
         if isinstance(v, str):
-            return [int(x.strip()) for x in v.split(",") if x.strip()]
+            s = v.strip()
+            if s.startswith("[") and s.endswith("]"):
+                s = s[1:-1]
+            return [int(x.strip()) for x in s.split(",") if x.strip()]
         return v
 
 

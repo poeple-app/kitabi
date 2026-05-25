@@ -308,6 +308,164 @@ p, li {
   color: var(--ink-dim);
   margin-top: 2mm;
 }
+.stat-card.alt {
+  background: #f1e5d0;
+  border: 1px dashed var(--rule);
+}
+.stat-card.alt .num { color: #5a3a1f; }
+
+/* ─────────────── Reading calendar (v1.0.2) ─────────────── */
+.cal-month { margin: 4mm 0 6mm; break-inside: avoid; page-break-inside: avoid; }
+.cal-month-label {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 2mm;
+  letter-spacing: 0.5px;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.8mm;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+}
+.cal-dow {
+  font-size: 7.5pt;
+  text-align: center;
+  color: var(--ink-dim);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding-bottom: 1mm;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.5mm;
+}
+.cal-cell {
+  height: 7mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8pt;
+  color: var(--ink-dim);
+  border: 0.4px solid #ece1ce;
+  border-radius: 1mm;
+  background: #fbf6ec;
+}
+.cal-cell.cal-empty {
+  background: transparent;
+  border-color: transparent;
+}
+.cal-cell.cal-active {
+  background: #efe2d3;
+  color: var(--accent);
+  font-weight: 700;
+  border-color: var(--rule);
+}
+.cal-cell.cal-mid    { background: #d8b994; color: #fff7e5; border-color: #a07d56; }
+.cal-cell.cal-strong { background: var(--accent); color: #fff7e5; border-color: #5a2d11; }
+
+/* ─────────────── Tag cloud (v1.0.2) ─────────────── */
+.cloud {
+  text-align: center;
+  line-height: 1.9;
+  padding: 4mm 6mm;
+  background: linear-gradient(135deg, rgba(122,62,31,.06), rgba(122,62,31,.02));
+  border-radius: 1.5mm;
+  border: 0.4px solid var(--line);
+  margin-bottom: 2mm;
+}
+.cloud-term {
+  display: inline-block;
+  margin: 0.6mm 2mm;
+  font-family: Georgia, serif;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.2px;
+}
+.cloud-term.cloud-WORD    { color: var(--cat-kelime); }
+.cloud-term.cloud-CONCEPT { color: var(--cat-kavram); }
+
+/* ─────────────── Other-books list (v1.0.2) ─────────────── */
+.other-books {
+  margin: 2mm 0 4mm;
+  padding-left: 6mm;
+  font-size: 10pt;
+  color: var(--ink);
+}
+.other-books li { margin-bottom: 1.2mm; }
+
+/* ─────────────── Orphan photo note (v1.0.2) ─────────────── */
+.note.orphan-photo {
+  background: linear-gradient(90deg, rgba(91,122,140,.06), transparent 70%);
+  border-left: 0.7mm solid #5b7a8c;
+  padding: 2mm 3mm 2.5mm;
+  border-radius: 0 1mm 1mm 0;
+}
+.note.orphan-photo::before { background: #5b7a8c; }
+.orphan-photo-tag {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 8pt;
+  color: #5b7a8c;
+  font-style: italic;
+  margin-bottom: 2mm;
+  letter-spacing: 0.4px;
+}
+
+/* ─────────────── Closing page (v1.0.2 — re-laid-out) ─────────────── */
+.closing-grid {
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4mm;
+  margin-bottom: 8mm;
+}
+.closing-grid .meta-block {
+  background: var(--accent-soft);
+  border-radius: 1.5mm;
+  padding: 3mm 4mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.closing-grid .meta-block .val .dim { color: var(--ink-dim); font-size: 9pt; }
+
+.closing-notes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3mm 5mm;
+  margin: 3mm 0 6mm;
+}
+.closing-note-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3mm;
+  padding: 2mm 3mm;
+  border: 0.4px solid var(--line);
+  border-radius: 1.5mm;
+  background: #fbf6ec;
+}
+.closing-note-row .cnt {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.closing-summary {
+  font-style: italic;
+  color: var(--ink);
+  margin: 3mm 0 4mm;
+  padding-left: 4mm;
+  border-left: 0.6mm solid var(--accent-soft);
+  font-size: 10pt;
+  line-height: 1.55;
+}
+.closing-summary-meta {
+  display: block;
+  font-style: normal;
+  font-size: 8.5pt;
+  color: var(--ink-dim);
+  margin-top: 1mm;
+}
 .bar-row {
   display: flex;
   align-items: center;

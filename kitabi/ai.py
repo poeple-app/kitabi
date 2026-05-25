@@ -230,32 +230,56 @@ Not:
 {text}
 """
 
-PROMPT_DEFINE_WORD = """Aşağıdaki kelimenin kısa ve anlaşılır bir Türkçe tanımını yaz. 1-2 cümle yeter.
-Sadece tanımı döndür, kelimeyi tekrar etme.
+# Common style directive — applied to every text-generation prompt to keep
+# responses tight (no purple prose, no filler sentences, just signal).
+# IMPORTANT: bilgi kaybı yok, sadece kelime sayısı düşürülür.
+STYLE_RULES = """\
+TARZ KURALLARI (KESİN — bu kurallara uymazsan cevap reddedilir):
+1. Maksimum öz. Cevap en geç istenen cümle sayısında bitsin; aksi açıkça belirtilmemişse 2-3 cümleyi geçme.
+2. Tüm dolgu kelimeleri yasak:
+   "şüphesiz", "kuşkusuz", "bilindiği üzere", "elbette", "açıkça",
+   "kesinlikle", "bu açıdan", "bu bağlamda", "değerlendirildiğinde",
+   "söylemek gerekir ki", "ifade etmek mümkündür", "denilebilir ki",
+   "esas itibarıyla", "bir nevi", "aslında", "tabii ki" — hiçbiri geçmesin.
+3. Süslü/lirik dil, edebi mecaz, retorik soru — yok.
+4. Soruyu/notu tekrar etme, "evet öyle"/"haklısınız" gibi onay cümleleri ekleme.
+5. Madde işareti, başlık, emoji, bold/italic — yok. Düz cümle.
+6. Bilgi kaybı YOK. Ne anlatılacaksa anlatılsın — sadece dolduran kelimeler düşsün."""
+
+
+PROMPT_DEFINE_WORD = """Aşağıdaki kelimenin Türkçe tanımı. KESİNLİKLE 1 cümle, en fazla 20 kelime.
+Sadece tanımı döndür, kelimeyi tekrarlama.
+
+{style}
 
 Kelime: {text}
 """
 
-PROMPT_DEFINE_CONCEPT = """Aşağıdaki kavramın kısa Türkçe açıklamasını yaz. 2-3 cümle. Hangi alana ait olduğunu belirt, varsa kim ortaya attığını yaz.
-Sadece açıklamayı döndür, kavramı tekrar etme.
+PROMPT_DEFINE_CONCEPT = """Aşağıdaki kavramın Türkçe açıklaması. KESİNLİKLE 2 cümleyi geçme.
+1. cümle: tanım. 2. cümle: hangi alana ait + varsa kim ortaya attı.
+Sadece açıklamayı döndür, kavramı tekrarlama.
+
+{style}
 
 Kavram: {text}
 """
 
-PROMPT_EXPLAIN = """Aşağıdaki not kullanıcının okuduğu bir kitaptan alınmış. Bu nota 3-5 cümlelik bir açıklama / genişletme ekle.
+PROMPT_EXPLAIN = """Aşağıdaki not kullanıcının okuduğu kitaptan alınmış. Bu nota 2-3 cümlelik genişletme ekle.
 
 Bağlam:
 - Kitap: {book_title}
 - Yazar: {book_author}
 - Tür: {book_genre}
 
+{style}
+
 Not:
 {text}
 
-Açıklama (3-5 cümle):
+Açıklama (en fazla 3 cümle):
 """
 
-PROMPT_ANSWER = """Sen kullanıcının kitap okuma asistanısın. Kullanıcı şu kitabı okuyor:
+PROMPT_ANSWER = """Kullanıcı şu kitabı okuyor:
 
 Kitap: {book_title}
 Yazar: {book_author}
@@ -267,15 +291,48 @@ Kullanıcının bu kitap için aldığı notlar (en yenisi son):
 Kullanıcının sorusu:
 {question}
 
-Cevabını Türkçe yaz. Eğer notlar arasında konuyla ilgili bir şey varsa onu da hatırlat. 2-5 paragraf olabilir.
+{style}
+
+KESİN LİMİT: cevabın en fazla 3 cümle olsun. Notlardan referans verirken kod kullan (örn "SVC002 notunda…"), uzun alıntı yapma. Eğer 1 cümleyle yeterli cevap verilebiliyorsa, 1 cümleyle ver.
+
+Cevap:
 """
 
-PROMPT_AUTO_SUMMARY = """Aşağıdaki notlar bir kitap okuma oturumundan alınmış. Bu oturumu 2-3 cümle ile özetle. Kullanıcının ne okuduğunu, neyi öğrendiğini, ne düşündüğünü yansıt.
+PROMPT_AUTO_SUMMARY = """Aşağıdaki notlar bir okuma oturumundan. Oturumu KESİNLİKLE 2 cümlede özetle:
+1. cümle: kullanıcı ne okudu (konu/sayfa aralığı).
+2. cümle: en önemli 1-2 öğrenim/düşünce.
+
+{style}
 
 Notlar:
 {notes_block}
 
-Özet (2-3 cümle):
+Özet (2 cümle, fazlası kabul edilmez):
+"""
+
+PROMPT_EXTRACT_BOOK = """Bu bir kitap kapağı fotoğrafı (ön ya da arka). İçinden şu 3 bilgiyi çıkar:
+- ISBN: arka kapakta, 10 veya 13 haneli sayı (barkodun altında veya yanında)
+- TITLE: kitabın adı (ön kapakta büyük yazılı)
+- AUTHOR: yazar(lar)
+
+Cevabını TAM olarak şu formatta ver, başka hiçbir şey yazma:
+ISBN: <13 haneli sayı veya YOK>
+TITLE: <başlık veya YOK>
+AUTHOR: <yazar adı veya YOK>
+"""
+
+
+PROMPT_AUTHOR_OTHER_BOOKS = """\
+Yazarın adı: {author}
+Şu anki kitap (bunu LİSTEDE TEKRAR ETME): {current_title}
+
+Görev: Bu yazarın EN ÇOK BİLİNEN/SATAN 3 başka kitabını listele. Sadece kitap adlarını ver.
+Format (TAM olarak; başka hiçbir şey ekleme):
+1. <Kitap Adı>
+2. <Kitap Adı>
+3. <Kitap Adı>
+
+Eğer yazarın 3 farklı bilinen kitabı yoksa, var olanları listele. Eğer hiç bulamıyorsan sadece YOK yaz.
 """
 
 
@@ -397,7 +454,7 @@ async def define_term(text: str, kind: Category) -> str | None:
     try:
         prompt = PROMPT_DEFINE_WORD if kind == Category.WORD else PROMPT_DEFINE_CONCEPT
         definition = await _call_gemini(
-            contents=[prompt.format(text=text)],
+            contents=[prompt.format(text=text, style=STYLE_RULES)],
             operation=f"define_{kind.value}",
         )
         logger.info(
@@ -431,6 +488,7 @@ async def explain_note(text: str, book: Book) -> str | None:
                     book_title=book.title,
                     book_author=book.author or "bilinmiyor",
                     book_genre=book.genre or "—",
+                    style=STYLE_RULES,
                 )
             ],
             operation="explain_note",
@@ -477,6 +535,7 @@ async def answer_question(question: str, book: Book, notes: list[Note]) -> str:
                 book_genre=book.genre or "—",
                 notes_block=notes_block,
                 question=question,
+                style=STYLE_RULES,
             )
         ],
         operation="answer_question",
@@ -505,7 +564,7 @@ async def auto_summarize_session(notes: list[Note]) -> str | None:
             for n in notes
         )
         summary = await _call_gemini(
-            contents=[PROMPT_AUTO_SUMMARY.format(notes_block=notes_block)],
+            contents=[PROMPT_AUTO_SUMMARY.format(notes_block=notes_block, style=STYLE_RULES)],
             operation="auto_summarize",
         )
         logger.info(
@@ -521,3 +580,85 @@ async def auto_summarize_session(notes: list[Note]) -> str | None:
             note_count=len(notes),
         )
         return None
+
+
+async def extract_book_from_cover(
+    image_bytes: bytes, mime_type: str = "image/jpeg"
+) -> dict[str, str | None]:
+    """Try to read ISBN / title / author from a book cover photo via Gemini Vision.
+
+    Returns a dict with keys `isbn`, `title`, `author` — each value is either a
+    string or None. The caller uses these to look up the rest of the metadata
+    via Google Books (ISBN first, then title+author fallback).
+
+    Raises GeminiCallFailed on total AI failure.
+    """
+    t0 = time.time()
+    logger.info("ai.extract_book.start", mime=mime_type, size_bytes=len(image_bytes))
+    raw = await _call_gemini(
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+            PROMPT_EXTRACT_BOOK,
+        ],
+        operation="extract_book_from_cover",
+    )
+    out: dict[str, str | None] = {"isbn": None, "title": None, "author": None}
+    for line in raw.splitlines():
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        key = key.strip().lower()
+        value = value.strip()
+        if value.upper() in ("YOK", "NONE", "N/A", "-", ""):
+            value = None
+        if key in out:
+            out[key] = value
+    logger.info(
+        "ai.extract_book.success",
+        isbn_found=out["isbn"] is not None,
+        title_found=out["title"] is not None,
+        author_found=out["author"] is not None,
+        duration_ms=int((time.time() - t0) * 1000),
+    )
+    return out
+
+
+async def list_author_other_books(author: str, current_title: str) -> list[str]:
+    """Use Gemini to list 3 well-known other works by the same author.
+
+    Falls back to an empty list on any failure — this is decorative metadata
+    for the PDF journal, not critical to the bot's operation.
+    """
+    if not author:
+        return []
+    t0 = time.time()
+    logger.info("ai.author_other_books.start", author=author, current_title=current_title)
+    try:
+        raw = await _call_gemini(
+            contents=[PROMPT_AUTHOR_OTHER_BOOKS.format(
+                author=author, current_title=current_title or "(bilinmiyor)",
+            )],
+            operation="list_author_other_books",
+        )
+    except GeminiCallFailed as e:
+        logger.warning("ai.author_other_books.failed", error=str(e), author=author)
+        return []
+    titles: list[str] = []
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.upper() == "YOK":
+            continue
+        # Strip leading "1." / "2)" / "-" markers
+        for prefix_n in ("1.", "2.", "3.", "1)", "2)", "3)", "-", "•"):
+            if line.startswith(prefix_n):
+                line = line[len(prefix_n):].strip()
+                break
+        if line and line.lower() != current_title.lower():
+            titles.append(line[:120])
+    titles = titles[:3]
+    logger.info(
+        "ai.author_other_books.success",
+        author=author, count=len(titles),
+        duration_ms=int((time.time() - t0) * 1000),
+    )
+    return titles

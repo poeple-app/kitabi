@@ -834,7 +834,7 @@
       <!-- ─── INTRO CARDS (NEW) ─── -->
       <h2 class="section-h">Kitabi ne yapıyor?</h2>
       <p class="lede" style="max-width: none;">
-        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: kitabını ISBN'i yazarak ya da kapağının fotoğrafını çekerek eklersin, okurken sesli mesaj, sayfa fotoğrafı veya yazılı not gönderirsin, bot bunları Gemini AI ile metne döker, kategorilere ayırır ve okuduğun kitaba bağlayarak SQLite veritabanına kaydeder; istediğin zaman "/" ile ana menü kestirmelerine erişir, kitap bittiğinde de istatistikleri, alıntıları ve favorilerinle birlikte tasarımlı bir PDF okuma günlüğüne dönüştürür.
+        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: kitabını ISBN'i yazarak, kapağının fotoğrafını çekerek ya da elle ekleyebilirsin (ISBN bulunmazsa Google Books → Open Library otomatik fallback'i devreye girer). Okurken sesli mesaj, sayfa fotoğrafı veya yazılı not gönderirsin; bot Gemini AI ile metne döker, kategorilere ayırır, okuduğun kitaba bağlayarak SQLite veritabanına kaydeder. Kitabıyla ilgisi olmayan görseller de "sahne" notu olarak saklanır. Kütüphanen 10 kitabı geçince raf sistemi devreye girer; her kitaba kendi ikonunu ve özel alanlarını ekleyebilirsin. İstediğin zaman "/" ile ana menü kestirmelerine erişir, alıntıları twit kartı gibi paylaşır, kitap bittiğinde istatistikleri (okuma takvimi, kelime bulutu, yayınevi + yazarın diğer kitapları dahil) zengin bir PDF okuma günlüğüne dönüştürür.
       </p>
       <p class="input-help">Aşağıdaki kartlar arasında oklarla gezin — bot'un kurulumdan sonra neler yapabileceğini kart açıklamalarında okuyabilirsin.</p>
 
@@ -940,6 +940,80 @@
             </div>
             <div class="intro-card-title">📤 Esnek export</div>
             <div class="intro-card-cap">PDF, JSON, CSV, Markdown, ZIP — verileri istediğin yere taşı (Notion, Obsidian, NotebookLM).</div>
+          </div>
+
+          <!-- ── v1.0.2 yenilikleri ── -->
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🖼️</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>sahne fotoğrafı]</div>
+            </div>
+            <div class="intro-card-title">🖼️ Sahne fotoğrafı</div>
+            <div class="intro-card-cap">Kitapla ilgisi olmayan görsel — bir manzara, bir not — kısa bir yorum yaz, PDF günlüğüne "📷 sahne" olarak girer.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📚</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>raflar]</div>
+            </div>
+            <div class="intro-card-title">📚 Raflar</div>
+            <div class="intro-card-cap">10+ kitabın olunca raf sistemi devreye girer. "Felsefe", "Polisiye", "Yarım kalanlar"… İstediğin kadar raf, sınırsız.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🎨</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kitap ikonu]</div>
+            </div>
+            <div class="intro-card-title">🎨 Kitap ikonu</div>
+            <div class="intro-card-cap">Her kitap kendi emoji ikonunu alır (📕📘📗 ya da 🐉⚔️🌹). Listede ilk bakışta tanırsın.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🛠️</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>özel alanlar]</div>
+            </div>
+            <div class="intro-card-title">🛠️ Özel alanlar</div>
+            <div class="intro-card-cap">"Raf kodu", "Ödünç verildi", "İlk okuma tarihi" — kendi sütunlarını sınırsız ekle. PDF künyede de görünür.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📸</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kapak grid]</div>
+            </div>
+            <div class="intro-card-title">📸 Kapak albümü</div>
+            <div class="intro-card-cap">Kütüphane kapaklarını Telegram'da topluca gör — 10'arlı albümler halinde, bir bakışta tüm raf.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📤</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>not paylaş]</div>
+            </div>
+            <div class="intro-card-title">📤 Not paylaş</div>
+            <div class="intro-card-cap">Sevdiğin bir alıntıyı twit kartı gibi paylaş — Kare, Instagram Post, Story, A4, A5 boyutlarında PDF.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🌐</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>ISBN fallback]</div>
+            </div>
+            <div class="intro-card-title">🌐 İki kaynaktan metadata</div>
+            <div class="intro-card-cap">ISBN'i Google Books'ta bulamazsa bot otomatik Open Library'ye geçer. Türkçe yerel yayınlarda bile yüksek isabet.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📅</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>takvim]</div>
+            </div>
+            <div class="intro-card-title">📅 Okuma takvimi</div>
+            <div class="intro-card-cap">PDF günlüğünde ay-ay takvim grid'i: hangi günlerde okudun, ne kadar süre — yoğun günler koyu, az günler açık.</div>
           </div>
 
         </div>

@@ -18,6 +18,7 @@ Bu rehber kurulumun her adımında karşılaşabileceğin sorunlar için. Başta
 - [Adım 5: Secret Manager](#adim-5-secrets)
 - [Adım 6: Cloud Run'a deploy](#adim-6-deploy)
 - [Adım 7: Webhook bağlantısı](#adim-7-webhook)
+- [Yeni özelliklere özel sorunlar (v1.0.1+)](#yeni-ozellikler)
 - [Bot çalışmıyor / mesajıma cevap vermiyor](#bot-cevap-vermiyor)
 - [Veri kaybı, log'lar, izinler](#genel-sorunlar)
 
@@ -407,19 +408,76 @@ gcloud storage buckets list --project=<PROJECT_ID>
 
 ---
 
-## Yeni özelliklere özel sorunlar (v1.0.1+)
+## Yeni özelliklere özel sorunlar (v1.0.1+) {#yeni-ozellikler}
 
 ### Kapak fotoğrafından kitap ekleme bulamadı
 
-Bot kapak fotoğrafından **ISBN/başlık/yazar** çıkarmaya çalışıyor, sonra Google Books'ta arıyor. İki yerde patlayabilir:
+Bot kapak fotoğrafından **ISBN/başlık/yazar** çıkarmaya çalışıyor; sonra önce Google Books, başarısız olursa Open Library'de arıyor. Olası senaryolar:
 
 **(a) Gemini kapaktan bilgi okuyamadı**: Kapak çok bulanık, yan açıdan, parlak yansımalı veya çok küçük olabilir. Bot sana "Bulunanlar: ISBN —, Başlık —, Yazar —" gösteriyorsa fotoğrafı yeniden çek (ön kapak + arka kapak ayrı denenebilir, ya da arka kapaktaki barkodu yakın çekim).
 
-**(b) Bilgi çıktı ama Google Books'ta yok**: Türkçe yerel yayınlar, eski baskılar veya küçük yayıncılar Google Books'ta olmayabilir. "Sadece başlıkla ekle" butonuyla manuel ekleyebilirsin, daha sonra **Kitap detayı → ✏️ Düzenle** ile yazar/sayfa/ISBN tamamlanır.
+**(b) Bilgi çıktı ama her iki kaynak da boş**: Türkçe yerel yayınlar, eski baskılar veya küçük yayıncılar bazen iki kaynakta da yok. "Elle ekle (sadece başlık)" butonuyla manuel ekleyebilirsin, daha sonra **Kitap detayı → ✏️ Düzenle** ile yazar/yayınevi/sayfa/ISBN tamamlanır.
+
+### ISBN aramada 429 hatası (Too Many Requests)
+
+v1.0.2'den itibaren bu otomatik halledilir: Google Books 429 dönerse bot şeffaf olarak Open Library'ye fallback yapar. Loglarda hata olarak değil bilgi olarak görürsün:
+- `data.lookup_book.google_books_failed` — Google denendi, başarısız
+- `data.lookup_book.found source=openlibrary` — Open Library buldu
+
+İki kaynak da boş dönerse kullanıcıya **kapak fotoğrafıyla dene / elle ekle / başka ISBN gir** seçenekleri sunulur.
+
+### ISBN biçimini kabul etmedi
+
+Kabul edilen formatlar:
+- 13 hane (978… ya da 979…)
+- 10 hane (son karakter X olabilir)
+- Tire ve boşluk serbest, otomatik temizlenir
+
+Örnek: `978-975-08-1234-5`, `9789750812345`, `0-7475-3269-9` — hepsi geçerli. Hata mesajındaki örneklere bak.
+
+### Kapak fotoğrafı çekemiyorum → ISBN'i de göremiyorum
+
+Kitap detayı → Kitap düzenle → ISBN alanını boş bırakabilirsin. Botun ihtiyacı yok; kapaksız + ISBN'siz başlık-only kitap mükemmel çalışır. Sonra istersen Google'da kapak bulup URL'ini düzenleme ekranından `cover_url`'e ekleyebilirsin (gelecek sürümde UI eklenecek).
+
+### Oturumda attığım fotoğrafta hiç metin yok — ne olur?
+
+v1.0.2'den itibaren bot bunu **orphan photo (sahne)** olarak ele alır. OCR boş döndüğünde sana "bu görsel kitapla ilgili olmayabilir, kısa bir not yaz" der. Yazdığın not + görselin Telegram file_id'si DB'ye kaydedilir, PDF günlüğünde **📷 Sahne** etiketiyle ayrı stille gösterilir. Bir görsel + bir not zorunlu; metni atlamak istersen "Vazgeç" butonu var.
+
+### PDF'te yazarın diğer kitapları yanlış / eksik
+
+Bu liste Gemini'den ilk PDF üretiminde çekilir ve `Book.author_other_books` JSON sütununda cache'lenir. Sonraki PDF'lerde aynı kalır. Düzeltmek istersen:
+1. Kitap detayı → Kitap düzenle → kitabın `extra_fields`'inde geçici bir not bırak ya da
+2. Cloud Shell'de DB'yi indirip ilgili kitabın `author_other_books` alanını JSON listesi olarak güncelle (`["Kitap 1", "Kitap 2"]`) → tekrar yükle
+
+Veya bekle: bir sonraki sürümde "Yazarın diğer kitaplarını yenile" butonu eklenecek.
+
+### Raflar görünmüyor
+
+Raf landing sayfası **10'dan fazla kitabın varsa** otomatik açılır (Kitaplarım butonunda). Daha az kitabın varsa düz liste görüyorsun. Yine de elle eklemek istersen kitap düzenleme menüsünde "📚 Rafı değiştir → ➕ Yeni raf oluştur" ile her durumda raf açabilirsin.
+
+### Özel alan (extra field) silinmiyor
+
+Kitap düzenleme → ➕ Yeni alan ekle'nin yanındaki "🗑️ Özel alan sil" butonu sadece kitabın özel alanı varsa görünür. Alan adına tıklayınca anında silinir (onay yok — alanlar genelde hızlı oluşturulup silinir).
+
+### Not paylaşımı PDF olarak geliyor — PNG istemiştim
+
+v1.0.2 not paylaşımı tüm boyutlarda PDF üretir (WeasyPrint çıktı motoru). Telegram'da PDF'i aç, **1. sayfanın ekran görüntüsünü al**, paylaş. Doğrudan PNG için Pillow (yeni bağımlılık) gerekiyor; sonraki sürümde değerlendirilecek.
+
+### Çoklu kapak (album) gönderdim, sadece bazı kapakların caption'ı görünüyor
+
+Telegram media_group UI'da albümün **ilk medyasının** caption'unu büyük gösterir, diğerlerini küçük gösterir. Bu Telegram'ın kısıtı, bot tarafında yapacak bir şey yok. Tek tek görmek istersen "Kitaplarım"dan kitaba tıkla.
+
+### Açık oturum listesinde "✏️ Sayfa düzelt" butonu yok
+
+v1.0.2'den itibaren her oturum altında doğrudan **✏️ Sayfa düzelt** ve **🗑️ Sil** butonları görünür. Görünmüyorsa container eski revision'da çalışıyor olabilir — Cloud Run → kitabi → en son revision'a git veya yeniden deploy.
+
+### DB migration başarısız
+
+v1.0.2'ye geçerken `_migrate_add_missing_columns` yeni sütunları otomatik ekler. Loglarda `data.migration.added_column` event'leri görmen lazım. Hata varsa `data.migration.failed` event'ini ara — büyük ihtimalle FOREIGN KEY veya constraint çakışması (nadiren olur). Çözüm: GCS'deki snapshot'ı yedekle, Cloud Shell'de DB'yi indirip ilgili `ALTER TABLE` komutunu elle çalıştır, geri yükle.
 
 ### Slash command menüsü güncellenmedi
 
-Telegram istemcisi komut menüsünü cache'liyor — bot yeniden deploy edilse bile eski menü görünebilir. Telegram'ı kapat-aç, ya da botla yeni bir mesaj gönder, ardından `/` tuşuna bas. Sunucu tarafında `BotCommand` listesi `set_bot_commands` ile güncellenir (her container başlangıcında).
+Telegram istemcisi komut menüsünü cache'liyor — bot yeniden deploy edilse bile eski menü görünebilir. Telegram'ı kapat-aç, ya da botla yeni bir mesaj gönder, ardından `/` tuşuna bas. Sunucu tarafında `BotCommand` listesi `set_bot_commands` ile güncellenir (her container başlangıcında). v1.0.2'de listede şunlar olmalı: `/start /oturum /oturumlar /kitaplar /yeni /ara /sozluk /alintilar /istatistik /ayarlar /yardim`.
 
 ### "🔄 İşleniyor..." mesajı silinmedi
 
@@ -429,9 +487,9 @@ Telegram istemcisi komut menüsünü cache'liyor — bot yeniden deploy edilse b
 
 `🗑️ Oturumu Sil` butonu **bu oturuma bağlı notları da siler**. Sonradan geri alma yok; bu yüzden onay diyaloğu var. Notları kaybetmek istemiyorsan oturumu silmek yerine **⏹️ Bitir** ile düzgün kapat. Tamamen yanlış oturum açtıysan (boş, daha not yok) silmek güvenli.
 
-### Gemini cevapları çok kısa veya başlık atılmış
+### Gemini cevapları çok kısa / dolgusuz
 
-v1.0.1'den itibaren her prompt'ta "TARZ KURALLARI" var: süslü dil yok, dolgu yok, 2-4 cümle hedefi. Bu bilinçli bir tasarım — Telegram'da uzun blok-cevaplar okunmuyor. Daha uzun cevap istersen "Açıkla" butonunu kullan (`PROMPT_EXPLAIN` daha uzun sınır).
+v1.0.2'den itibaren prompt'lar daha sıkı: `STYLE_RULES` 12 dolgu kelimesini ("şüphesiz", "kuşkusuz", "bilindiği üzere", "esas itibarıyla"…) açıkça yasaklıyor, üretim çıkışı ≤3 cümleyle sınırlı. Bu bilinçli bir tasarım — Telegram'da uzun blok-cevaplar okunmuyor. Eğer cevaplar çok kısa hissettiriyorsa **"💡 Açıkla (Gemini)"** butonu olan notlar için Gemini 2-3 cümle ek genişletme verir. Bilgi kaybı yoksa sorun yok; eksik bilgi hissedersen GitHub Issues'a örnek aç, prompt'ları kalibre ederiz.
 
 ## Adım 7: Webhook bağlantısı {#adim-7-webhook}
 

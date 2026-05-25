@@ -71,9 +71,21 @@ class Settings(BaseSettings):
     @field_validator("allowed_tg_user_ids", mode="before")
     @classmethod
     def _parse_user_ids(cls, v: object) -> object:
-        """Accept either a list, or a comma-separated string (env-friendly)."""
+        """Accept list, int, or comma/bracket string (env-friendly).
+
+        Handles every common Secret Manager entry style:
+          - `123456789`     → [123456789]   (single user id)
+          - `123,456`       → [123, 456]
+          - `[123, 456]`    → [123, 456]    (json-array string)
+          - already int     → [123]         (pydantic-settings auto-parsed)
+        """
+        if isinstance(v, int):
+            return [v]
         if isinstance(v, str):
-            return [int(x.strip()) for x in v.split(",") if x.strip()]
+            s = v.strip()
+            if s.startswith("[") and s.endswith("]"):
+                s = s[1:-1]
+            return [int(x.strip()) for x in s.split(",") if x.strip()]
         return v
 
 
@@ -231,7 +243,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(
     title="Kitabi",
     description="Personal reading-tracker Telegram bot",
-    version="0.1.1",
+    version="1.0.2",
     lifespan=lifespan,
 )
 
@@ -242,7 +254,7 @@ app = FastAPI(
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     """Liveness probe for Cloud Run / monitors."""
-    return {"status": "ok", "version": "0.1.1"}
+    return {"status": "ok", "version": "1.0.2"}
 
 
 def _verify_webhook_secret(request: Request) -> None:

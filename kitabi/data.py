@@ -116,6 +116,22 @@ class Base(DeclarativeBase):
     """SQLAlchemy declarative base for all Kitabi models."""
 
 
+class Shelf(Base):
+    """A bookshelf — a user-defined grouping of books.
+
+    Used when the library grows beyond ~10 books. Each book optionally links
+    to one shelf via Book.shelf_id; books without a shelf appear under
+    "Raflandırılmamış".
+    """
+
+    __tablename__ = "shelves"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(80), nullable=False)
+    icon = Column(String(8), default="📚", nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+
 class Book(Base):
     """A book the user is reading or has read."""
 
@@ -126,18 +142,28 @@ class Book(Base):
     title = Column(String(255), nullable=False, index=True)
     author = Column(String(255))
     isbn = Column(String(32), index=True)
+    publisher = Column(String(255))  # v1.0.2: filled from Google Books / Open Library
+    publication_year = Column(Integer)  # v1.0.2
     genre = Column(String(100))
     subgenre = Column(String(100))
     total_pages = Column(Integer)
     read_pages = Column(Integer, default=0, nullable=False)
     status = Column(SAEnum(BookStatus), default=BookStatus.NOT_STARTED, nullable=False)
     cover_url = Column(String(500))
+    icon = Column(String(8), default="📖", nullable=False)  # v1.0.2: per-book emoji
     bought_from = Column(String(255))
     price_tl = Column(Integer)
     bought_at = Column(DateTime)
     tags = Column(JSON, default=list)
     personal_note = Column(Text)
     goodreads_url = Column(String(500))
+    # v1.0.2: list of other works by the same author (filled at lookup time)
+    author_other_books = Column(JSON, default=list)
+    # v1.0.2: user-defined ad-hoc fields, e.g. {"raf_kodu": "A3", "ödünç": "Mert"}
+    extra_fields = Column(JSON, default=dict)
+    shelf_id = Column(
+        Integer, ForeignKey("shelves.id", ondelete="SET NULL"), nullable=True, index=True,
+    )
     # Note/session sequence per book (drives Note.code / Session.code).
     next_note_number = Column(Integer, default=1, nullable=False)
     next_session_number = Column(Integer, default=1, nullable=False)
@@ -159,6 +185,7 @@ class Book(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    shelf = relationship("Shelf", lazy="joined")
 
 
 class Session(Base):
@@ -202,6 +229,10 @@ class Note(Base):
     is_favorite = Column(Boolean, default=False, nullable=False, index=True)
     created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
     from_qa = Column(Boolean, default=False, nullable=False)
+    # v1.0.2: attached cover/scene photo (Telegram file_id; rendered in PDF if downloadable)
+    photo_file_id = Column(String(255))
+    # v1.0.2: photo that didn't OCR to text — kept as memory/scene rather than a transcript-bearing page
+    is_orphan_photo = Column(Boolean, default=False, nullable=False)
 
     book = relationship("Book", back_populates="notes")
     session = relationship("Session", back_populates="notes")
@@ -266,9 +297,52 @@ def init_db(db_path: str) -> None:
     event.listen(_engine, "connect", _enable_sqlite_extras)
     _session_factory = sessionmaker(bind=_engine, expire_on_commit=False)
     Base.metadata.create_all(_engine)
+    _migrate_add_missing_columns()
     _setup_fts5()
     _ensure_singleton_settings()
     logger.info("data.init_db.success", db_path=db_path)
+
+
+def _migrate_add_missing_columns() -> None:
+    """Light-weight schema migration: ADD any column that the ORM model has but
+    the on-disk table is missing.
+
+    `create_all` only creates NEW tables; it never alters existing ones. We need
+    this for forward-compatible deploys where a user's DB was created on v1.0.1
+    and we add new columns in v1.0.2 (icon, extra_fields, shelf_id, …).
+    """
+    if _engine is None:
+        return
+    # Map: table → list of (column_name, SQL type with default)
+    add_cols: dict[str, list[tuple[str, str]]] = {
+        "books": [
+            ("publisher",          "VARCHAR(255)"),
+            ("publication_year",   "INTEGER"),
+            ("icon",               "VARCHAR(8) NOT NULL DEFAULT '📖'"),
+            ("author_other_books", "TEXT DEFAULT '[]'"),
+            ("extra_fields",       "TEXT DEFAULT '{}'"),
+            ("shelf_id",           "INTEGER"),
+        ],
+        "notes": [
+            ("photo_file_id",     "VARCHAR(255)"),
+            ("is_orphan_photo",   "BOOLEAN NOT NULL DEFAULT 0"),
+        ],
+    }
+    try:
+        with _engine.begin() as conn:
+            for table, cols in add_cols.items():
+                existing = {row[1] for row in conn.exec_driver_sql(
+                    f"PRAGMA table_info({table})"
+                ).fetchall()}
+                for col_name, col_decl in cols:
+                    if col_name in existing:
+                        continue
+                    conn.exec_driver_sql(
+                        f"ALTER TABLE {table} ADD COLUMN {col_name} {col_decl}"
+                    )
+                    logger.info("data.migration.added_column", table=table, column=col_name)
+    except Exception as e:
+        logger.error("data.migration.failed", error=str(e), exc_info=True)
 
 
 def _setup_fts5() -> None:
@@ -814,6 +888,8 @@ async def add_note(
     definition: str | None = None,
     explanation: str | None = None,
     from_qa: bool = False,
+    photo_file_id: str | None = None,
+    is_orphan_photo: bool = False,
 ) -> Note:
     """Insert a new note. Allocates `code` like 'SUC001' from the book counter."""
     logger.info(
@@ -823,6 +899,7 @@ async def add_note(
         category=category.value,
         page=page,
         from_qa=from_qa,
+        is_orphan_photo=is_orphan_photo,
     )
 
     def _impl() -> Note:
@@ -842,6 +919,8 @@ async def add_note(
                 definition=definition,
                 explanation=explanation,
                 from_qa=from_qa,
+                photo_file_id=photo_file_id,
+                is_orphan_photo=is_orphan_photo,
             )
             s.add(note)
             s.flush()
@@ -1320,6 +1399,13 @@ def _compute_book_stats(
     category_counts: dict[str, int] = {cat.value: 0 for cat in Category}
     for note in notes:
         category_counts[note.category.value] += 1
+
+    # Pages read across sessions (delta of end_page - start_page summed)
+    pages_read = 0
+    for sess in sessions:
+        if sess.start_page and sess.end_page and sess.end_page > sess.start_page:
+            pages_read += sess.end_page - sess.start_page
+
     return {
         "session_count": len(sessions),
         "total_minutes": total_min,
@@ -1327,17 +1413,208 @@ def _compute_book_stats(
         "minutes_remainder": total_min % 60,
         "note_count": len(notes),
         "category_counts": category_counts,
+        "pages_read": pages_read,
+        "word_count":    sum(1 for n in notes if n.category == Category.WORD),
+        "concept_count": sum(1 for n in notes if n.category == Category.CONCEPT),
+        "quote_count":   sum(1 for n in notes if n.category == Category.QUOTE),
+        "idea_count":    sum(1 for n in notes if n.category == Category.IDEA),
         "started_at": to_local(sessions[0].started_at) if sessions else None,
         "ended_at": (
             to_local(sessions[-1].ended_at) if sessions and sessions[-1].ended_at else None
         ),
+        "calendar": _build_reading_calendar(sessions),
     }
 
 
+def _build_reading_calendar(sessions: list[Session]) -> list[dict[str, Any]]:
+    """For each month spanned by the sessions, build a calendar grid showing
+    which days had reading activity. Returns one dict per month:
+
+        {
+          "label": "Mart 2026",
+          "year": 2026, "month": 3,
+          "first_weekday": 0,        # 0=Monday … 6=Sunday
+          "days_in_month": 31,
+          "active_days": {3, 7, 14}, # days with ≥1 session that month
+          "minutes_per_day": {3: 45, 7: 30, …},
+        }
+    """
+    if not sessions:
+        return []
+    import calendar as _cal
+    months: dict[tuple[int, int], dict[str, Any]] = {}
+    tr_months = [
+        "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+        "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+    ]
+    for sess in sessions:
+        local = to_local(sess.started_at)
+        if local is None:
+            continue
+        key = (local.year, local.month)
+        if key not in months:
+            first_weekday = _cal.monthrange(local.year, local.month)[0]
+            days_in_month = _cal.monthrange(local.year, local.month)[1]
+            months[key] = {
+                "label": f"{tr_months[local.month - 1]} {local.year}",
+                "year": local.year,
+                "month": local.month,
+                "first_weekday": first_weekday,
+                "days_in_month": days_in_month,
+                "active_days": set(),
+                "minutes_per_day": {},
+            }
+        m = months[key]
+        m["active_days"].add(local.day)
+        m["minutes_per_day"][local.day] = (
+            m["minutes_per_day"].get(local.day, 0) + (sess.duration_min or 0)
+        )
+    # Convert sets to sorted lists for Jinja serialization
+    out: list[dict[str, Any]] = []
+    for key in sorted(months.keys()):
+        m = months[key]
+        m["active_days"] = sorted(m["active_days"])
+        out.append(m)
+    return out
+
+
+async def render_note_share(
+    *, note: Note, book: Book | None, fmt: str, user_name: str,
+) -> tuple[bytes, str, str]:
+    """Render a single note as a shareable image-like PDF.
+
+    `fmt` is one of: 'square', 'post', 'story', 'a4', 'a5'.
+    Returns (bytes, filename, mime_type). For all sizes we produce a PDF
+    (WeasyPrint can't output raster directly, and Pillow would be a new dep);
+    the PDF page is sized to the exact requested aspect ratio. Most social
+    apps accept the resulting "screenshot of page 1" workflow.
+    """
+    sizes_mm = {
+        # ~96dpi sized to match common pixel canvases (px ≈ mm * 3.78)
+        "square": ("285mm", "285mm"),   # 1080x1080 ≈ 285mm
+        "post":   ("285mm", "285mm"),
+        "story":  ("285mm", "508mm"),   # 1080x1920
+        "a4":     ("210mm", "297mm"),
+        "a5":     ("148mm", "210mm"),
+    }
+    if fmt not in sizes_mm:
+        fmt = "square"
+    w, h = sizes_mm[fmt]
+    fmt_label = {
+        "square": "Kare", "post": "Instagram Post",
+        "story": "Instagram Story", "a4": "A4", "a5": "A5",
+    }[fmt]
+    safe_title = (book.title if book else "kitap")
+    safe_short = (book.short_code if book else "")
+    page_s = note.page if note.page is not None else "—"
+    created = to_local(note.created_at)
+    date_str = created.strftime("%d %B %Y · %H:%M") if created else ""
+    transcript_html = (note.transcript or "").replace("\n", "<br/>")
+    is_quote = note.category == Category.QUOTE
+    css = f"""
+    @page {{ size: {w} {h}; margin: 0; }}
+    body {{
+      margin: 0; padding: 0;
+      width: {w}; height: {h};
+      font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+      color: #2a2520;
+      background: #fdfaf3;
+      background-image:
+        radial-gradient(circle at 18% 22%, rgba(122,62,31,.07), transparent 50%),
+        radial-gradient(circle at 88% 78%, rgba(122,62,31,.06), transparent 50%);
+    }}
+    .wrap {{
+      box-sizing: border-box;
+      padding: 18mm 16mm;
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }}
+    .brand {{
+      font-family: -apple-system, "Segoe UI", sans-serif;
+      font-size: 10pt;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: #8a7e72;
+    }}
+    .body {{
+      font-size: 26pt;
+      line-height: 1.45;
+      color: #2a2520;
+      font-weight: 600;
+      max-width: 100%;
+      text-align: center;
+      padding: 4mm 0;
+    }}
+    .body.quote {{
+      font-style: italic;
+      border-left: 1mm solid #7a3e1f;
+      padding-left: 6mm;
+      text-align: left;
+    }}
+    .meta {{
+      border-top: 1px solid #c8b99e;
+      padding-top: 4mm;
+      font-family: -apple-system, "Segoe UI", sans-serif;
+      font-size: 11pt;
+      color: #6e6358;
+    }}
+    .book-title {{ font-weight: 700; color: #2a2520; font-size: 13pt; }}
+    .who {{ margin-top: 2mm; font-style: italic; }}
+    .ornament {{
+      text-align: center; color: #7a3e1f;
+      letter-spacing: 8px; margin: 6mm 0 4mm; font-size: 12pt;
+    }}
+    """
+    html_str = f"""<!doctype html>
+    <html><head><meta charset="utf-8"><style>{css}</style></head><body>
+    <div class="wrap">
+      <div class="brand">Kitabi · paylaşım</div>
+      <div class="body {'quote' if is_quote else ''}">
+        “{transcript_html}”
+      </div>
+      <div>
+        <div class="ornament">· · ·</div>
+        <div class="meta">
+          <div class="book-title">{safe_title}</div>
+          <div>{f'<i>{book.author}</i> · ' if book and book.author else ''}s.{page_s} · {safe_short}</div>
+          {f'<div class="who">— {user_name}</div>' if user_name else ''}
+          <div>{date_str} · {fmt_label}</div>
+        </div>
+      </div>
+    </div>
+    </body></html>
+    """
+    def _impl() -> bytes:
+        return HTML(string=html_str, base_url="templates").write_pdf()
+    pdf_bytes = await asyncio.to_thread(_impl)
+    safe_fname = "".join(c if c.isalnum() else "_" for c in safe_title)[:40] or "not"
+    return pdf_bytes, f"{safe_fname}-{note.code}-{fmt}.pdf", "application/pdf"
+
+
 async def render_pdf(book_id: int) -> bytes:
-    """Generate the reading-journal PDF for a book."""
+    """Generate the reading-journal PDF for a book.
+
+    v1.0.2: lazily fetches the author's 3 other well-known works via Gemini
+    if the book doesn't already have them cached in `author_other_books`,
+    and persists the result for next time.
+    """
     t0 = time.time()
     logger.info("data.render_pdf.start", book_id=book_id)
+
+    # Step 1 (off-thread): make sure author_other_books is populated.
+    # We do this before the sync render block so we can await the AI call.
+    book_quick = await get_book(book_id)
+    if not book_quick:
+        raise ValueError(f"Book {book_id} not found")
+    cached_aob = getattr(book_quick, "author_other_books", None) or []
+    if (not cached_aob) and book_quick.author:
+        try:
+            from . import ai as _ai
+            others = await _ai.list_author_other_books(book_quick.author, book_quick.title)
+            if others:
+                await update_book(book_id, author_other_books=others)
+        except Exception as e:
+            logger.warning("data.render_pdf.author_other_books_failed", error=str(e))
 
     def _impl() -> bytes:
         with db_session() as s:
@@ -1347,6 +1624,21 @@ async def render_pdf(book_id: int) -> bytes:
             sessions = sorted(book.sessions, key=lambda x: x.started_at)
             notes = sorted(book.notes, key=lambda x: x.created_at)
             favorites = [n for n in notes if n.is_favorite]
+            glossary_notes = [
+                n for n in notes if n.category in (Category.WORD, Category.CONCEPT)
+            ]
+            # Tag-cloud weights: relative font-size from 0.9em to 1.8em based
+            # on rank — most-recent first since we have no real "frequency"
+            # signal (each glossary note is unique). Newest = biggest.
+            glossary_cloud = []
+            for idx, n in enumerate(reversed(glossary_notes)):
+                weight = 1.0 + (0.6 * (1.0 - idx / max(len(glossary_notes) - 1, 1)))
+                glossary_cloud.append({
+                    "term": (n.transcript or "")[:60],
+                    "category": n.category.value,
+                    "weight_em": round(weight, 2),
+                    "note_code": n.code,
+                })
 
             template = _jinja_env.get_template("journal.html")
             html_str = template.render(
@@ -1354,12 +1646,13 @@ async def render_pdf(book_id: int) -> bytes:
                 sessions=sessions,
                 notes=notes,
                 Category=Category,
-                glossary=[
-                    n for n in notes if n.category in (Category.WORD, Category.CONCEPT)
-                ],
+                glossary=glossary_notes,
+                glossary_cloud=glossary_cloud,
                 summaries=[n for n in notes if n.category == Category.SUMMARY],
                 favorites=favorites,
                 stats=_compute_book_stats(book, sessions, notes),
+                author_other_books=list(getattr(book, "author_other_books", None) or []),
+                extra_fields=dict(getattr(book, "extra_fields", None) or {}),
                 generated_at=to_local(utcnow()),
                 to_local=to_local,
             )
@@ -1501,20 +1794,129 @@ async def export_all_zip() -> bytes:
     return buf.getvalue()
 
 
-# ─────────────────────────── Book metadata lookup (Google Books) ───────────────────────────
+# ─────────────────────────── Book metadata lookup (Google Books + Open Library fallback) ───────────────────────────
 
 
 GOOGLE_BOOKS_API = "https://www.googleapis.com/books/v1/volumes"
+OPENLIBRARY_ISBN_API = "https://openlibrary.org/api/books"
+OPENLIBRARY_SEARCH_API = "https://openlibrary.org/search.json"
 
 
-async def lookup_book_metadata(isbn: str) -> dict[str, Any] | None:
-    """Fetch book metadata from Google Books by ISBN."""
-    isbn_clean = "".join(c for c in isbn if c.isdigit() or c == "X")
-    if not isbn_clean:
-        logger.warning("data.lookup_book.invalid_isbn", isbn=isbn)
+def normalize_isbn(text: str | None) -> str | None:
+    """Strip dashes/spaces from an ISBN, validate it's 10 or 13 digits (X allowed
+    only as last digit of ISBN-10). Returns the clean ISBN or None if invalid.
+    """
+    if not text:
         return None
+    cleaned = "".join(c for c in str(text) if c.isdigit() or c.upper() == "X")
+    cleaned = cleaned.upper()
+    # ISBN-13: all digits; ISBN-10: 9 digits + (digit|X)
+    if len(cleaned) == 13 and cleaned.isdigit():
+        return cleaned
+    if len(cleaned) == 10 and cleaned[:9].isdigit() and (cleaned[9].isdigit() or cleaned[9] == "X"):
+        return cleaned
+    return None
 
-    logger.info("data.lookup_book.start", isbn=isbn_clean)
+
+def _gb_to_metadata(info: dict[str, Any], fallback_isbn: str | None = None) -> dict[str, Any]:
+    """Map a Google Books `volumeInfo` payload to our metadata dict shape."""
+    authors = info.get("authors") or []
+    image_links = info.get("imageLinks") or {}
+    categories = info.get("categories") or []
+    isbn = fallback_isbn
+    for ident in info.get("industryIdentifiers", []) or []:
+        if ident.get("type") == "ISBN_13":
+            isbn = ident.get("identifier") or isbn
+            break
+        if ident.get("type") == "ISBN_10":
+            isbn = isbn or ident.get("identifier")
+    cover_url = (
+        image_links.get("extraLarge") or image_links.get("large")
+        or image_links.get("medium") or image_links.get("thumbnail")
+        or image_links.get("smallThumbnail")
+    )
+    if cover_url and cover_url.startswith("http://"):
+        cover_url = "https://" + cover_url[len("http://"):]
+    pub_year = None
+    pubdate = info.get("publishedDate") or ""
+    if pubdate[:4].isdigit():
+        pub_year = int(pubdate[:4])
+    return {
+        "title": info.get("title") or "",
+        "author": ", ".join(authors) if authors else None,
+        "genre": categories[0] if categories else None,
+        "subgenre": categories[1] if len(categories) > 1 else None,
+        "total_pages": info.get("pageCount"),
+        "cover_url": cover_url,
+        "isbn": isbn,
+        "publisher": info.get("publisher"),
+        "publication_year": pub_year,
+        "goodreads_url": None,
+    }
+
+
+def _ol_isbn_to_metadata(entry: dict[str, Any], isbn: str) -> dict[str, Any]:
+    """Map an Open Library `?jscmd=data` payload for a single book to our shape."""
+    authors_list = entry.get("authors") or []
+    author = ", ".join(a.get("name", "") for a in authors_list if a.get("name")) or None
+    subjects = entry.get("subjects") or []
+    genre = subjects[0].get("name") if subjects and isinstance(subjects[0], dict) else None
+    subgenre = subjects[1].get("name") if len(subjects) > 1 and isinstance(subjects[1], dict) else None
+    cover = entry.get("cover") or {}
+    cover_url = cover.get("large") or cover.get("medium") or cover.get("small")
+    if cover_url and cover_url.startswith("http://"):
+        cover_url = "https://" + cover_url[len("http://"):]
+    publishers = entry.get("publishers") or []
+    publisher = (
+        publishers[0].get("name") if publishers and isinstance(publishers[0], dict)
+        else None
+    )
+    pub_year = None
+    pubdate = entry.get("publish_date") or ""
+    for tok in pubdate.split():
+        if tok.isdigit() and len(tok) == 4:
+            pub_year = int(tok); break
+    return {
+        "title": entry.get("title") or "",
+        "author": author,
+        "genre": genre,
+        "subgenre": subgenre,
+        "total_pages": entry.get("number_of_pages"),
+        "cover_url": cover_url,
+        "isbn": isbn,
+        "publisher": publisher,
+        "publication_year": pub_year,
+        "goodreads_url": None,
+    }
+
+
+def _ol_search_doc_to_metadata(doc: dict[str, Any]) -> dict[str, Any]:
+    """Map an Open Library search result doc to our metadata shape."""
+    isbn_list = doc.get("isbn") or []
+    isbn = next((i for i in isbn_list if len(str(i)) == 13), None) or (isbn_list[0] if isbn_list else None)
+    cover_id = doc.get("cover_i")
+    cover_url = (
+        f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg" if cover_id else None
+    )
+    authors = doc.get("author_name") or []
+    subjects = doc.get("subject") or []
+    publishers = doc.get("publisher") or []
+    return {
+        "title": doc.get("title") or "",
+        "author": ", ".join(authors) if authors else None,
+        "genre": subjects[0] if subjects else None,
+        "subgenre": subjects[1] if len(subjects) > 1 else None,
+        "total_pages": doc.get("number_of_pages_median"),
+        "cover_url": cover_url,
+        "isbn": isbn,
+        "publisher": publishers[0] if publishers else None,
+        "publication_year": doc.get("first_publish_year"),
+        "goodreads_url": None,
+    }
+
+
+async def _google_books_by_isbn(isbn_clean: str) -> dict[str, Any] | None:
+    """Single Google Books ISBN call. Returns metadata dict or None."""
     t0 = time.time()
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -1526,43 +1928,151 @@ async def lookup_book_metadata(isbn: str) -> dict[str, Any] | None:
             payload = r.json()
     except Exception as e:
         logger.warning(
-            "data.lookup_book.http_failed",
-            isbn=isbn_clean,
-            error=str(e),
+            "data.lookup_book.google_books_failed",
+            isbn=isbn_clean, error=str(e),
             duration_ms=int((time.time() - t0) * 1000),
         )
         return None
-
     items = payload.get("items") or []
     if not items:
-        logger.info("data.lookup_book.not_found", isbn=isbn_clean)
+        logger.info("data.lookup_book.google_books_empty", isbn=isbn_clean)
+        return None
+    return _gb_to_metadata(items[0].get("volumeInfo", {}), fallback_isbn=isbn_clean)
+
+
+async def _openlibrary_by_isbn(isbn_clean: str) -> dict[str, Any] | None:
+    """Open Library ISBN call. Used as fallback when Google Books fails/empty."""
+    t0 = time.time()
+    key = f"ISBN:{isbn_clean}"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(
+                OPENLIBRARY_ISBN_API,
+                params={"bibkeys": key, "format": "json", "jscmd": "data"},
+            )
+            r.raise_for_status()
+            payload = r.json() or {}
+    except Exception as e:
+        logger.warning(
+            "data.lookup_book.openlibrary_failed",
+            isbn=isbn_clean, error=str(e),
+            duration_ms=int((time.time() - t0) * 1000),
+        )
+        return None
+    entry = payload.get(key)
+    if not entry:
+        logger.info("data.lookup_book.openlibrary_empty", isbn=isbn_clean)
+        return None
+    return _ol_isbn_to_metadata(entry, isbn_clean)
+
+
+async def lookup_book_metadata(isbn: str) -> dict[str, Any] | None:
+    """Fetch book metadata by ISBN with Google Books → Open Library fallback.
+
+    Returns None only if BOTH sources fail or return empty. Handles 429 / network
+    errors on Google by transparently falling back to Open Library.
+    """
+    isbn_clean = normalize_isbn(isbn)
+    if not isbn_clean:
+        logger.warning("data.lookup_book.invalid_isbn", isbn=isbn)
         return None
 
-    info = items[0].get("volumeInfo", {})
-    authors = info.get("authors") or []
-    image_links = info.get("imageLinks") or {}
-    categories = info.get("categories") or []
+    logger.info("data.lookup_book.start", isbn=isbn_clean)
+    meta = await _google_books_by_isbn(isbn_clean)
+    if meta:
+        logger.info("data.lookup_book.found", isbn=isbn_clean, source="google_books")
+        return meta
+    meta = await _openlibrary_by_isbn(isbn_clean)
+    if meta:
+        logger.info("data.lookup_book.found", isbn=isbn_clean, source="openlibrary")
+        return meta
+    logger.info("data.lookup_book.not_found_anywhere", isbn=isbn_clean)
+    return None
 
-    cover_url = (
-        image_links.get("extraLarge")
-        or image_links.get("large")
-        or image_links.get("medium")
-        or image_links.get("thumbnail")
-        or image_links.get("smallThumbnail")
-    )
-    if cover_url and cover_url.startswith("http://"):
-        cover_url = "https://" + cover_url[len("http://"):]
 
-    return {
-        "title": info.get("title") or "",
-        "author": ", ".join(authors) if authors else None,
-        "genre": categories[0] if categories else None,
-        "subgenre": categories[1] if len(categories) > 1 else None,
-        "total_pages": info.get("pageCount"),
-        "cover_url": cover_url,
-        "isbn": isbn_clean,
-        "goodreads_url": None,
-    }
+async def _google_books_by_title_author(
+    title: str | None, author: str | None
+) -> dict[str, Any] | None:
+    q_parts: list[str] = []
+    if title:
+        q_parts.append(f'intitle:"{title}"')
+    if author:
+        q_parts.append(f'inauthor:"{author}"')
+    query = " ".join(q_parts)
+    t0 = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(GOOGLE_BOOKS_API, params={"q": query, "maxResults": 1})
+            r.raise_for_status()
+            payload = r.json()
+    except Exception as e:
+        logger.warning("data.lookup_by_title.google_books_failed", error=str(e),
+                       duration_ms=int((time.time() - t0) * 1000))
+        return None
+    items = payload.get("items") or []
+    if not items:
+        logger.info("data.lookup_by_title.google_books_empty")
+        return None
+    meta = _gb_to_metadata(items[0].get("volumeInfo", {}))
+    # Fill the original input if Google left a field empty
+    if not meta.get("title") and title:
+        meta["title"] = title
+    if not meta.get("author") and author:
+        meta["author"] = author
+    return meta
+
+
+async def _openlibrary_by_title_author(
+    title: str | None, author: str | None
+) -> dict[str, Any] | None:
+    params: dict[str, Any] = {"limit": 1}
+    if title:
+        params["title"] = title
+    if author:
+        params["author"] = author
+    t0 = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(OPENLIBRARY_SEARCH_API, params=params)
+            r.raise_for_status()
+            payload = r.json() or {}
+    except Exception as e:
+        logger.warning("data.lookup_by_title.openlibrary_failed", error=str(e),
+                       duration_ms=int((time.time() - t0) * 1000))
+        return None
+    docs = payload.get("docs") or []
+    if not docs:
+        logger.info("data.lookup_by_title.openlibrary_empty")
+        return None
+    meta = _ol_search_doc_to_metadata(docs[0])
+    if not meta.get("title") and title:
+        meta["title"] = title
+    if not meta.get("author") and author:
+        meta["author"] = author
+    return meta
+
+
+async def lookup_book_by_title_author(
+    title: str | None, author: str | None = None
+) -> dict[str, Any] | None:
+    """Title+author search with Google Books → Open Library fallback.
+
+    Used when cover-photo extraction yields a title (and maybe author) but no
+    ISBN, or when ISBN lookup fails. Same return shape as `lookup_book_metadata`.
+    """
+    if not title and not author:
+        return None
+    logger.info("data.lookup_by_title.start", title=title, author=author)
+    meta = await _google_books_by_title_author(title, author)
+    if meta:
+        logger.info("data.lookup_by_title.found", source="google_books")
+        return meta
+    meta = await _openlibrary_by_title_author(title, author)
+    if meta:
+        logger.info("data.lookup_by_title.found", source="openlibrary")
+        return meta
+    logger.info("data.lookup_by_title.not_found_anywhere")
+    return None
 
 
 # ─────────────────────────── Serialization helpers ───────────────────────────
@@ -1575,12 +2085,15 @@ def _book_to_dict(b: Book) -> dict[str, Any]:
         "title": b.title,
         "author": b.author,
         "isbn": b.isbn,
+        "publisher": getattr(b, "publisher", None),
+        "publication_year": getattr(b, "publication_year", None),
         "genre": b.genre,
         "subgenre": b.subgenre,
         "total_pages": b.total_pages,
         "read_pages": b.read_pages,
         "status": b.status.value if b.status else None,
         "cover_url": b.cover_url,
+        "icon": getattr(b, "icon", "📖"),
         "bought_from": b.bought_from,
         "price_tl": b.price_tl,
         "bought_at": b.bought_at.isoformat() if b.bought_at else None,
@@ -1590,6 +2103,9 @@ def _book_to_dict(b: Book) -> dict[str, Any]:
         "one_line_review": b.one_line_review,
         "would_recommend": b.would_recommend,
         "goodreads_url": b.goodreads_url,
+        "author_other_books": getattr(b, "author_other_books", []) or [],
+        "extra_fields": getattr(b, "extra_fields", {}) or {},
+        "shelf_id": getattr(b, "shelf_id", None),
         "created_at": b.created_at.isoformat() if b.created_at else None,
     }
 
@@ -1621,4 +2137,96 @@ def _note_to_dict(n: Note) -> dict[str, Any]:
         "is_favorite": n.is_favorite,
         "created_at": n.created_at.isoformat() if n.created_at else None,
         "from_qa": n.from_qa,
+        "photo_file_id": getattr(n, "photo_file_id", None),
+        "is_orphan_photo": getattr(n, "is_orphan_photo", False),
     }
+
+
+# ─────────────────────────── Shelf CRUD (v1.0.2) ───────────────────────────
+
+
+async def list_shelves() -> list[Shelf]:
+    """Return all shelves, oldest first."""
+    def _impl() -> list[Shelf]:
+        with db_session() as s:
+            return list(
+                s.scalars(select(Shelf).order_by(Shelf.created_at.asc())).all()
+            )
+    return await asyncio.to_thread(_impl)
+
+
+async def get_shelf(shelf_id: int) -> Shelf | None:
+    def _impl() -> Shelf | None:
+        with db_session() as s:
+            return s.get(Shelf, shelf_id)
+    return await asyncio.to_thread(_impl)
+
+
+async def create_shelf(name: str, icon: str = "📚") -> Shelf:
+    def _impl() -> Shelf:
+        with db_session() as s:
+            sh = Shelf(name=name.strip()[:80], icon=(icon or "📚")[:8])
+            s.add(sh)
+            s.flush()
+            s.refresh(sh)
+            return sh
+    out = await asyncio.to_thread(_impl)
+    mark_dirty()
+    return out
+
+
+async def delete_shelf(shelf_id: int) -> bool:
+    """Delete a shelf. Books remain (their shelf_id becomes NULL via FK)."""
+    def _impl() -> bool:
+        with db_session() as s:
+            sh = s.get(Shelf, shelf_id)
+            if sh is None:
+                return False
+            s.delete(sh)
+            return True
+    ok = await asyncio.to_thread(_impl)
+    mark_dirty()
+    return ok
+
+
+async def books_in_shelf(shelf_id: int | None) -> list[Book]:
+    """Return books on a shelf. Pass `shelf_id=None` for books without a shelf."""
+    def _impl() -> list[Book]:
+        with db_session() as s:
+            q = select(Book)
+            if shelf_id is None:
+                q = q.where(Book.shelf_id.is_(None))
+            else:
+                q = q.where(Book.shelf_id == shelf_id)
+            return list(s.scalars(q.order_by(Book.title.asc())).all())
+    return await asyncio.to_thread(_impl)
+
+
+# ─────────────────────────── Book extra-fields helpers (v1.0.2) ──────────────
+
+
+async def set_book_extra_field(book_id: int, key: str, value: str) -> None:
+    """Add or update a user-defined extra field on a book."""
+    def _impl() -> None:
+        with db_session() as s:
+            b = s.get(Book, book_id)
+            if not b:
+                return
+            ef = dict(b.extra_fields or {})
+            ef[key.strip()] = value
+            b.extra_fields = ef
+    await asyncio.to_thread(_impl)
+    mark_dirty()
+
+
+async def delete_book_extra_field(book_id: int, key: str) -> None:
+    def _impl() -> None:
+        with db_session() as s:
+            b = s.get(Book, book_id)
+            if not b:
+                return
+            ef = dict(b.extra_fields or {})
+            ef.pop(key, None)
+            b.extra_fields = ef
+    await asyncio.to_thread(_impl)
+    mark_dirty()

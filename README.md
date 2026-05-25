@@ -34,25 +34,32 @@ Toplam süre: **~40-55 dakika**. Toplam maliyet: **0 TL** (tüm servislerin ücr
 |---|---|
 | 🎤 **Sesli not** | Telegram'a ses gönder → Gemini transkript eder → kategori önerir → kaydeder |
 | 📷 **Sayfa fotoğrafı** | Foto gönder → Gemini OCR + sayfa numarası otomatik bulunur → not olarak ekler |
-| 📸 **Kapak fotoğrafıyla kitap ekleme** | Kitap kapağını çek → Gemini ISBN/başlık/yazar tanır → Google Books'tan metadata + kapak otomatik gelir |
+| 📸 **Kapak fotoğrafıyla kitap ekleme** | Kitap kapağını çek → Gemini ISBN/başlık/yazar tanır → metadata + kapak otomatik gelir |
+| 🌐 **ISBN çift kaynak** | Google Books başarısız olursa Open Library'ye otomatik fallback; 429 / boş sonuç olsa bile kitap bulunur. Tire/boşluk içeren ISBN'ler otomatik temizlenir |
+| 🖼️ **Orphan photo (sahne)** | OCR'de metin yoksa bot kitapla ilgisi olmayan görsel sayar; senden bir not alır, PDF'te "📷 Sahne" olarak gösterir |
 | 🏷️ **Otomatik kategorize** | Alıntı / Fikir / Yeni Bilgi / Kelime / Kavram / Özet — Gemini önerir, sen onaylarsın |
 | 📚 **Kelime + Kavram tanımı** | Bu kategorilerde Gemini otomatik tanım ekler |
 | 💡 **"Açıkla" özelliği** | Bir notu Gemini ile genişlet, eleştir, bağlam ekle |
-| ❓ **Soru-cevap modu** | "Bu kavram neydi?" gibi sor → Gemini kitap + notların context'iyle cevaplar (kısa-net, dolgu yok) |
+| ❓ **Soru-cevap modu** | "Bu kavram neydi?" gibi sor → Gemini kitap + notların context'iyle cevaplar |
+| ✂️ **Öz Gemini cevapları** | Tüm AI çıktıları "dolgu kelime yok, ≤3 cümle" kuralıyla üretilir — bilgi kaybı yok, gürültü yok |
 | 📑 **Çoklu oturum** | Aynı anda birden fazla kitap okuyabilirsin; bot doğru oturuma yönlendirir |
-| ✏️ **Oturum düzenle/sil** | Aktif oturumda sayfa numarasını düzelt veya yanlış açılan oturumu (+notları) sil |
+| ✏️ **Oturum düzenle/sil** | Aktif oturumda sayfa numarasını düzelt veya yanlış açılan oturumu (+notları) sil; açık oturum listesinden direkt erişim |
 | 🔤 **Kısa kod sistemi** | Her kitap/oturum/not human-readable kod alır: `SVC`, `SVC-S03`, `SVC001` |
 | 📋 **Oturum recap'i** | Yeni oturum başında geçen özetlerini geri okur |
-| 🔍 **Tam-metin arama** | Tüm notlarında FTS5 ile anında arama |
-| 📖 **Sözlük** | Tüm Kelime + Kavram notları alfabetik tek listede |
+| 🔍 **Tam-metin arama** | Tüm notlarında FTS5 ile anında arama; ilk 5 sonuç, "Daha fazla göster" ile +5'er |
+| 📖 **Sözlük + tag cloud** | Tüm Kelime + Kavram notları alfabetik; PDF'te bir de kelime bulutu var |
 | 💬 **Alıntılar + favoriler** | Tüm Alıntı notların tek yerde; ⭐ ile favori işaretle |
-| 📊 **Detaylı istatistik** | Streak, en verimli zaman aralığı, oturum dağılımı, gerçek verilerle (ana menüde de özet) |
+| 📤 **Not paylaş** | Bir alıntıyı/notu twit kartı gibi paylaş — Kare, IG Post, IG Story, A4, A5 boyutları |
+| 📊 **Detaylı istatistik** | Streak, en verimli zaman aralığı, oturum dağılımı (ana menüde de özet) |
+| 🎨 **Kitap ikonu + raflar** | Her kitap kendi emoji ikonunu alır. 10+ kitapta otomatik raf sistemi ("Felsefe", "Tarih"…) devreye girer |
+| 🛠️ **Kullanıcı tanımlı alanlar** | Kitap düzenleme menüsünden "Raf kodu", "Ödünç verildi" gibi kendi sütunlarını ekle; sınırsız |
+| 📸 **Kapak grid (albüm)** | "Kapakları topluca göster" → kütüphane kapakları Telegram albümü olarak (10'arlı) gönderilir |
 | 🏁 **Bitirme ritüeli** | Kitap bitince ⭐ puan + tek cümlelik yorum + favori alıntı seçimi + öneri |
-| 📕 **PDF günlüğü** | Tasarımlı PDF: kapak (rating + review), oturum kronolojisi, sözlük, favori alıntılar, istatistik |
-| 📤 **Esnek export** | PDF, JSON, CSV, Markdown, ZIP — tüm veriler senin Cloud Storage'ında, hep dışa alınabilir |
+| 📕 **Zengin PDF günlüğü** | Kapak (rating + review), künye (yayınevi + yazarın diğer 3 kitabı + özel alanlar), istatistik (okuma takvimi + sayfa/kelime/kavram sayaçları), oturum kronolojisi, kelime bulutu, sözlük, favori alıntılar, yeniden tasarlanmış kapanış |
+| 🗂️ **Esnek export** | PDF, JSON, CSV, Markdown, ZIP — tüm veriler senin Cloud Storage'ında, hep dışa alınabilir |
 | 🔔 **Proaktif hatırlatma** | Bot "uzun süredir okumadın", "hâlâ okuyor musun?" gibi nudge'lar atar (opsiyonel) |
 | ⚙️ **Ayarlar** | Hatırlatma sıklığı, otomatik kategori, otomatik açıklama — hepsi tek menüde toggle |
-| 🔄 **Şeffaf işlem mesajları** | Uzun süren AI çağrılarında (ASR, OCR, soru-cevap) "İşleniyor..." placeholder mesajı, bitince silinir |
+| 🔄 **Şeffaf işlem mesajları** | Uzun süren AI çağrılarında (ASR, OCR, soru-cevap, PDF, export) "🔄 İşleniyor…" placeholder mesajı, bitince silinir |
 
 ## Slash komutları
 
@@ -60,13 +67,30 @@ Telegram'ın `/` menüsünde her özelliğe kestirme komut var:
 
 - `/start` — Ana menü
 - `/oturum` — Yeni okuma oturumu başlat
-- `/kitaplar` — Kütüphanedeki kitaplar
-- `/yeni` — Yeni kitap ekle
+- `/oturumlar` — Açık oturumları gör, düzenle ya da sil
+- `/kitaplar` — Kütüphanedeki kitaplar (10+ kitapta raflara döner)
+- `/yeni` — Yeni kitap ekle (yazı / ISBN / kapak fotoğrafı)
 - `/ara` — Notlarda ara
 - `/sozluk` — Sözlük (Kelime + Kavram)
 - `/alintilar` — Alıntılar
 - `/istatistik` — İstatistik
 - `/ayarlar` — Bot ayarları
+- `/yardim` — Kısa kullanım rehberi
+
+## v1.0.2 — yeni özellikler özeti
+
+- 🌐 **ISBN çift kaynak**: Google Books başarısız olursa Open Library devreye girer (anonim Cloud Run IP'leriyle 429 sorunu çözüldü)
+- 📷 **Orphan photo akışı**: OCR'siz görseli "sahne" notu olarak sakla, PDF'te ayrı stillendirilmiş bölüm
+- 📕 **Yeniden tasarlanmış PDF**: okuma takvimi (ay grid), kelime bulutu, yazarın diğer 3 kitabı, özel alanlar, yeniden organize edilmiş kapanış sayfası
+- 🛠️ **Zenginleştirilmiş kitap düzenleme**: title/yazar/yayınevi/yıl/genre/ISBN dahil tüm alanlar düzenlenebilir; kullanıcı kendi alanını ekleyebilir (Book.extra_fields JSON)
+- 🎨 **Kitap ikonu + raf sistemi**: her kitap kendi emoji'sini alır; 10+ kitapta otomatik raf landing sayfası
+- 📸 **Kapak grid albümü**: kapakları Telegram media group olarak topluca gönder
+- 📤 **Not paylaş**: bir notu twit görseli gibi 5 farklı boyutta PDF olarak çıkar
+- ✂️ **Daha öz Gemini cevapları**: 12 dolgu kelimesi açıkça yasaklı, ≤3 cümle kuralı
+- ⬇️ **"Daha fazla göster" pagination**: alıntı/sözlük/arama listelerinde
+- 🔄 **Progress mesajları her uzun işlemde**: PDF, export, AI çağrıları
+- 📋 **`/oturumlar` ve `/yardim` slash komutları**
+- 🗂️ **Otomatik DB migration**: v1.0.1 → v1.0.2 geçişi tek redeploy ile (yeni sütunlar ALTER TABLE ile eklenir)
 
 ## Mimari
 
@@ -77,12 +101,16 @@ Telegram'ın `/` menüsünde her özelliğe kestirme komut var:
                         │
                         ├─► Cloud Storage   (SQLite veritabanı snapshot)
                         ├─► Secret Manager  (token + key)
-                        ├─► Gemini API      (AI: ASR, OCR, kategori, soru-cevap)
+                        ├─► Gemini API      (AI: ASR, OCR, kategori, soru-cevap, yazar bilgisi)
+                        ├─► Google Books    (ISBN/title metadata — birinci kaynak)
+                        ├─► Open Library    (ikinci kaynak; Google Books 429 / boş olunca)
                         │
    Cloud Scheduler ─────┘   (günlük "hâlâ okuyor musun?" / "kitap bekliyor")
 ```
 
 **Persistence:** Cloud Run diski uçucu — bot SQLite'ı her 60 sn'de bir Cloud Storage bucket'a SQLite Online Backup API ile tutarlı snapshot olarak yedekliyor; container açılırken indiriyor.
+
+**Şema migration:** Her container başlangıcında `_migrate_add_missing_columns` çalışır. ORM modelinde olup tablodaki olmayan sütunları `ALTER TABLE ADD COLUMN` ile ekler. v1.0.1 DB'si v1.0.2 koduyla otomatik uyumlu hale gelir — manuel migration script gerekmez.
 
 **Kod yapısı (5 Python dosyası):**
 

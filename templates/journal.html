@@ -48,7 +48,7 @@
   </div>
 </div>
 
-{# ───────────────────────── PAGE 2 — KÜNYE ───────────────────────── #}
+{# ───────────────────────── PAGE 2 — KÜNYE (rich metadata) ───────────────────────── #}
 <div class="page">
   <div class="page-inner">
     <h1 class="page-title">Künye</h1>
@@ -58,6 +58,12 @@
         <div class="meta-label">Kitap</div>
         <div class="val"><strong>{{ book.title }}</strong>{% if book.author %}<br/>{{ book.author }}{% endif %}</div>
       </div>
+      {% if book.publisher %}
+      <div class="meta-block">
+        <div class="meta-label">Yayınevi</div>
+        <div class="val">{{ book.publisher }}{% if book.publication_year %} · {{ book.publication_year }}{% endif %}</div>
+      </div>
+      {% endif %}
       {% if book.genre %}
       <div class="meta-block">
         <div class="meta-label">Tür</div>
@@ -100,10 +106,28 @@
         </div>
       </div>
       {% endif %}
+
+      {% if extra_fields %}
+      <div class="meta-block" style="grid-column: 1 / -1;">
+        <div class="meta-label">Kişisel Alanlar</div>
+        <div class="val">
+          {% for k, v in extra_fields.items() %}
+            <div><strong>{{ k }}:</strong> {{ v }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </div>
 
+    {% if author_other_books %}
+    <h2 class="section">{{ book.author }} — diğer eserleri</h2>
+    <ul class="other-books">
+      {% for t in author_other_books %}<li>{{ t }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+
     {% if book.personal_note %}
-    <div class="meta-label">Neden Aldım</div>
+    <h2 class="section">Neden Aldım</h2>
     <div class="personal-note">{{ book.personal_note }}</div>
     {% endif %}
 
@@ -122,7 +146,7 @@
   </div>
 </div>
 
-{# ───────────────────────── PAGE 3 — STATS ───────────────────────── #}
+{# ───────────────────────── PAGE 3 — STATS (rich) ───────────────────────── #}
 <div class="page">
   <div class="page-inner">
     <h1 class="page-title">Okuma İstatistikleri</h1>
@@ -134,6 +158,12 @@
         <div class="lbl">Toplam Süre</div>
       </div>
       <div class="stat-card"><div class="num">{{ stats.note_count }}</div><div class="lbl">Not</div></div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card alt"><div class="num">{{ stats.pages_read }}</div><div class="lbl">Sayfa</div></div>
+      <div class="stat-card alt"><div class="num">{{ stats.word_count }}</div><div class="lbl">Yeni Kelime</div></div>
+      <div class="stat-card alt"><div class="num">{{ stats.concept_count }}</div><div class="lbl">Yeni Kavram</div></div>
     </div>
 
     {% if stats.category_counts %}
@@ -155,6 +185,27 @@
         <span class="cnt">{{ count }}</span>
       </div>
       {% endif %}
+    {% endfor %}
+    {% endif %}
+
+    {% if stats.calendar %}
+    <h2 class="section">Okuma Takvimi</h2>
+    {% for month in stats.calendar %}
+    <div class="cal-month">
+      <div class="cal-month-label">{{ month.label }}</div>
+      <div class="cal-grid">
+        <div class="cal-dow">Pt</div><div class="cal-dow">Sa</div><div class="cal-dow">Ça</div><div class="cal-dow">Pe</div><div class="cal-dow">Cu</div><div class="cal-dow">Ct</div><div class="cal-dow">Pz</div>
+        {% for _ in range(month.first_weekday) %}<div class="cal-cell cal-empty"></div>{% endfor %}
+        {% for d in range(1, month.days_in_month + 1) %}
+          {% if d in month.active_days %}
+            {% set mins = month.minutes_per_day[d] %}
+            <div class="cal-cell cal-active{% if mins >= 60 %} cal-strong{% elif mins >= 30 %} cal-mid{% endif %}">{{ d }}</div>
+          {% else %}
+            <div class="cal-cell">{{ d }}</div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
     {% endfor %}
     {% endif %}
 
@@ -200,15 +251,19 @@
     {% set sess_notes = notes|selectattr('session_id', 'equalto', sess.id)|list %}
     {% if sess_notes %}
       {% for note in sess_notes %}
-      <div class="note {% if note.category == Category.SUMMARY %}summary{% endif %}">
+      <div class="note {% if note.category == Category.SUMMARY %}summary{% endif %}{% if note.is_orphan_photo %} orphan-photo{% endif %}">
         <div class="top">
           <span class="cat cat-{{ note.category.name }}">{{ note.category.value }}</span>
           <span>{{ note.code }} · s.{{ note.page or '—' }} · {{ note.created_at.strftime('%H:%M') }}</span>
           {% if note.from_qa %}<span class="cat" style="background: #4b6a8c;">Soru-Cevap</span>{% endif %}
           {% if note.is_favorite %}<span class="cat" style="background: #c9a227;">⭐ Favori</span>{% endif %}
+          {% if note.is_orphan_photo %}<span class="cat" style="background: #5b7a8c;">📷 Sahne</span>{% endif %}
         </div>
         <div class="body">
-          {% if note.category == Category.QUOTE %}
+          {% if note.is_orphan_photo %}
+            <div class="orphan-photo-tag">📷 Bir görsel + not (görsel kapasitesi olduğunda PDF'e eklenir)</div>
+            <div>{{ note.transcript }}</div>
+          {% elif note.category == Category.QUOTE %}
             <div class="quote">{{ note.transcript }}</div>
           {% else %}
             {{ note.transcript }}
@@ -287,15 +342,27 @@
 </div>
 {% endif %}
 
-{# ───────────────────────── GLOSSARY ───────────────────────── #}
+{# ───────────────────────── GLOSSARY (cloud + list) ───────────────────────── #}
 {% if glossary %}
 <div class="page">
   <div class="page-inner">
     <h1 class="page-title">Kelime ve Kavram Sözlüğü</h1>
-    <p style="color: var(--ink-dim); font-size: 13px; margin-top: -8px; margin-bottom: 18px; font-style: italic;">
-      Okurken Kelime ve Kavram kategorisiyle not aldıklarım — alfabetik sırada.
+    <p style="color: var(--ink-dim); font-size: 13px; margin-top: -8px; margin-bottom: 14px; font-style: italic;">
+      Okurken Kelime ve Kavram kategorisiyle not aldıklarım.
     </p>
 
+    {% if glossary_cloud %}
+    <div class="cloud">
+      {% for t in glossary_cloud %}
+        <span class="cloud-term cloud-{{ t.category }}" style="font-size: {{ t.weight_em }}em;">{{ t.term }}</span>
+      {% endfor %}
+    </div>
+    <p style="color: var(--ink-dim); font-size: 10px; margin: 4mm 0 5mm; font-style: italic; text-align: center;">
+      ↑ kelime bulutu — sonradan eklenenler daha büyük
+    </p>
+    {% endif %}
+
+    <h2 class="section">Alfabetik liste</h2>
     {% for note in glossary|sort(attribute='transcript') %}
     <div class="glossary-item">
       <span class="term">{{ note.transcript[:80] }}</span>
@@ -319,55 +386,54 @@
   <div class="page-inner">
     <h1 class="page-title">Kapanış</h1>
 
-    <h2 class="section" style="margin-top: 6px;">Bir bakışta</h2>
-    <div class="meta-grid">
+    <h2 class="section">Bir bakışta</h2>
+    <div class="meta-grid closing-grid">
       {% if stats.started_at %}
       <div class="meta-block">
         <div class="meta-label">Başlama</div>
-        <div class="val">{{ stats.started_at.strftime('%d %B %Y, %H:%M') }}</div>
+        <div class="val">{{ stats.started_at.strftime('%d %B %Y') }}<br/><span class="dim">{{ stats.started_at.strftime('%H:%M') }}</span></div>
       </div>
       {% endif %}
       {% if stats.ended_at %}
       <div class="meta-block">
         <div class="meta-label">Bitirme</div>
-        <div class="val">{{ stats.ended_at.strftime('%d %B %Y, %H:%M') }}</div>
+        <div class="val">{{ stats.ended_at.strftime('%d %B %Y') }}<br/><span class="dim">{{ stats.ended_at.strftime('%H:%M') }}</span></div>
       </div>
       {% endif %}
       <div class="meta-block">
         <div class="meta-label">Toplam Süre</div>
-        <div class="val">
-          {% if stats.hours %}{{ stats.hours }} saat {% endif %}{{ stats.minutes_remainder }} dakika
-        </div>
+        <div class="val">{% if stats.hours %}{{ stats.hours }} saat {% endif %}{{ stats.minutes_remainder }} dakika</div>
       </div>
       <div class="meta-block">
-        <div class="meta-label">Oturum Sayısı</div>
+        <div class="meta-label">Oturum</div>
         <div class="val">{{ stats.session_count }} oturum</div>
       </div>
-      <div class="meta-block" style="grid-column: 1 / -1;">
-        <div class="meta-label">Notlar</div>
-        <div class="val">
-          {{ stats.note_count }} not
-          {% set parts = [] %}
-          {% for cat_name, count in stats.category_counts.items() %}
-            {% if count > 0 %}{% set _ = parts.append(count|string + ' ' + cat_name) %}{% endif %}
-          {% endfor %}
-          {% if parts %}({{ parts|join(', ') }}){% endif %}
-        </div>
+      <div class="meta-block">
+        <div class="meta-label">Sayfa</div>
+        <div class="val">{{ stats.pages_read }} sayfa okundu</div>
       </div>
-      {% if glossary %}
-      <div class="meta-block" style="grid-column: 1 / -1;">
-        <div class="meta-label">Sözlüğe Eklenen</div>
-        <div class="val">{{ glossary|length }} madde</div>
+      <div class="meta-block">
+        <div class="meta-label">Yeni Sözcükler</div>
+        <div class="val">{{ stats.word_count }} kelime · {{ stats.concept_count }} kavram</div>
       </div>
-      {% endif %}
+    </div>
+
+    <h2 class="section">Notlar — kategoriye göre</h2>
+    <div class="closing-notes">
+      <div class="closing-note-row"><span class="cat cat-QUOTE">Alıntı</span><span class="cnt">{{ stats.quote_count }}</span></div>
+      <div class="closing-note-row"><span class="cat cat-IDEA">Fikir</span><span class="cnt">{{ stats.idea_count }}</span></div>
+      <div class="closing-note-row"><span class="cat cat-NEW_INFO">Yeni Bilgi</span><span class="cnt">{{ stats.category_counts.get('Yeni Bilgi', 0) }}</span></div>
+      <div class="closing-note-row"><span class="cat cat-WORD">Kelime</span><span class="cnt">{{ stats.word_count }}</span></div>
+      <div class="closing-note-row"><span class="cat cat-CONCEPT">Kavram</span><span class="cnt">{{ stats.concept_count }}</span></div>
+      <div class="closing-note-row"><span class="cat cat-SUMMARY">Özet</span><span class="cnt">{{ stats.category_counts.get('Özet', 0) }}</span></div>
     </div>
 
     {% if summaries %}
     <h2 class="section">Oturum Özetleri (sırayla)</h2>
     {% for s in summaries %}
-    <p style="font-style: italic; color: var(--ink); margin: 8px 0 12px; padding-left: 12px; border-left: 2px solid var(--accent-soft);">
+    <p class="closing-summary">
       "{{ s.transcript }}"
-      <span style="display: block; font-style: normal; font-size: 11px; color: var(--ink-dim); margin-top: 4px;">
+      <span class="closing-summary-meta">
         — s.{{ s.page or '—' }}, {{ s.created_at.strftime('%d %b %Y') }}
       </span>
     </p>
