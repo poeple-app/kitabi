@@ -1,4 +1,4 @@
-"""Telegram bot logic for Kitabi (v1.0.3)."""
+"""Telegram bot logic for Kitabi (v1.0.4)."""
 
 from __future__ import annotations
 
@@ -474,37 +474,91 @@ async def screen_main() -> ScreenResult:
 
 
 async def screen_notes_hub() -> ScreenResult:
-    """Top-level notes browser: groups all note types under one menu.
-
-    Sözlük dışarıda (screen_main'da) kalır; bu hub kullanıcının "kayıt" tipindeki
-    içeriklerini bir araya getirir.
+    """Top-level notes browser: every category as its own button with a live
+    note count. Includes user-defined custom categories and a "➕ Yeni
+    kategori" entry point. Sözlük stays in screen_main (kullanıcı kararı).
     """
-    # Get rough counts so the user knows what's behind each button
-    all_quotes = await data.list_quotes(favorites_only=False)
-    fav_quotes = [q for q, _ in all_quotes if q.is_favorite]
+    counts = await data.count_notes_by_category()
+    custom_counts = await data.count_notes_by_custom_label()
+    settings = await data.get_settings()
+    custom_cats = list(getattr(settings, "custom_categories", None) or [])
+    all_quotes_n = counts.get("QUOTE", 0)
+    fav_quotes_n = 0
+    if all_quotes_n:
+        favs = [q for q, _ in await data.list_quotes(favorites_only=True)]
+        fav_quotes_n = len(favs)
+
     text = (
         "🏠 Ana › 📝 <b>Notlarım</b>\n\n"
-        "Tüm notlarını kategoriye göre buradan gör:\n\n"
-        f"💬 <b>Alıntılar</b> — {len(all_quotes)} kayıt  ·  ⭐ {len(fav_quotes)} favori\n"
-        "💡 <b>Fikir</b> — kendi düşüncelerin\n"
-        "📚 <b>Yeni Bilgi</b> — kitabın aktardıkları\n"
-        "🧠 <b>Kavram</b> — yeni öğrenilen kavramlar\n"
-        "📋 <b>Özet</b> — oturum özetleri\n\n"
-        "<i>Kelime + Kavram için ayrıca ana menüde 📖 Sözlük var.</i>"
+        f"💬 Alıntı: <b>{all_quotes_n}</b>  ·  ⭐ {fav_quotes_n} favori\n"
+        f"💡 Fikir: <b>{counts.get('IDEA', 0)}</b>\n"
+        f"📚 Yeni Bilgi: <b>{counts.get('NEW_INFO', 0)}</b>\n"
+        f"🧠 Kavram: <b>{counts.get('CONCEPT', 0)}</b>\n"
+        f"🔤 Kelime: <b>{counts.get('WORD', 0)}</b>\n"
+        f"📋 Özet: <b>{counts.get('SUMMARY', 0)}</b>"
     )
-    kb = [
-        [BTN(f"💬 Alıntılar ({len(all_quotes)})", "quotes:all"),
-         BTN(f"⭐ Favori Alıntılar ({len(fav_quotes)})", "quotes:fav")],
-        [BTN("💡 Fikir", _cb("notes_cat", "IDEA")),
-         BTN("📚 Yeni Bilgi", _cb("notes_cat", "NEW_INFO"))],
-        [BTN("🧠 Kavram", _cb("notes_cat", "CONCEPT")),
-         BTN("📋 Özet", _cb("notes_cat", "SUMMARY"))],
-        [BTN("🔤 Kelime", _cb("notes_cat", "WORD")),
-         BTN("📖 Sözlük (Kelime+Kavram)", "glossary")],
-        [BTN("🔍 Notlarda ara", "search:start")],
-        _nav_row(),
+    if custom_cats:
+        text += "\n\n<i>Kendi kategorilerin:</i>"
+        for cc in custom_cats:
+            n = custom_counts.get(cc, 0)
+            text += f"\n  • {esc(cc)}: <b>{n}</b>"
+    text += "\n\n<i>Kelime + Kavram için ayrıca ana menüde 📖 Sözlük var.</i>"
+
+    kb: list[list[InlineKeyboardButton]] = [
+        [BTN(f"💬 Alıntılar ({all_quotes_n})", "quotes:all"),
+         BTN(f"⭐ Favori ({fav_quotes_n})",     "quotes:fav")],
+        [BTN(f"💡 Fikir ({counts.get('IDEA', 0)})",         _cb("notes_cat", "IDEA")),
+         BTN(f"📚 Yeni Bilgi ({counts.get('NEW_INFO', 0)})", _cb("notes_cat", "NEW_INFO"))],
+        [BTN(f"🧠 Kavram ({counts.get('CONCEPT', 0)})",     _cb("notes_cat", "CONCEPT")),
+         BTN(f"📋 Özet ({counts.get('SUMMARY', 0)})",       _cb("notes_cat", "SUMMARY"))],
+        [BTN(f"🔤 Kelime ({counts.get('WORD', 0)})",        _cb("notes_cat", "WORD")),
+         BTN("📖 Sözlük (Kel.+Kav.)", "glossary")],
     ]
+    # User-defined custom categories
+    if custom_cats:
+        row: list[InlineKeyboardButton] = []
+        for cc in custom_cats:
+            n = custom_counts.get(cc, 0)
+            row.append(BTN(f"🏷️ {cc} ({n})", _cb("notes_custom", cc)))
+            if len(row) == 2:
+                kb.append(row); row = []
+        if row:
+            kb.append(row)
+    kb.append([BTN("➕ Yeni kategori ekle", "notes_cat_new")])
+    kb.append([BTN("🔍 Notlarda ara", "search:start")])
+    kb.append(_nav_row())
     return text, KB(kb)
+
+
+async def screen_notes_by_custom_label(label: str, limit: int = 5) -> ScreenResult:
+    """List notes whose custom category_label matches. Used by the user-defined
+    category buttons in screen_notes_hub.
+    """
+    results = await data.notes_by_custom_label(label)
+    total = len(results)
+    lines = [
+        f"🏠 Ana › 📝 Notlarım › <b>🏷️ {esc(label)}</b>  ({total})", "",
+    ]
+    kb: list[list[InlineKeyboardButton]] = []
+    if total == 0:
+        lines.append("<i>(Bu kategoride henüz not yok.)</i>")
+    else:
+        showing = min(limit, total)
+        lines.append(f"{showing}/{total} gösteriliyor\n")
+        for note, book in results[:limit]:
+            snip = note.transcript[:80] + ("…" if len(note.transcript) > 80 else "")
+            lines.append(
+                f"<code>{esc(note.code)}</code> · {esc(book.title)}\n  <i>{esc(snip)}</i>"
+            )
+            kb.append([BTN(f"{note.code} · {book.short_code}", _cb("note", note.id))])
+        if showing < total:
+            kb.append([BTN(
+                f"⬇️ {min(_LIST_PAGE_SIZE, total - showing)} not daha göster",
+                _cb("notes_custom", label, "more", limit + _LIST_PAGE_SIZE),
+            )])
+    kb.append([BTN(f"🗑️ \"{label}\" kategorisini sil", _cb("notes_cat_del", label))])
+    kb.append(_nav_row())
+    return "\n".join(lines), KB(kb)
 
 
 async def screen_notes_by_category(
@@ -602,9 +656,12 @@ async def screen_book_list(shelf_filter: int | None = "ALL") -> ScreenResult:
     for b in show:
         status_icon = _STATUS_ICONS.get(b.status, "📖")
         emoji = getattr(b, "icon", None) or "📖"
+        # If the user hasn't picked a custom icon, the book.icon is the same
+        # 📖 as the READING-status icon → don't duplicate it.
+        prefix = emoji if emoji != status_icon else status_icon
         suffix = f" — %{int(100 * (b.read_pages or 0) / b.total_pages)}" if b.total_pages else ""
         kb.append([BTN(
-            f"{emoji} {status_icon} {b.short_code} · {b.title[:36]}{suffix}",
+            f"{prefix} {b.short_code} · {b.title[:36]}{suffix}",
             _cb("book", b.id),
         )])
     if len(filtered) > len(show):
@@ -785,29 +842,60 @@ async def screen_active_session(session: Session) -> ScreenResult:
     return text, KB(kb)
 
 
-def screen_note_confirm(draft: dict[str, Any]) -> ScreenResult:
+async def screen_note_confirm(draft: dict[str, Any]) -> ScreenResult:
+    """Note confirmation screen.
+
+    v1.0.4: pulls user-defined custom categories from AppSettings and renders
+    them as extra category-toggle buttons. The selected value is shown as
+    `category_label` when active; `category` is left at the draft's enum value
+    so storage stays consistent.
+    """
     cats = [Category.QUOTE, Category.IDEA, Category.NEW_INFO,
             Category.WORD, Category.CONCEPT, Category.SUMMARY]
     current = draft["category"]
+    current_label = draft.get("category_label") or ""
     short = draft.get("book_short_code") or ""
     title = draft.get("book_title") or ""
+    settings = await data.get_settings()
+    custom_cats = list(getattr(settings, "custom_categories", None) or [])
+
     parts = [
         f"🏠 Ana › 🟢 Okuyor › 📝 <b>Yeni Not</b>  ·  <code>{esc(short)}</code> {esc(title)}",
         "", "✅ Transkript:", f"<i>“{esc(draft['transcript'])}”</i>", "",
-        f"🤖 Kategori: <b>{esc(current)}</b>",
-        f"📄 Sayfa: s.{draft.get('page') or '—'}",
     ]
+    if current_label:
+        parts.append(f"🏷️ Kategori: <b>{esc(current_label)}</b> (özel)")
+    else:
+        parts.append(f"🤖 Kategori: <b>{esc(current)}</b>")
+    parts.append(f"📄 Sayfa: s.{draft.get('page') or '—'}")
     if draft.get("definition"):
         parts += ["", f"📚 Otomatik tanım: {esc(draft['definition'])}"]
     if draft.get("explanation"):
         parts += ["", f"💡 Gemini açıklaması: {esc(draft['explanation'])}"]
 
     def _cat_btn(c):
-        return BTN(("✓ " if c.value == current else "") + c.value, _cb("voice", "cat", c.value))
+        active = (c.value == current and not current_label)
+        return BTN(("✓ " if active else "") + c.value, _cb("voice", "cat", c.value))
 
-    kb = [
+    def _custom_btn(label):
+        active = (label == current_label)
+        return BTN(("✓ " if active else "") + f"🏷️ {label}",
+                   _cb("voice", "ccat", label))
+
+    kb: list[list[InlineKeyboardButton]] = [
         [_cat_btn(c) for c in cats[:3]],
         [_cat_btn(c) for c in cats[3:]],
+    ]
+    # Custom categories — 2 per row
+    if custom_cats:
+        row: list[InlineKeyboardButton] = []
+        for lbl in custom_cats:
+            row.append(_custom_btn(lbl))
+            if len(row) == 2:
+                kb.append(row); row = []
+        if row:
+            kb.append(row)
+    kb += [
         [BTN(f"📄 s.{draft.get('page') or '—'}", "voice:page"),
          BTN("✏️ Transkripti düzelt", "voice:edit")],
         [BTN("💡 Açıkla (Gemini)", "voice:explain")],
@@ -1487,7 +1575,7 @@ async def _process_voice_into_note(
     draft = _build_draft(session, book, transcript, category, session.start_page, definition)
     if cid is not None:
         await _set(cid, "draft_note", draft)
-    text, kb = screen_note_confirm(draft)
+    text, kb = await screen_note_confirm(draft)
     await msg.reply_text(text, reply_markup=kb, parse_mode=ParseMode.HTML)
 
 
@@ -1535,18 +1623,28 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await data.add_note(
                 book_id=session.book_id, session_id=session.id,
                 category=Category.CONCEPT, page=None,
-                transcript=f"Soru: {caption}\n\nCevap: {answer}",
+                transcript=f"Talimat: {caption}\n\n{answer}",
                 from_qa=True, photo_file_id=file_id,
             )
         except Exception as e:
             logger.warning("bot.photo.qa_save_failed", error=str(e))
+        # Post-save action buttons so the user always knows where to go next
+        # (Madde 29 — "fotoğraf menüyü yukarı itti, kullanıcı nereye gideceğini
+        #  bilemeyebilir" geri bildirimine cevap).
+        post_kb = KB([
+            [BTN("🟢 Aktif Oturuma Dön", _cb("session_open", session.id))],
+            [BTN("📝 Bu Notu Aç", _cb("notes", session.book_id, 0)),
+             BTN("📷 Yeni fotoğraf at", "noop")],
+            [BTN("🏠 Ana Menü", "main")],
+        ])
         await msg.reply_text(
-            f"📷 <b>Fotoğraf + soru</b>  ·  "
+            f"📷 <b>Fotoğraf + talimat</b>  ·  "
             f"<code>{esc(book.short_code if book else '')}</code> "
             f"{esc(book.title if book else '')}\n\n"
             f"❓ <i>{esc(caption)}</i>\n\n"
             f"🤖 {esc(answer)}\n\n"
-            f"<i>Soru-Cevap not olarak kaydedildi.</i>",
+            f"<i>Not olarak kaydedildi. Bir sonraki adımı seç:</i>",
+            reply_markup=post_kb,
             parse_mode=ParseMode.HTML,
         )
         return
@@ -1637,7 +1735,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return
 
-    text, kb = screen_note_confirm(draft)
+    text, kb = await screen_note_confirm(draft)
     if hint_text:
         text = text + hint_text
     await msg.reply_text(text, reply_markup=kb, parse_mode=ParseMode.HTML)
@@ -1825,7 +1923,7 @@ async def _process_text_into_note(
     draft = _build_draft(session, book, text, category, session.start_page, definition)
     if cid is not None:
         await _set(cid, "draft_note", draft)
-    s_text, kb = screen_note_confirm(draft)
+    s_text, kb = await screen_note_confirm(draft)
     await msg.reply_text(s_text, reply_markup=kb, parse_mode=ParseMode.HTML)
 
 
@@ -2005,7 +2103,7 @@ async def _await_draft_page(update, context, text, awaiting):
         if cid is not None:
             await _set(cid, "draft_note", draft)
             await _clear(cid, "awaiting")
-        s_text, kb = screen_note_confirm(draft)
+        s_text, kb = await screen_note_confirm(draft)
         await msg.reply_text(s_text, reply_markup=kb, parse_mode=ParseMode.HTML)
 
 
@@ -2018,7 +2116,7 @@ async def _await_draft_transcript(update, context, text, awaiting):
         if cid is not None:
             await _set(cid, "draft_note", draft)
             await _clear(cid, "awaiting")
-        s_text, kb = screen_note_confirm(draft)
+        s_text, kb = await screen_note_confirm(draft)
         await msg.reply_text(s_text, reply_markup=kb, parse_mode=ParseMode.HTML)
 
 
@@ -2240,6 +2338,31 @@ async def _await_book_icon(update, context, text, awaiting):
     await msg.reply_text(s_text, reply_markup=kb, parse_mode=ParseMode.HTML)
 
 
+async def _await_new_category_name(update, context, text, awaiting):
+    """User typed a name for a new custom note category."""
+    msg = update.message
+    cid = _chat_id(update)
+    name = text.strip()
+    if not (2 <= len(name) <= 40):
+        await msg.reply_text("⚠️ Kategori adı 2-40 karakter arası olmalı. Tekrar dene.")
+        return
+    settings = await data.get_settings()
+    cats = list(getattr(settings, "custom_categories", None) or [])
+    if name in cats:
+        await msg.reply_text(f"<b>{esc(name)}</b> zaten var.", parse_mode=ParseMode.HTML)
+    else:
+        cats.append(name)
+        await data.update_settings(custom_categories=cats)
+        await msg.reply_text(
+            f"✅ <b>{esc(name)}</b> kategorisi eklendi. Yeni not eklerken seçilebilir.",
+            parse_mode=ParseMode.HTML,
+        )
+    if cid is not None:
+        await _clear(cid, "awaiting")
+    s_text, kb = await screen_notes_hub()
+    await msg.reply_text(s_text, reply_markup=kb, parse_mode=ParseMode.HTML)
+
+
 async def _await_shelf_new_name(update, context, text, awaiting):
     """User typed a name for a new shelf."""
     msg = update.message
@@ -2317,6 +2440,7 @@ _AWAITING_HANDLERS = {
     "book_extra_value":   _await_book_extra_value,
     "book_icon":          _await_book_icon,
     "shelf_new_name":     _await_shelf_new_name,
+    "new_category_name":  _await_new_category_name,
 }
 
 
@@ -2756,6 +2880,47 @@ async def _cb_notes_cat(update, context, args):
     await _send_screen(update, context, text, kb)
 
 
+async def _cb_notes_custom(update, context, args):
+    """Open a user-defined custom-category note list (Madde 28)."""
+    if not args:
+        await update.callback_query.answer("Kategori belirsiz.", show_alert=True)
+        return
+    label = args[0]
+    limit = _LIST_PAGE_SIZE
+    if len(args) >= 3 and args[1] == "more":
+        limit = max(int(args[2]), _LIST_PAGE_SIZE)
+    text, kb = await screen_notes_by_custom_label(label, limit=limit)
+    await _send_screen(update, context, text, kb)
+
+
+async def _cb_notes_cat_new(update, context, args):
+    """Prompt the user for the name of a new custom category."""
+    await _prompt(update, context,
+                  "➕ <b>Yeni not kategorisi</b>\n\n"
+                  "Kategorinin adını yaz ve gönder. 2-40 karakter, kullanmak istediğin "
+                  "kelime ya da kısa ifade.\n\n"
+                  "Örn: <code>Refleksiyon</code>, <code>Tartışma</code>, "
+                  "<code>Açıklama bekliyor</code>.",
+                  {"type": "new_category_name"})
+
+
+async def _cb_notes_cat_del(update, context, args):
+    """Delete a custom category from settings. Notes that used it are NOT
+    deleted — they just lose the label (category_label becomes a string that
+    no longer matches any button, but the note is still in its enum category).
+    """
+    if not args:
+        return
+    label = args[0]
+    settings = await data.get_settings()
+    cats = list(getattr(settings, "custom_categories", None) or [])
+    cats = [c for c in cats if c != label]
+    await data.update_settings(custom_categories=cats)
+    await update.callback_query.answer(f"🗑️ {label} silindi")
+    text, kb = await screen_notes_hub()
+    await _send_screen(update, context, text, kb)
+
+
 async def _cb_route_pending(update, context, args):
     query = update.callback_query
     cid = _chat_id(update)
@@ -2806,13 +2971,24 @@ async def _cb_voice(update, context, args):
         except ValueError:
             cat_enum = Category.NEW_INFO
         draft["category"] = cat_enum.value
+        # Switching to a built-in category clears any custom label
+        draft["category_label"] = None
         draft["definition"] = (
             await ai.define_term(draft["transcript"], cat_enum)
             if cat_enum in (Category.WORD, Category.CONCEPT) else None
         )
         if cid is not None:
             await _set(cid, "draft_note", draft)
-        text, kb = screen_note_confirm(draft)
+        text, kb = await screen_note_confirm(draft)
+        await _send_screen(update, context, text, kb)
+
+    elif sub == "ccat":
+        # Custom user-defined category (Madde 28)
+        label = args[1] if len(args) > 1 else ""
+        draft["category_label"] = label or None
+        if cid is not None:
+            await _set(cid, "draft_note", draft)
+        text, kb = await screen_note_confirm(draft)
         await _send_screen(update, context, text, kb)
 
     elif sub == "page":
@@ -2828,7 +3004,7 @@ async def _cb_voice(update, context, args):
         if cid is not None:
             await _set(cid, "draft_note", draft)
             await _clear(cid, "awaiting")
-        text, kb = screen_note_confirm(draft)
+        text, kb = await screen_note_confirm(draft)
         await _send_screen(update, context, text, kb)
 
     elif sub == "explain":
@@ -2841,7 +3017,7 @@ async def _cb_voice(update, context, args):
             return
         if cid is not None:
             await _set(cid, "draft_note", draft)
-        text, kb = screen_note_confirm(draft)
+        text, kb = await screen_note_confirm(draft)
         await _send_screen(update, context, text, kb)
 
     elif sub == "save":
@@ -2856,6 +3032,7 @@ async def _cb_voice(update, context, args):
                 transcript=draft["transcript"],
                 definition=draft.get("definition"), explanation=draft.get("explanation"),
                 photo_file_id=draft.get("photo_file_id"),
+                category_label=draft.get("category_label"),
             )
         except Exception as e:
             logger.error("bot.voice.save_failed", error=str(e), exc_info=True)
@@ -3532,6 +3709,9 @@ _CALLBACKS: dict[str, Callable[..., Awaitable[None]]] = {
     "quotes":                _cb_quotes,
     "notes_hub":             _cb_notes_hub,
     "notes_cat":             _cb_notes_cat,
+    "notes_custom":          _cb_notes_custom,
+    "notes_cat_new":         _cb_notes_cat_new,
+    "notes_cat_del":         _cb_notes_cat_del,
     "shelves":               _cb_shelves,
     "shelf":                 _cb_shelf,
     "shelf_new":             _cb_shelf_new,

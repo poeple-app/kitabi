@@ -834,7 +834,7 @@
       <!-- ─── INTRO CARDS (NEW) ─── -->
       <h2 class="section-h">Kitabi ne yapıyor?</h2>
       <p class="lede" style="max-width: none;">
-        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: kitabını ISBN'i yazarak, kapağının fotoğrafını çekerek ya da elle ekleyebilirsin (ISBN bulunmazsa Google Books → Open Library otomatik fallback'i devreye girer). Okurken sesli mesaj, sayfa fotoğrafı veya yazılı not gönderirsin; bot Gemini AI ile metne döker, kategorilere ayırır, okuduğun kitaba bağlayarak SQLite veritabanına kaydeder. Kitabıyla ilgisi olmayan görseller de "sahne" notu olarak saklanır. Kütüphanen 10 kitabı geçince raf sistemi devreye girer; her kitaba kendi ikonunu ve özel alanlarını ekleyebilirsin. İstediğin zaman "/" ile ana menü kestirmelerine erişir, alıntıları twit kartı gibi paylaşır, kitap bittiğinde istatistikleri (okuma takvimi, kelime bulutu, yayınevi + yazarın diğer kitapları dahil) zengin bir PDF okuma günlüğüne dönüştürür.
+        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: kitabını ISBN'i yazarak, kapağının fotoğrafını çekerek ya da elle ekleyebilirsin (ISBN bulunmazsa Google Books → Open Library otomatik fallback'i devreye girer). Okurken sesli mesaj gönderir, sayfanın altını çizdiğin yerleri fotoğraflar (bot sadece vurguladığın metni alır, tam sayfayı kopyalamaz) ya da yazarsın; istersen fotoğrafa caption ekleyip "şu cümleyi al + idealist'in tanımını ekle" gibi karmaşık talimat verirsin, bot Gemini AI ile metne döker ve istediğini yapar. Notlar 6 hazır + kendi eklediğin sınırsız kategoride saklanır. Kütüphanen 10 kitabı geçince raf sistemi devreye girer; her kitaba kendi ikonunu ve özel alanlarını ekleyebilirsin. Chat input kutusu altında 4 kalıcı hızlı buton (Oturumlar / Bitir / Kitaplar / Yeni) hep elinin altında. Alıntıları "Klasik Twit" pull-quote tarzında 6 farklı yazı tipiyle paylaşır, kitap bittiğinde istatistikleri (okuma takvimi, kelime bulutu, yayınevi + yazarın diğer kitapları + notlara eklediğin fotoğraflar dahil) zengin bir PDF okuma günlüğüne dönüştürür.
       </p>
       <p class="input-help">Aşağıdaki kartlar arasında oklarla gezin — bot'un kurulumdan sonra neler yapabileceğini kart açıklamalarında okuyabilirsin.</p>
 
@@ -1014,6 +1014,91 @@
             </div>
             <div class="intro-card-title">📅 Okuma takvimi</div>
             <div class="intro-card-cap">PDF günlüğünde ay-ay takvim grid'i: hangi günlerde okudun, ne kadar süre — yoğun günler koyu, az günler açık.</div>
+          </div>
+
+          <!-- ── v1.0.3 yenilikleri ── -->
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📷</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>vurgu OCR]</div>
+            </div>
+            <div class="intro-card-title">📷 Vurgu OCR</div>
+            <div class="intro-card-cap">Sayfa fotoğrafı çek — bot sadece altı çizili / fosforlu kısımları alır, tam sayfayı değil. İstemediğin metin notlarına girmiyor.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">💬</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>foto+caption]</div>
+            </div>
+            <div class="intro-card-title">💬 Foto + caption = soru</div>
+            <div class="intro-card-cap">Fotoğrafa caption yaz: "şu cümleyi al + idealist'in tanımını ekle". Bot sayfayı okur, soruna cevap verir, not kaydeder. Karmaşık talimatlar OK.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📝</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>notlarım]</div>
+            </div>
+            <div class="intro-card-title">📝 Notlarım hub</div>
+            <div class="intro-card-cap">Tüm not türleri tek menüde: Alıntı (7), Fikir (2), Kavram (3), Kelime (4)… Sayım belirteçleriyle. Kendi kategorilerini de ekleyebilirsin.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">⚡</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>hızlı butonlar]</div>
+            </div>
+            <div class="intro-card-title">⚡ Hızlı butonlar</div>
+            <div class="intro-card-cap">Chat input kutusu altında 4 kalıcı buton: 🟢 Oturumlar / ⏹️ Bitir / 📖 Kitaplar / ➕ Yeni. Tek tap'le menüye dönmenin yolu.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🪟</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>tek menü]</div>
+            </div>
+            <div class="intro-card-title">🪟 Tek aktif menü</div>
+            <div class="intro-card-cap">Eski menü mesajı yeni ekran açılırken otomatik silinir. Sohbet kalabalıklaşmıyor, her zaman tek aktif menü.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📜</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>devamını oku]</div>
+            </div>
+            <div class="intro-card-title">📜 …devamını oku</div>
+            <div class="intro-card-cap">10 satırdan / 500 karakterden uzun notlar listede kısa görünür; tek tap'le tam metin açılır. Telefon ekranını rahatlatır.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📤</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>klasik twit]</div>
+            </div>
+            <div class="intro-card-title">📤 Klasik Twit paylaş</div>
+            <div class="intro-card-cap">Alıntıyı pull-quote kart olarak paylaş — 6 yazı tipi (Crimson Pro, Playfair, Cormorant…), 5 boyut. Uzun metinde font otomatik küçülür.</div>
+          </div>
+
+          <!-- ── v1.0.4 yenilikleri ── -->
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">➕</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>custom kategori]</div>
+            </div>
+            <div class="intro-card-title">➕ Kendi kategorin</div>
+            <div class="intro-card-cap">Hazır 6 kategoriye ek olarak kendi etiketlerini ekle: "Refleksiyon", "Tartışma", "Açıklama bekliyor". Sınırsız.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🖼️</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>pdf foto embed]</div>
+            </div>
+            <div class="intro-card-title">🖼️ PDF'te fotoğraflar</div>
+            <div class="intro-card-cap">Notlarına eklediğin fotoğraflar PDF günlüğünde gerçekten görünür — Telegram'dan indirilip sayfada gömülü olarak gösterilir.</div>
           </div>
 
         </div>

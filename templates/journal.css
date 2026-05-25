@@ -395,6 +395,21 @@ p, li {
 }
 .other-books li { margin-bottom: 1.2mm; }
 
+/* ─────────────── Embedded note photo (v1.0.4) ─────────────── */
+.note-photo {
+  margin: 2mm 0 3mm;
+  text-align: center;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.note-photo img {
+  max-width: 100%;
+  max-height: 80mm;
+  border-radius: 1.5mm;
+  border: 0.4px solid var(--rule);
+  box-shadow: 0 1mm 2mm rgba(122, 62, 31, 0.15);
+}
+
 /* ─────────────── Orphan photo note (v1.0.2) ─────────────── */
 .note.orphan-photo {
   background: linear-gradient(90deg, rgba(91,122,140,.06), transparent 70%);

@@ -73,6 +73,59 @@ logger = structlog.get_logger(__name__)
 DISPLAY_TZ = ZoneInfo("Europe/Istanbul")
 
 
+# v1.0.4 — Telegram bot token registered at startup. Used by `render_pdf` to
+# download user-attached note photos (file_id) and embed them as base64 data
+# URIs in the journal PDF. None disables the feature gracefully — PDF still
+# renders, photos just stay as text placeholders.
+_telegram_bot_token: str | None = None
+
+
+def set_telegram_bot_token(token: str | None) -> None:
+    """Called once at startup from main.lifespan. Optional — if unset, PDF
+    rendering skips photo embedding."""
+    global _telegram_bot_token
+    _telegram_bot_token = token
+
+
+async def _fetch_telegram_photo_b64(file_id: str) -> str | None:
+    """Download a Telegram photo by file_id and return a base64 data URI.
+
+    Two-step Telegram protocol:
+      1. POST /getFile?file_id=… returns the file's relative path on Telegram's CDN
+      2. GET https://api.telegram.org/file/bot{TOKEN}/{path} returns the bytes
+
+    Returns None on any failure — caller renders a placeholder instead.
+    """
+    if not _telegram_bot_token or not file_id:
+        return None
+    import base64
+    api_root = f"https://api.telegram.org/bot{_telegram_bot_token}"
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(f"{api_root}/getFile", params={"file_id": file_id})
+            r.raise_for_status()
+            payload = r.json() or {}
+            if not payload.get("ok"):
+                logger.warning("data.fetch_photo.getfile_not_ok", file_id=file_id[:20])
+                return None
+            path = payload.get("result", {}).get("file_path")
+            if not path:
+                return None
+            file_url = f"https://api.telegram.org/file/bot{_telegram_bot_token}/{path}"
+            r2 = await client.get(file_url)
+            r2.raise_for_status()
+            blob = r2.content
+        # Telegram photos are JPEG by default
+        mime = "image/jpeg"
+        if path.lower().endswith(".png"):
+            mime = "image/png"
+        b64 = base64.b64encode(blob).decode("ascii")
+        return f"data:{mime};base64,{b64}"
+    except Exception as e:
+        logger.warning("data.fetch_photo.failed", file_id=file_id[:20], error=str(e))
+        return None
+
+
 def utcnow() -> datetime:
     """Timezone-aware UTC `datetime` (replacement for the deprecated utcnow())."""
     return datetime.now(timezone.utc)
@@ -234,6 +287,10 @@ class Note(Base):
     photo_file_id = Column(String(255))
     # v1.0.2: photo that didn't OCR to text — kept as memory/scene rather than a transcript-bearing page
     is_orphan_photo = Column(Boolean, default=False, nullable=False)
+    # v1.0.4: user-defined category label (overrides Category.value in UI when set).
+    # We keep Note.category as the legacy enum (defaults to NEW_INFO for custom-only
+    # notes); category_label is consulted first when present.
+    category_label = Column(String(80))
 
     book = relationship("Book", back_populates="notes")
     session = relationship("Session", back_populates="notes")
@@ -250,6 +307,9 @@ class AppSettings(Base):
     auto_explain = Column(Boolean, default=False, nullable=False)
     auto_categorize = Column(Boolean, default=True, nullable=False)
     summary_prompt_on_end = Column(Boolean, default=True, nullable=False)
+    # v1.0.4: list of user-defined extra category labels (e.g. ["Refleksiyon", "Tartışma"]).
+    # These appear alongside the 6 built-in Category enum entries in note pickers.
+    custom_categories = Column(JSON, default=list)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
 
@@ -327,6 +387,10 @@ def _migrate_add_missing_columns() -> None:
         "notes": [
             ("photo_file_id",     "VARCHAR(255)"),
             ("is_orphan_photo",   "BOOLEAN NOT NULL DEFAULT 0"),
+            ("category_label",    "VARCHAR(80)"),
+        ],
+        "app_settings": [
+            ("custom_categories", "TEXT DEFAULT '[]'"),
         ],
     }
     try:
@@ -891,6 +955,7 @@ async def add_note(
     from_qa: bool = False,
     photo_file_id: str | None = None,
     is_orphan_photo: bool = False,
+    category_label: str | None = None,
 ) -> Note:
     """Insert a new note. Allocates `code` like 'SUC001' from the book counter."""
     logger.info(
@@ -922,6 +987,7 @@ async def add_note(
                 from_qa=from_qa,
                 photo_file_id=photo_file_id,
                 is_orphan_photo=is_orphan_photo,
+                category_label=category_label,
             )
             s.add(note)
             s.flush()
@@ -1090,6 +1156,62 @@ async def list_glossary() -> list[tuple[Note, Book]]:
                 select(Note)
                 .where(Note.category.in_([Category.WORD, Category.CONCEPT]))
                 .order_by(func.lower(Note.transcript))
+            )
+            notes = list(s.scalars(q).all())
+            results: list[tuple[Note, Book]] = []
+            for n in notes:
+                b = s.get(Book, n.book_id)
+                if b:
+                    results.append((n, b))
+            return results
+    return await asyncio.to_thread(_impl)
+
+
+async def count_notes_by_category() -> dict[str, int]:
+    """Return a dict mapping every Category.name → total note count.
+
+    Counts are populated for ALL categories, including those with zero notes,
+    so the UI can render buttons like "Fikir (0)" without surprise KeyErrors.
+    """
+    def _impl() -> dict[str, int]:
+        out: dict[str, int] = {c.name: 0 for c in Category}
+        with db_session() as s:
+            rows = s.execute(
+                select(Note.category, func.count(Note.id)).group_by(Note.category)
+            ).all()
+            for cat, n in rows:
+                # SQLAlchemy may return either the Category enum or its value
+                key = cat.name if hasattr(cat, "name") else str(cat)
+                out[key] = int(n)
+        return out
+    return await asyncio.to_thread(_impl)
+
+
+async def count_notes_by_custom_label() -> dict[str, int]:
+    """Counts grouped by Note.category_label (custom user-defined buckets)."""
+    def _impl() -> dict[str, int]:
+        out: dict[str, int] = {}
+        with db_session() as s:
+            rows = s.execute(
+                select(Note.category_label, func.count(Note.id))
+                .where(Note.category_label.isnot(None), Note.category_label != "")
+                .group_by(Note.category_label)
+            ).all()
+            for lbl, n in rows:
+                if lbl:
+                    out[str(lbl)] = int(n)
+        return out
+    return await asyncio.to_thread(_impl)
+
+
+async def notes_by_custom_label(label: str) -> list[tuple[Note, Book]]:
+    """All notes whose user-defined category_label matches. Newest first."""
+    def _impl() -> list[tuple[Note, Book]]:
+        with db_session() as s:
+            q = (
+                select(Note)
+                .where(Note.category_label == label)
+                .order_by(Note.created_at.desc())
             )
             notes = list(s.scalars(q).all())
             results: list[tuple[Note, Book]] = []
@@ -1778,6 +1900,29 @@ async def render_pdf(book_id: int) -> bytes:
         except Exception as e:
             logger.warning("data.render_pdf.author_other_books_failed", error=str(e))
 
+    # Step 2 (off-thread): download Telegram photos for any note that carries
+    # a photo_file_id. Cached into note_id → data: URI map so the Jinja
+    # template can embed them inline. Failures fall back to a placeholder.
+    photo_data_uris: dict[int, str] = {}
+    def _ids_with_photos() -> list[tuple[int, str]]:
+        with db_session() as s:
+            rows = s.execute(
+                select(Note.id, Note.photo_file_id)
+                .where(Note.book_id == book_id, Note.photo_file_id.isnot(None))
+            ).all()
+            return [(int(nid), str(fid)) for nid, fid in rows if fid]
+    pending_photos = await asyncio.to_thread(_ids_with_photos)
+    if pending_photos and _telegram_bot_token:
+        logger.info("data.render_pdf.fetching_photos", count=len(pending_photos))
+        # Concurrent fetch (Cloud Run egress is generous; this is bounded by note count)
+        results = await asyncio.gather(
+            *[_fetch_telegram_photo_b64(fid) for _, fid in pending_photos],
+            return_exceptions=True,
+        )
+        for (nid, _), result in zip(pending_photos, results):
+            if isinstance(result, str):
+                photo_data_uris[nid] = result
+
     def _impl() -> bytes:
         with db_session() as s:
             book = s.get(Book, book_id)
@@ -1815,6 +1960,7 @@ async def render_pdf(book_id: int) -> bytes:
                 stats=_compute_book_stats(book, sessions, notes),
                 author_other_books=list(getattr(book, "author_other_books", None) or []),
                 extra_fields=dict(getattr(book, "extra_fields", None) or {}),
+                photo_data_uris=photo_data_uris,
                 generated_at=to_local(utcnow()),
                 to_local=to_local,
             )

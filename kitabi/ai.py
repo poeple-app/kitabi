@@ -334,15 +334,25 @@ VURGU_YOK
 
 
 PROMPT_PHOTO_QUESTION = """\
-Kullanıcı bir kitap sayfasının fotoğrafını gönderdi ve fotoğraf üzerinde
-şu soruyu sordu:
+Kullanıcı bir kitap sayfasının fotoğrafını gönderdi ve fotoğrafın caption'ına
+şu talimatı yazdı:
 
-SORU: {question}
+TALİMAT: {question}
+
+Caption serbest bir talimat — soru olabilir, OCR isteği olabilir, "şu alıntıyı
+al + şunun tanımını ekle" gibi karmaşık olabilir. Talimatı dikkatlice oku ve
+TÜM parçalarını yerine getir.
 
 Görevin:
-1. Sayfadaki ilgili metni OCR ile oku (gerekirse tamamını).
-2. Soruyu yalnızca sayfadaki bilgiye dayanarak cevapla.
-3. Sayfada cevap için yeterli bilgi yoksa açıkça "Sayfada bu bilgi yok" de.
+1. Sayfada altı çizili / vurgulanmış / kalemle işaretlenmiş bir kısım VARSA
+   onu BİREBİR OCR ile çıkar (vurgu yoksa tam sayfa metnine bak).
+   Eklediğin/eksilttiğin kelime olmasın — fotoğrafta ne yazıyorsa o.
+2. Caption'ın istediği EK işleri sırayla yap: kelime tanımı eklemek, özet
+   çıkarmak, ilişki kurmak, soruyu cevaplamak — caption'da ne istenmişse.
+3. Bilgi yalnız sayfada/genel bilgide var olabilir. Sayfa-dışı bilgi (kelime
+   anlamı gibi) eklemek serbest, ama o bilginin "ek olarak" eklendiğini
+   üstüpaten belirt — kullanıcı neyin sayfadan neyin senden geldiğini
+   görebilsin.
 
 Bağlam (varsa):
 - Kitap: {book_title}
@@ -350,9 +360,13 @@ Bağlam (varsa):
 
 {style}
 
-KESİN LİMİT: cevabın en fazla 3 cümle olsun.
+ÇIKTI FORMATI (TAM olarak uy):
+- Önce OCR (vurgu varsa "Vurgu:" başlığıyla, yoksa "Sayfa:" başlığıyla)
+- Sonra caption'ın istediği ek işler ayrı satırlarda, her birinin başında
+  ne yapıldığını belirten kısa bir etiket (örn "Tanım:", "Özet:", "Cevap:").
+- Toplam çıktın en fazla 6 cümle olsun. Dolgu kelimesi yok.
 
-Cevap:
+Çıktı:
 """
 
 

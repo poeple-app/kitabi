@@ -260,8 +260,14 @@
           {% if note.is_orphan_photo %}<span class="cat" style="background: #5b7a8c;">📷 Sahne</span>{% endif %}
         </div>
         <div class="body">
+          {% if note.photo_file_id and photo_data_uris.get(note.id) %}
+            <div class="note-photo">
+              <img src="{{ photo_data_uris.get(note.id) }}" alt="" />
+            </div>
+          {% elif note.is_orphan_photo or note.photo_file_id %}
+            <div class="orphan-photo-tag">📷 Fotoğraf eklendi (yükleme başarısız oldu — sadece metin gösteriliyor)</div>
+          {% endif %}
           {% if note.is_orphan_photo %}
-            <div class="orphan-photo-tag">📷 Bir görsel + not (görsel kapasitesi olduğunda PDF'e eklenir)</div>
             <div>{{ note.transcript }}</div>
           {% elif note.category == Category.QUOTE %}
             <div class="quote">{{ note.transcript }}</div>

@@ -33,11 +33,13 @@ Toplam süre: **~40-55 dakika**. Toplam maliyet: **0 TL** (tüm servislerin ücr
 | Özellik | Detay |
 |---|---|
 | 🎤 **Sesli not** | Telegram'a ses gönder → Gemini transkript eder → kategori önerir → kaydeder |
-| 📷 **Sayfa fotoğrafı** | Foto gönder → Gemini OCR + sayfa numarası otomatik bulunur → not olarak ekler |
+| 📷 **Vurgu odaklı sayfa OCR** | Foto gönder → bot SADECE altı çizili / fosforlu / kalemle vurgulanmış metni çıkarır, tam sayfayı kopyalamaz |
+| 💬 **Foto + caption = soru** | Fotoğrafa caption (açıklama) eklersen → Gemini sayfayı okur, talimatını yapar. Karmaşık komutlar da OK: "şu cümleyi al + 'idealist'in sözlük anlamını ekle". Çıktı OCR + Tanım/Cevap/Özet bloğu |
 | 📸 **Kapak fotoğrafıyla kitap ekleme** | Kitap kapağını çek → Gemini ISBN/başlık/yazar tanır → metadata + kapak otomatik gelir |
 | 🌐 **ISBN çift kaynak** | Google Books başarısız olursa Open Library'ye otomatik fallback; 429 / boş sonuç olsa bile kitap bulunur. Tire/boşluk içeren ISBN'ler otomatik temizlenir |
-| 🖼️ **Orphan photo (sahne)** | OCR'de metin yoksa bot kitapla ilgisi olmayan görsel sayar; senden bir not alır, PDF'te "📷 Sahne" olarak gösterir |
+| 🖼️ **Orphan photo (sahne)** | Vurgu/OCR yoksa bot kitapla ilgisi olmayan görsel sayar; senden bir not alır, PDF'te "📷 Sahne" olarak gösterir |
 | 🏷️ **Otomatik kategorize** | Alıntı / Fikir / Yeni Bilgi / Kelime / Kavram / Özet — Gemini önerir, sen onaylarsın |
+| ➕ **Custom kategoriler** | Kendi etiketlerini sınırsız ekle ("Refleksiyon", "Tartışma" vb.). Notlarım hub'ında sayım belirteciyle görünür |
 | 📚 **Kelime + Kavram tanımı** | Bu kategorilerde Gemini otomatik tanım ekler |
 | 💡 **"Açıkla" özelliği** | Bir notu Gemini ile genişlet, eleştir, bağlam ekle |
 | ❓ **Soru-cevap modu** | "Bu kavram neydi?" gibi sor → Gemini kitap + notların context'iyle cevaplar |
@@ -46,20 +48,24 @@ Toplam süre: **~40-55 dakika**. Toplam maliyet: **0 TL** (tüm servislerin ücr
 | ✏️ **Oturum düzenle/sil** | Aktif oturumda sayfa numarasını düzelt veya yanlış açılan oturumu (+notları) sil; açık oturum listesinden direkt erişim |
 | 🔤 **Kısa kod sistemi** | Her kitap/oturum/not human-readable kod alır: `SVC`, `SVC-S03`, `SVC001` |
 | 📋 **Oturum recap'i** | Yeni oturum başında geçen özetlerini geri okur |
+| 📝 **Notlarım hub** | Ana menüde tüm not kategorilerini sayımlarıyla topluca gör: Alıntı (7), Fikir (2), Kavram (3)… Custom kategorileri ve "➕ Yeni kategori ekle" de burada |
 | 🔍 **Tam-metin arama** | Tüm notlarında FTS5 ile anında arama; ilk 5 sonuç, "Daha fazla göster" ile +5'er |
 | 📖 **Sözlük + tag cloud** | Tüm Kelime + Kavram notları alfabetik; PDF'te bir de kelime bulutu var |
 | 💬 **Alıntılar + favoriler** | Tüm Alıntı notların tek yerde; ⭐ ile favori işaretle |
-| 📤 **Not paylaş** | Bir alıntıyı/notu twit kartı gibi paylaş — Kare, IG Post, IG Story, A4, A5 boyutları |
+| 📤 **Not paylaş (Klasik Twit)** | Bir alıntıyı/notu pull-quote kart olarak paylaş — Crimson Pro / Playfair / Cormorant / EB Garamond / Lora / Merriweather font seçenekleri, 5 boyut (Kare, IG Post, IG Story, A4, A5). Uzun metinde font otomatik küçülür, boşluklar sabit. GitHub linki footer'da |
+| 📜 **"…devamını oku"** | 500 karakteri/10 satırı geçen notlar listede ve detayda kısa görünür; bir tıkla tam metin açılır |
 | 📊 **Detaylı istatistik** | Streak, en verimli zaman aralığı, oturum dağılımı (ana menüde de özet) |
 | 🎨 **Kitap ikonu + raflar** | Her kitap kendi emoji ikonunu alır. 10+ kitapta otomatik raf sistemi ("Felsefe", "Tarih"…) devreye girer |
 | 🛠️ **Kullanıcı tanımlı alanlar** | Kitap düzenleme menüsünden "Raf kodu", "Ödünç verildi" gibi kendi sütunlarını ekle; sınırsız |
 | 📸 **Kapak grid (albüm)** | "Kapakları topluca göster" → kütüphane kapakları Telegram albümü olarak (10'arlı) gönderilir |
 | 🏁 **Bitirme ritüeli** | Kitap bitince ⭐ puan + tek cümlelik yorum + favori alıntı seçimi + öneri |
-| 📕 **Zengin PDF günlüğü** | Kapak (rating + review), künye (yayınevi + yazarın diğer 3 kitabı + özel alanlar), istatistik (okuma takvimi + sayfa/kelime/kavram sayaçları), oturum kronolojisi, kelime bulutu, sözlük, favori alıntılar, yeniden tasarlanmış kapanış |
+| 📕 **Zengin PDF günlüğü** | Kapak (rating + review), künye (yayınevi + yazarın diğer 3 kitabı + özel alanlar), istatistik (okuma takvimi + sayfa/kelime/kavram sayaçları), oturum kronolojisi (notlara eklenmiş fotoğraflar gömülü olarak), kelime bulutu, sözlük, favori alıntılar, yeniden tasarlanmış kapanış |
 | 🗂️ **Esnek export** | PDF, JSON, CSV, Markdown, ZIP — tüm veriler senin Cloud Storage'ında, hep dışa alınabilir |
 | 🔔 **Proaktif hatırlatma** | Bot "uzun süredir okumadın", "hâlâ okuyor musun?" gibi nudge'lar atar (opsiyonel) |
 | ⚙️ **Ayarlar** | Hatırlatma sıklığı, otomatik kategori, otomatik açıklama — hepsi tek menüde toggle |
 | 🔄 **Şeffaf işlem mesajları** | Uzun süren AI çağrılarında (ASR, OCR, soru-cevap, PDF, export) "🔄 İşleniyor…" placeholder mesajı, bitince silinir |
+| ⚡ **Hızlı butonlar** | Chat input kutusunun altında her zaman görünen 4 kalıcı buton: 🟢 Oturumlar / ⏹️ Bitir / 📖 Kitaplar / ➕ Yeni |
+| 🪟 **Tek aktif menü** | Önceki menü mesajı her yeni ekrandan önce otomatik silinir — sohbet kalabalıklaşmıyor |
 
 ## Slash komutları
 
@@ -77,8 +83,26 @@ Telegram'ın `/` menüsünde her özelliğe kestirme komut var:
 - `/ayarlar` — Bot ayarları
 - `/yardim` — Kısa kullanım rehberi
 
-## v1.0.2 — yeni özellikler özeti
+## Sürüm geçmişi — neler değişti
 
+### v1.0.4 (en son)
+- 🪲 **Çift ikon fix**: kitap listesinde "📖 📖" yerine tek 📖
+- 🔢 **Notlarım sayım belirteçleri**: Fikir (2), Yeni Bilgi (5), Kavram (3)…
+- ➕ **Custom not kategorileri**: kullanıcı kendi etiketlerini ekler (Refleksiyon, Tartışma…). Note.category_label + AppSettings.custom_categories
+- 💬 **Foto + caption iyileştirme**: caption serbest talimat — OCR + Tanım/Cevap/Özet etiketleriyle yapılandırılmış çıktı
+- 🟢 **Post-save action butonları**: foto+caption sonrası "Aktif Oturuma Dön / Bu Notu Aç / Yeni Foto / Ana Menü"
+- 🖼️ **PDF'te foto embed**: notlara eklenmiş fotoğraflar artık PDF günlüğünde gerçekten görünür. render_pdf öncesi Telegram API'den indirilip base64 data URI olarak HTML'e gömülür
+
+### v1.0.3
+- 💬 **Foto + caption = Q&A**: fotoğrafa caption yazarsan sayfayı okuyup talimatını uygular
+- 📷 **Vurgu odaklı OCR**: caption yoksa sadece altı çizili/vurgulu metni alır, tam sayfayı kopyalamaz
+- 📝 **Notlarım hub**: ana menüye yeni "📝 Notlarım" çatısı (Alıntı/Fikir/Yeni Bilgi/Kavram/Kelime/Özet tek menüde)
+- 🪟 **Tek aktif menü**: yeni ekran açılırken eski bot menüsü otomatik silinir
+- 📜 **"…devamını oku"**: 10 satırdan / 500 karakterden uzun notlar listede kısa görünür, tıklayınca açılır
+- ⚡ **Hızlı butonlar** (ReplyKeyboard): 🟢 Oturumlar / ⏹️ Bitir / 📖 Kitaplar / ➕ Yeni — chat kutusu altında kalıcı
+- 📤 **"Klasik Twit" not paylaşımı**: pull-quote tasarımı, 6 Google Font seçeneği (Crimson Pro, Playfair, Cormorant, EB Garamond, Lora, Merriweather), uzun metinde font otomatik küçülür
+
+### v1.0.2
 - 🌐 **ISBN çift kaynak**: Google Books başarısız olursa Open Library devreye girer (anonim Cloud Run IP'leriyle 429 sorunu çözüldü)
 - 📷 **Orphan photo akışı**: OCR'siz görseli "sahne" notu olarak sakla, PDF'te ayrı stillendirilmiş bölüm
 - 📕 **Yeniden tasarlanmış PDF**: okuma takvimi (ay grid), kelime bulutu, yazarın diğer 3 kitabı, özel alanlar, yeniden organize edilmiş kapanış sayfası

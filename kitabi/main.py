@@ -167,6 +167,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     # 2) Data layer.
     data.init_db(settings.db_path)
+    # Register the bot token with the data layer so render_pdf can fetch
+    # user-attached note photos and embed them in the journal PDF (v1.0.4).
+    data.set_telegram_bot_token(settings.telegram_bot_token.get_secret_value())
 
     # 3) AI layer.
     ai.init_ai(settings.gemini_api_key.get_secret_value())
@@ -243,7 +246,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(
     title="Kitabi",
     description="Personal reading-tracker Telegram bot",
-    version="1.0.3",
+    version="1.0.4",
     lifespan=lifespan,
 )
 
@@ -254,7 +257,7 @@ app = FastAPI(
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     """Liveness probe for Cloud Run / monitors."""
-    return {"status": "ok", "version": "1.0.3"}
+    return {"status": "ok", "version": "1.0.4"}
 
 
 def _verify_webhook_secret(request: Request) -> None:

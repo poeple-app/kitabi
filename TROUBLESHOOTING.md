@@ -410,6 +410,98 @@ gcloud storage buckets list --project=<PROJECT_ID>
 
 ## Yeni özelliklere özel sorunlar (v1.0.1+) {#yeni-ozellikler}
 
+### Foto attım, OCR bütün sayfayı aldı — vurguları beklemiyordum (v1.0.3+)
+
+v1.0.3'ten itibaren default davranış değişti: bot artık SADECE altı çizili / fosforlu / kalemle vurgulanmış metni çıkarır. Tam sayfa OCR'ı görüyorsan iki ihtimal var:
+
+1. **Vurgu çok hafif okunmuş**: Yeşil/sarı fosforlu kalem en iyi çalışır. Kurşun kalem alt çizgisi bazen modelin gözünden kaçar — tekrar çek, vurguyu belirginleştir.
+2. **Eski deploy'da kaldın**: `/healthz` endpoint'i `version` field'inde **1.0.3+** dönmeli. Eski revision'da çalışıyorsan Cloud Run → kitabi → en son revision'a manuel geç.
+
+### Foto'nun caption'ına yazdığım talimatı okumadı (v1.0.3+)
+
+Caption'ın varsa bot **sayfayı OCR yapar + caption'ın istediği ek işleri yapar** (kelime tanımı eklemek, soruyu cevaplamak, ilişki kurmak). Çalışmıyorsa:
+- Caption boş mu kontrol et (Telegram'da bazen sehven boş kalır)
+- Caption çok uzunsa Telegram ilk 1024 karakterde keser
+- Cevap "Sayfada bu bilgi yok" dönüyorsa Gemini sayfada ilgili kısmı bulamamış — ya vurguyu belirgin çek ya da caption'ı netleştir (`şu cümleyi al + idealist'in sözlük anlamını ekle` gibi)
+
+v1.0.4'te prompt iyileştirildi: çıktı "Vurgu:", "Tanım:", "Cevap:", "Özet:" gibi yapılandırılmış etiketlerle gelir, OCR ve ek işler net ayrılır.
+
+### Foto + caption sonrası bir sonraki adımda kayboldum (v1.0.4+)
+
+Foto+caption cevabının altında her zaman 4 buton görürsün:
+- 🟢 Aktif Oturuma Dön → oturum ekranı
+- 📝 Bu Notu Aç → notu detaylı gör
+- 📷 Yeni fotoğraf at → mevcut akış (noop, sadece klavye getirir)
+- 🏠 Ana Menü → baştan başla
+
+Eğer butonlar görünmüyorsa eski revision'da kalmışsındır.
+
+### Notlarım hub'ı görünmüyor / kategori sayıları yanlış (v1.0.3+ / v1.0.4+)
+
+- v1.0.3'te ana menüye 📝 **Notlarım** butonu eklendi. Görmüyorsan eski revision.
+- v1.0.4'te her kategori butonunda sayım gösterir ("Fikir (2)" gibi). Sayım 0 olan kategoriler de görünür (gelecek not için hatırlatma).
+- Yanlış sayım görüyorsan `data.count_notes_by_category` SQL group-by sonucunu kontrol et — DB'de aynı kategoride ekstra not olabilir.
+
+### Custom kategori ekledim, not eklerken görünmüyor (v1.0.4+)
+
+Eklediğin etiket **Notlarım > ➕ Yeni kategori ekle** üzerinden geliyorsa AppSettings.custom_categories'e kaydedilir. Sonraki not eklerken `screen_note_confirm` ekranında "🏷️ <etiket>" diye görünür. Görünmüyorsa:
+- Bot eski revision olabilir → `/healthz` versionunu kontrol et
+- Etiket boş ya da >40 karakter olabilir → liste kontrolü: Notlarım hub'ında "Kendi kategorilerin" altında listelenir
+
+### Custom kategoriyi sildim, eski notlarda ne oluyor? (v1.0.4+)
+
+Notlar silinmez. `category_label` alanında o etiket string'i kalır, ama Notlarım hub'ında buton olarak görünmez (eşleşen liste yok). Notu açtığında "🏷️ Refleksiyon (özel)" hâlâ görürsün. Etiketi geri ekleyince notlar tekrar listede çıkar.
+
+### Hızlı butonlar (🟢 Oturumlar / ⏹️ Bitir / 📖 Kitaplar / ➕ Yeni) görünmüyor (v1.0.3+)
+
+ReplyKeyboardMarkup chat'in input kutusunun altında durur. Görünmüyorsa:
+- `/start` ile yeniden kurulur
+- Telegram client klavyeyi gizlemiş olabilir → input kutusunun yanındaki 4-nokta ikonuna bas, "Show keyboard" / "Show reply keyboard"
+- iOS Telegram bazı sürümlerde persistent keyboard'u küçültür — gri ok ile aç
+
+### "Tek aktif menü" — eski menüm silinmedi (v1.0.3+)
+
+Bot her yeni ekran açarken bir önceki menü mesajını silmeye çalışır. Telegram'ın kısıtları:
+- **48 saatten eski mesajlar silinemez** → eski menü orada kalır, yenisi yine gönderilir
+- Bot'un mesajı silme izni yoksa silinmez (kişisel sohbette sorun olmaz, gruplarda olabilir)
+- Container yeniden başladığında `last_menu_msg_id` ephemeral state'i 24 saat saklı, sonra silinir
+
+### "…devamını oku" tıkladım, hâlâ kısa gözüküyor (v1.0.3+)
+
+500 karakter veya 10 satır eşiğini geçen notlarda görünür. Eğer notun bu eşiğin altındaysa zaten kısaltma yok. Tıklayınca açılmıyorsa eski bot revision'undasındır.
+
+### Not paylaş tasarımı / fontu beğenmedim, başka deneyim olmalı (v1.0.3+)
+
+Not detay → 📤 Paylaş → boyut seç → **font seç**. 6 seçenek:
+- Crimson Pro (varsayılan, dengeli serif)
+- Playfair Display (cüretkar display)
+- Cormorant Garamond (klasik italik)
+- EB Garamond (kitap fontu)
+- Lora (web-optimize)
+- Merriweather (okunaklı)
+
+Aynı notu farklı fontlarla denetleyip beğendiğini paylaşabilirsin. Uzun metinlerde font otomatik küçülür, kart boyutu hep sabit. GitHub linki footer'da olur.
+
+### Not paylaş PDF'inde Crimson Pro değil de jenerik bir serif çıktı (v1.0.3+)
+
+WeasyPrint CDN'den font indirmeye çalışır. Cloud Run egress yavaşsa veya Google Fonts engelliyse fallback chain devreye girer (Crimson → Georgia → serif). PDF okunabilir kalır ama font değişir. Tekrar denersen genelde düzelir.
+
+### Kitap listesinde "📖 📖" çift ikon (v1.0.3 → v1.0.4 fix)
+
+v1.0.3'te status icon + book.icon birlikte gösterildiği için varsayılan kullanıcılarda iki 📖 yan yana çıkıyordu. v1.0.4'te aynı emoji ise tek gösterilir. Hâlâ görüyorsan eski revision.
+
+### PDF günlüğünde eklediğim fotoğrafı göremiyorum (v1.0.4+)
+
+v1.0.4'ten itibaren render_pdf, notların `photo_file_id`'sini Telegram API'den indirir ve PDF'e gömer. Görünmüyorsa:
+- Foto **v1.0.4 öncesinde** çekildiyse `photo_file_id` DB'de yok — gelecek fotoğraflar görünür
+- Telegram file_id 18 ay valid, daha eski fotoğraflar artık indirilemez
+- Loglarda `data.fetch_photo.failed` arar → file_id hâlâ valid mi anlaşılır
+- Telegram bot token'ı `data.set_telegram_bot_token` ile kayıtlı değilse atlanır → main.py lifespan'ı sırasında set ediliyor mu kontrol et
+
+### Container build'inde "fonts-X bulunamadı" hatası (v1.0.3+ Dockerfile)
+
+Dockerfile'a `fonts-lora`, `fonts-crimson-pro`, `fonts-playfair-display` gibi Debian Trixie'de olmayan paketler eklersen build patlar. Mevcut Dockerfile zaten temiz — Debian'da olmayan fontlar CDN'den çekiliyor. Kendi fork'unda font ekleyeceksen `apt-cache search fonts-` ile geçerli paket adlarını bul.
+
 ### Kapak fotoğrafından kitap ekleme bulamadı
 
 Bot kapak fotoğrafından **ISBN/başlık/yazar** çıkarmaya çalışıyor; sonra önce Google Books, başarısız olursa Open Library'de arıyor. Olası senaryolar:

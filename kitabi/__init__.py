@@ -1,3 +1,3 @@
 """Kitabi — Personal reading-tracker Telegram bot."""
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
