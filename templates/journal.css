@@ -1,0 +1,524 @@
+/* Kitabi reading-journal PDF stylesheet — print-optimized via WeasyPrint @page rules. */
+
+@page {
+  size: A4;
+  margin: 0;
+  @bottom-center {
+    content: "";
+  }
+}
+
+:root {
+  --paper: #fdfaf3;
+  --ink: #2a2520;
+  --ink-dim: #6e6358;
+  --ink-soft: #8a7e72;
+  --accent: #7a3e1f;
+  --accent-soft: #efe2d3;
+  --line: #d8cdba;
+  --rule: #c8b99e;
+  --quote-bg: #f4ecdc;
+  --quote-border: #7a3e1f;
+  --tag-bg: #ede1ce;
+  --tag-text: #6b4a2c;
+  --cat-aliinti: #8c5a2c;
+  --cat-fikir:   #4b6a8c;
+  --cat-yeni:    #5b7a4b;
+  --cat-kelime:  #7a4b6a;
+  --cat-kavram:  #6a4b7a;
+  --cat-ozet:    #8c6b2c;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: white;
+  color: var(--ink);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 11pt;
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  background: var(--paper);
+  page-break-after: always;
+  break-after: page;
+  position: relative;
+  overflow: hidden;
+  background-image:
+    radial-gradient(circle at 8% 12%, rgba(122, 62, 31, 0.025), transparent 40%),
+    radial-gradient(circle at 90% 88%, rgba(122, 62, 31, 0.025), transparent 40%);
+}
+.page:last-of-type { page-break-after: auto; }
+
+.page-inner {
+  padding: 22mm 22mm 30mm;
+  min-height: 297mm;
+}
+
+.page-footer {
+  position: absolute;
+  left: 22mm; right: 22mm; bottom: 10mm;
+  display: flex;
+  justify-content: space-between;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 9pt;
+  color: var(--ink-dim);
+  letter-spacing: 0.4px;
+}
+.page-footer .brand { font-style: italic; }
+
+/* ─────────────── Cover page ─────────────── */
+.cover {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.05), transparent 50%),
+    linear-gradient(160deg, #8c5a3a 0%, #5a3a1f 60%, #3a2510 100%);
+  color: #f5e9d4;
+}
+.cover .page-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 32mm 26mm;
+}
+.cover-top {
+  text-align: center;
+  border-bottom: 1px solid rgba(245, 233, 212, .25);
+  padding-bottom: 8mm;
+}
+.cover-brand {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 11pt;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: rgba(245, 233, 212, .7);
+  margin-bottom: 4mm;
+}
+.cover-subbrand {
+  font-size: 11pt;
+  font-style: italic;
+  color: rgba(245, 233, 212, .8);
+}
+.cover-mid {
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 16mm 0;
+}
+.cover-thumb {
+  width: 60mm;
+  height: 85mm;
+  background: linear-gradient(135deg, #3d2614 0%, #1f1208 100%);
+  margin: 0 auto 12mm;
+  border-radius: 2mm;
+  box-shadow: 0 4mm 8mm rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 6mm;
+  color: #f5e9d4;
+  text-align: center;
+  position: relative;
+}
+.cover-thumb::before {
+  content: "";
+  position: absolute;
+  left: 4mm;
+  top: 0; bottom: 0;
+  width: 0.5mm;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,.15), transparent);
+}
+.cover-thumb .ttl {
+  font-family: Georgia, serif;
+  font-size: 16pt;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 4mm;
+}
+.cover-thumb .auth {
+  font-style: italic;
+  font-size: 11pt;
+  opacity: .85;
+}
+.cover-title {
+  font-size: 32pt;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 4mm;
+  letter-spacing: -0.5px;
+  color: #f5e9d4;
+}
+.cover-author {
+  font-style: italic;
+  font-size: 18pt;
+  color: rgba(245, 233, 212, .85);
+  margin-bottom: 8mm;
+}
+.cover-tagline {
+  font-size: 10pt;
+  color: rgba(245, 233, 212, .7);
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.cover-bottom {
+  text-align: center;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 10pt;
+  color: rgba(245, 233, 212, .75);
+  border-top: 1px solid rgba(245, 233, 212, .25);
+  padding-top: 6mm;
+}
+.cover-bottom .range {
+  font-size: 12pt;
+  margin-bottom: 2mm;
+  color: #f5e9d4;
+}
+
+/* ─────────────── Typography ─────────────── */
+h1.page-title {
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  border-bottom: 0.8mm solid var(--accent);
+  padding-bottom: 3mm;
+  margin: 0 0 6mm;
+  color: var(--ink);
+  break-after: avoid;
+  page-break-after: avoid;
+}
+h2.section {
+  font-size: 13pt;
+  font-weight: 700;
+  margin: 6mm 0 3mm;
+  color: var(--accent);
+  letter-spacing: 0.2px;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+h2.section:first-of-type { margin-top: 0; }
+h3.subsection {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 4mm 0 2mm;
+  color: var(--ink);
+  break-after: avoid;
+  page-break-after: avoid;
+}
+p, li {
+  font-size: 10.5pt;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.meta-label {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 8pt;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 1mm;
+}
+
+/* ─────────────── Künye ─────────────── */
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5mm 9mm;
+  margin-bottom: 6mm;
+}
+.meta-block .val { font-size: 10.5pt; line-height: 1.5; }
+.tags { display: flex; flex-wrap: wrap; gap: 1.5mm; margin-top: 1mm; }
+.tag {
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  padding: 0.5mm 2.5mm;
+  border-radius: 3mm;
+  font-size: 8.5pt;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+}
+.personal-note {
+  background: var(--quote-bg);
+  border-left: 0.8mm solid var(--accent);
+  padding: 4mm 5mm 4mm 7mm;
+  margin: 4mm 0 0;
+  font-style: italic;
+  font-size: 10.5pt;
+  line-height: 1.6;
+  color: var(--ink);
+  border-radius: 0 1mm 1mm 0;
+  position: relative;
+}
+.personal-note::before {
+  content: "\201C";
+  font-size: 30pt;
+  color: var(--accent);
+  position: absolute;
+  left: 1.5mm;
+  top: 5mm;
+  line-height: 0.8;
+  font-family: Georgia, serif;
+}
+
+.toc { margin-top: 6mm; border-top: 1px solid var(--line); padding-top: 4mm; }
+.toc-row {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 1.5mm;
+  font-size: 10pt;
+}
+.toc-row .ttl { font-weight: 600; }
+.toc-row .dots { flex: 1; border-bottom: 1px dotted var(--rule); margin: 0 2mm; transform: translateY(-1mm); }
+.toc-row .pg {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink-dim);
+  font-size: 9pt;
+}
+
+/* ─────────────── Stats ─────────────── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3mm;
+  margin-bottom: 4mm;
+}
+.stat-card {
+  background: var(--accent-soft);
+  border-radius: 1.5mm;
+  padding: 4mm 4mm;
+  text-align: center;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.stat-card .num {
+  font-size: 18pt;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+.stat-card .lbl {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 8pt;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-top: 2mm;
+}
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  margin: 2mm 0;
+  font-size: 10pt;
+}
+.bar-row .name {
+  width: 28mm;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 9pt;
+}
+.bar-row .bar-wrap {
+  flex: 1;
+  background: #ede1ce;
+  height: 3mm;
+  border-radius: 1mm;
+  overflow: hidden;
+}
+.bar-row .bar { height: 100%; }
+.bar-row .cnt {
+  width: 9mm;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 9pt;
+  text-align: right;
+  color: var(--ink-dim);
+}
+.session-summary { margin: 2mm 0; padding: 2mm 0; border-bottom: 1px dotted var(--rule); }
+.session-summary:last-child { border-bottom: 0; }
+.ssum-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5pt;
+}
+.ssum-num { font-weight: 700; color: var(--accent); }
+.ssum-meta { color: var(--ink-dim); font-family: -apple-system, sans-serif; font-size: 9pt; }
+
+/* ─────────────── Journal ─────────────── */
+.session-head {
+  background: var(--accent);
+  color: #fff7e5;
+  padding: 3.5mm 5mm;
+  border-radius: 1.5mm;
+  margin: 6mm 0 4mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+.session-head:first-of-type { margin-top: 0; }
+.session-head .num {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 8pt;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.session-head .title { font-size: 12pt; font-weight: 700; margin-top: 1mm; }
+.session-head .meta {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 9pt;
+  opacity: 0.9;
+}
+
+.note {
+  border-left: 0.5mm solid var(--line);
+  padding: 0 0 3mm 4mm;
+  margin-bottom: 3mm;
+  position: relative;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.note::before {
+  content: "";
+  position: absolute;
+  left: -1.3mm;
+  top: 1mm;
+  width: 2mm; height: 2mm;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.note .top {
+  display: flex;
+  gap: 2.5mm;
+  align-items: center;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 8.5pt;
+  color: var(--ink-dim);
+  margin-bottom: 1.5mm;
+}
+.cat {
+  padding: 0.4mm 2.2mm;
+  border-radius: 2.5mm;
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: white;
+  letter-spacing: 0.3px;
+}
+.cat-QUOTE     { background: var(--cat-aliinti); }
+.cat-IDEA      { background: var(--cat-fikir); }
+.cat-NEW_INFO  { background: var(--cat-yeni); }
+.cat-WORD      { background: var(--cat-kelime); }
+.cat-CONCEPT   { background: var(--cat-kavram); }
+.cat-SUMMARY   { background: var(--cat-ozet); }
+.note .body {
+  font-size: 10pt;
+  line-height: 1.6;
+}
+.note .body .quote {
+  font-style: italic;
+  color: var(--ink);
+  background: var(--quote-bg);
+  border-left: 0.5mm solid var(--quote-border);
+  padding: 2mm 3mm;
+  border-radius: 0 1mm 1mm 0;
+  margin: 1.5mm 0;
+}
+.note .body .gemini {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 9pt;
+  color: var(--ink-dim);
+  background: #fbf5e6;
+  border: 1px dashed var(--rule);
+  padding: 2mm 3mm;
+  border-radius: 1mm;
+  margin-top: 2mm;
+}
+.note .body .gemini::before {
+  content: "Gemini: ";
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 8pt;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-right: 1.5mm;
+}
+.note .body .definition {
+  font-size: 9pt;
+  color: var(--ink);
+  background: #ece1ce;
+  padding: 2mm 3mm;
+  border-radius: 1mm;
+  margin-top: 2mm;
+  border-left: 0.5mm solid var(--cat-kavram);
+}
+.note .body .definition::before {
+  content: "Tanım — ";
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-weight: 700;
+  color: var(--cat-kavram);
+  font-size: 8pt;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.note.summary {
+  border-left: 0.8mm solid var(--cat-ozet);
+  background: linear-gradient(90deg, rgba(140,107,44,.08), transparent 80%);
+  padding: 2.5mm 3.5mm 3.5mm;
+  border-radius: 0 1mm 1mm 0;
+  margin: 4mm 0;
+}
+.note.summary::before { background: var(--cat-ozet); }
+
+/* ─────────────── Glossary ─────────────── */
+.glossary-item {
+  margin-bottom: 4mm;
+  padding-bottom: 3mm;
+  border-bottom: 1px dotted var(--line);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.glossary-item:last-child { border-bottom: 0; }
+.glossary-item .term {
+  font-size: 12pt;
+  font-weight: 700;
+  color: var(--accent);
+}
+.glossary-item .type {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 7.5pt;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-left: 2mm;
+}
+.glossary-item .def {
+  font-size: 10pt;
+  line-height: 1.55;
+  margin-top: 1mm;
+}
+.glossary-item .src {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 8.5pt;
+  color: var(--ink-dim);
+  margin-top: 1mm;
+  font-style: italic;
+}
+
+/* ─────────────── Closing ─────────────── */
+.closing { text-align: center; margin-top: 8mm; padding-top: 8mm; }
+.closing .sig {
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 9pt;
+  color: var(--ink-dim);
+  letter-spacing: 1px;
+}
+.ornament {
+  text-align: center;
+  color: var(--accent);
+  margin: 4mm 0 6mm;
+  font-size: 14pt;
+  letter-spacing: 6px;
+}

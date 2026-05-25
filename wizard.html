@@ -1,0 +1,2711 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>Kitabi — Kurulum</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #fafaf7;
+    --card: #ffffff;
+    --card-2: #f4efe6;
+    --ink: #2a2520;
+    --ink-dim: #6e6358;
+    --ink-soft: #8e857a;
+    --accent: #7a3e1f;
+    --accent-light: #c87a4a;
+    --accent-soft: #efe2d3;
+    --accent-vivid: #d97339;
+    --line: #e3dac8;
+    --rule: #d4c8b0;
+    --success: #4a7a3e;
+    --success-soft: #e3edd9;
+    --warn: #c8a04a;
+    --warn-soft: #f6ecd0;
+    --warn-strong: #8a6a1e;
+    --danger: #b03a3a;
+    --danger-soft: #f4dada;
+    --disabled: #c4bcb0;
+    --mono: ui-monospace, "SF Mono", Consolas, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ───── Trust banner ───── */
+  .trust {
+    background: var(--warn-soft);
+    border-bottom: 1px solid var(--warn);
+    font-size: 13px; color: var(--warn-strong);
+    width: 100%;
+  }
+  .trust-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 10px clamp(16px, 4vw, 32px);
+    display: flex; align-items: center; gap: 14px;
+    box-sizing: border-box;
+  }
+  .trust .ti { font-size: 18px; flex-shrink: 0; }
+  .trust .tx { flex: 1; line-height: 1.45; }
+  .trust .tx strong { color: var(--warn-strong); }
+  .trust code {
+    background: #fffbe8; padding: 1px 6px; border-radius: 3px;
+    font-family: var(--mono); font-size: 12px; color: var(--warn-strong);
+    border: 1px solid #e3d49a;
+  }
+  .trust-close {
+    background: transparent; border: 0;
+    font-size: 18px; color: var(--warn-strong);
+    cursor: pointer; padding: 4px 8px; flex-shrink: 0;
+  }
+  .trust.hidden { display: none; }
+
+  /* ───── Header ───── */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: 0;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .header-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px clamp(16px, 4vw, 32px);
+    display: flex; align-items: center; gap: 16px;
+  }
+  .brand-line { display: flex; align-items: baseline; }
+  .brand { font-family: Georgia, serif; font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -.3px; }
+  .brand-tag { color: var(--ink-dim); font-size: 13px; font-style: italic; margin-left: 6px; }
+  .header-spacer { flex: 1; }
+  .progress { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-dim); }
+  .progress-text { white-space: nowrap; }
+  .progress-dots { display: flex; gap: 4px; }
+  .pdot { width: 18px; height: 4px; border-radius: 2px; background: var(--line); transition: background .25s; }
+  .pdot.done { background: var(--success); }
+  .pdot.active { background: var(--accent-vivid); }
+
+  /* ───── Main layout ───── */
+  main {
+    flex: 1;
+    display: grid;
+    /* `minmax(0, 1fr)` is critical — without it, an overflowing child
+       (e.g. the welcome-screen horizontal intro-cards) forces the left
+       column wider than its share, breaking max-width on the entire grid
+       in strict-grid browsers like Chrome. */
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 28px;
+    padding: 28px clamp(16px, 4vw, 32px);
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ───── Card / screen ───── */
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    padding: 36px 40px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03);
+    /* Allow internal overflow-x children (intro-cards) to shrink instead of
+       pushing the card wider than its grid column. */
+    min-width: 0;
+  }
+  .step-eyebrow {
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin-bottom: 8px;
+  }
+  h1.step-title {
+    font-family: Georgia, serif; font-size: 30px; font-weight: 700;
+    margin: 0 0 12px; line-height: 1.2; color: var(--ink); letter-spacing: -.4px;
+  }
+  .lede { font-size: 15.5px; color: var(--ink); line-height: 1.65; margin-bottom: 18px; max-width: 760px; }
+  .lede.dim { color: var(--ink-dim); }
+  .input-help { font-size: 12px; color: var(--ink-dim); margin-bottom: 8px; }
+  h2.section-h { font-size: 15px; font-weight: 700; margin: 26px 0 10px; color: var(--ink); }
+
+  /* ───── Step meta pills (NEW design language element) ───── */
+  .step-meta {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin: 0 0 18px;
+  }
+  .step-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--card-2);
+    color: var(--ink-dim);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border: 1px solid var(--line);
+    letter-spacing: .1px;
+  }
+  .step-pill.auto { background: var(--success-soft); color: var(--success); border-color: var(--success); }
+  .step-pill.manual { background: var(--warn-soft); color: var(--warn-strong); border-color: #e3d49a; }
+  .step-pill.warm { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-light); }
+
+  /* Sub-caption under main descriptions (small italic gray text) */
+  .sub-caption {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    font-style: italic;
+    margin: -8px 0 16px;
+    line-height: 1.5;
+  }
+
+  /* Verification mode pill (legacy use, keep for compatibility) */
+  .verify-mode {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--card-2); color: var(--ink-dim);
+    padding: 4px 10px; border-radius: 12px;
+    font-size: 11.5px; font-weight: 600;
+    margin-left: 8px; letter-spacing: .2px; border: 1px solid var(--line);
+  }
+  .verify-mode.auto { background: var(--success-soft); color: var(--success); border-color: var(--success); }
+  .verify-mode.manual { background: var(--warn-soft); color: var(--warn-strong); border-color: #e3d49a; }
+  .verify-mode .vi { font-size: 12px; }
+
+  /* ───── Intro cards (welcome screen) ───── */
+  .intro-cards-container {
+    margin: 12px 0 4px;
+    padding: 6px 0 18px;
+    position: relative;
+  }
+  .intro-cards {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;          /* Firefox: hide scrollbar */
+    -ms-overflow-style: none;       /* IE/Edge legacy */
+    padding-bottom: 4px;
+  }
+  .intro-cards::-webkit-scrollbar { display: none; }   /* Chrome/Safari */
+
+  /* Scroll buttons (< / >) overlay on the cards container */
+  .intro-scroll-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    color: var(--accent);
+    font-size: 18px; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, border-color .15s, opacity .15s;
+    z-index: 2;
+    user-select: none;
+  }
+  .intro-scroll-btn:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent-light);
+  }
+  .intro-scroll-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .intro-scroll-btn.prev { left: -8px; }
+  .intro-scroll-btn.next { right: -8px; }
+  .intro-card {
+    flex: 0 0 240px;
+    scroll-snap-align: start;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color .15s, transform .15s;
+  }
+  .intro-card:hover { border-color: var(--accent-light); transform: translateY(-2px); }
+  .intro-screenshot {
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    background: linear-gradient(135deg, #f8f3e8, #ede1ce);
+    border: 1.5px dashed var(--rule);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--ink-soft);
+    font-size: 11px; font-style: italic;
+    text-align: center; padding: 12px;
+    margin-bottom: 10px;
+  }
+  .intro-screenshot .ss-emoji { font-size: 32px; margin-bottom: 6px; }
+  .intro-screenshot .ss-placeholder { font-size: 10.5px; line-height: 1.4; color: var(--ink-soft); }
+  .intro-card-title { font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+  .intro-card-cap { font-size: 12.5px; color: var(--ink-dim); line-height: 1.45; }
+
+  .intro-hint-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 6px;
+    font-size: 11.5px; color: var(--ink-soft);
+    font-style: italic;
+  }
+  .intro-hint-row::before { content: "←"; opacity: 0.5; }
+  .intro-hint-row::after { content: "→"; opacity: 0.5; margin-left: auto; }
+
+  /* ───── Buttons ───── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 8px;
+    font-size: 14px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    cursor: pointer; text-decoration: none; transition: all .15s;
+  }
+  .btn:hover { background: var(--accent-soft); border-color: var(--accent-light); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-light); border-color: var(--accent-light); }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-dim); }
+  .btn-ghost:hover { background: var(--card-2); color: var(--ink); border-color: transparent; }
+  .btn-big { padding: 14px 24px; font-size: 16px; border-radius: 10px; }
+  .btn-huge { padding: 18px 28px; font-size: 18px; border-radius: 12px; box-shadow: 0 4px 16px rgba(122, 62, 31, .25); }
+
+  /* Subtle link-style button for advanced users (manual install entry) */
+  .btn-link {
+    background: transparent; border: 0; padding: 6px 10px;
+    color: var(--ink-soft); font-size: 13px; font-weight: 500;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+    transition: color .15s;
+  }
+  .btn-link:hover { color: var(--accent); }
+
+  /* Manual install page — dense, dev-focused */
+  .manual-section { margin: 22px 0 14px; }
+  .manual-section h2 {
+    font-size: 18px; font-weight: 700; margin: 18px 0 8px;
+    color: var(--ink); border-left: 3px solid var(--accent); padding-left: 10px;
+  }
+  .manual-section h3 {
+    font-size: 14px; font-weight: 700; margin: 14px 0 6px;
+    color: var(--ink); text-transform: uppercase; letter-spacing: 1px;
+  }
+  .manual-section ul, .manual-section ol { margin: 6px 0 10px 22px; padding: 0; }
+  .manual-section li { font-size: 14px; line-height: 1.65; color: var(--ink); margin-bottom: 4px; }
+  .manual-section code {
+    background: var(--card-2); padding: 1px 6px; border-radius: 3px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--accent);
+  }
+  .manual-code-block {
+    background: #2d2520; color: #f0e8dc;
+    padding: 14px 18px; border-radius: 8px; margin: 8px 0 14px;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+    overflow-x: auto; white-space: pre;
+    border: 1px solid #3d342d;
+  }
+  .manual-code-block .cm { color: #8b8378; }
+  .manual-code-block .key { color: #d4b48a; }
+
+  /* Troubleshoot button — same outline footprint as the "Sıradakine →" primary
+     button so the row stays visually balanced. Smaller font keeps the
+     secondary character. */
+  .troubleshoot-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 14px 24px;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--warn-strong);
+    border: 1.5px solid var(--warn);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all .15s;
+    line-height: 1.2;
+  }
+  .troubleshoot-btn:hover {
+    background: var(--warn-soft);
+    border-color: var(--warn-strong);
+  }
+
+  /* ───── Service link card (URL visible) ───── */
+  .open-svc {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card-2); text-decoration: none; color: var(--ink);
+    margin: 12px 0; transition: all .15s;
+  }
+  .open-svc:hover { border-color: var(--accent-light); background: var(--accent-soft); }
+  .open-svc .ico { flex-shrink: 0; display: flex; align-items: center; }
+  .open-svc .ico svg { width: 32px; height: 32px; }
+  .open-svc .osvc-info { flex: 1; min-width: 0; }
+  .open-svc .ttl { font-weight: 700; font-size: 14.5px; }
+  .open-svc .url { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin: 3px 0; word-break: break-all; }
+  .open-svc .url::before { content: "→ "; color: var(--accent); font-family: -apple-system, sans-serif; }
+  .open-svc .sub { font-size: 12.5px; color: var(--ink-dim); margin-top: 2px; }
+  .open-svc .arr { color: var(--ink-soft); font-size: 18px; flex-shrink: 0; }
+
+  /* ───── Checklists ───── */
+  .checklist { margin: 12px 0; }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 4px; border-bottom: 1px solid var(--line);
+    cursor: pointer; user-select: none;
+  }
+  .check-item:last-child { border-bottom: 0; }
+  .check-item input[type=checkbox] { display: none; }
+  .check-item .box {
+    width: 22px; height: 22px; border-radius: 6px;
+    border: 2px solid var(--rule); flex-shrink: 0; margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    color: transparent; font-weight: 800; transition: all .15s;
+  }
+  .check-item input:checked + .box { background: var(--success); border-color: var(--success); color: white; }
+  .check-item .box::after { content: "✓"; }
+  .check-item .lbl { font-size: 14px; line-height: 1.5; padding-top: 1px; }
+  .check-item .lbl small { display: block; color: var(--ink-dim); font-size: 12.5px; margin-top: 2px; }
+  .check-item .lbl code { background: var(--card-2); padding: 1px 6px; border-radius: 3px; font-family: var(--mono); font-size: 12px; }
+
+  /* ───── Two-name visual (Telegram step) ───── */
+  .names-diagram {
+    background: var(--card-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 14px 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .names-col .nlabel {
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 700; margin-bottom: 6px;
+  }
+  .names-col .nexample {
+    font-family: var(--mono);
+    background: white;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .names-col .nhelp { font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+
+  /* ───── API list (Adım 4) ───── */
+  .api-list { margin: 12px 0 18px; }
+  .api-item {
+    display: flex; gap: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card-2);
+    margin-bottom: 8px;
+  }
+  .api-item .api-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .api-item .api-body { flex: 1; }
+  .api-item .api-name { font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+  .api-item .api-name code {
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft);
+    background: white; padding: 1px 6px; border-radius: 3px; margin-left: 6px;
+    font-weight: 400; border: 1px solid var(--line);
+  }
+  .api-item .api-role { font-size: 13px; color: var(--ink-dim); line-height: 1.5; margin-bottom: 4px; }
+  .api-item .api-tier {
+    font-family: var(--mono); font-size: 11.5px; color: var(--success);
+    background: var(--success-soft); padding: 2px 8px; border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* ───── Repo files panel (Adım 3) ───── */
+  .files-panel {
+    background: #fdfbf6;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 14px 0;
+  }
+  .files-panel .fp-title {
+    font-weight: 700; font-size: 13.5px;
+    margin-bottom: 4px; color: var(--accent);
+  }
+  .files-panel .fp-sub {
+    font-size: 12px; color: var(--ink-dim); margin-bottom: 12px;
+  }
+  .files-tree { font-family: var(--mono); font-size: 13px; line-height: 1.85; }
+  .files-tree .ft-folder { color: var(--accent); font-weight: 700; }
+  .files-tree .ft-file a { color: var(--ink); text-decoration: none; border-bottom: 1px dashed transparent; }
+  .files-tree .ft-file a:hover { border-bottom-color: var(--accent); color: var(--accent); }
+  .files-tree .ft-desc { color: var(--ink-soft); font-family: -apple-system, "Segoe UI", sans-serif; font-size: 12px; margin-left: 8px; }
+  .files-tree .ft-row { display: flex; flex-wrap: wrap; align-items: baseline; }
+
+  /* ───── Input + verification ───── */
+  .input-row { display: flex; gap: 8px; align-items: center; margin: 10px 0 4px; }
+  .input-label { display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 4px; margin-top: 14px; }
+  input.text {
+    flex: 1; padding: 10px 14px;
+    border: 1px solid var(--rule); border-radius: 8px;
+    font-size: 14px; font-family: var(--mono);
+    background: white; color: var(--ink);
+  }
+  input.text:focus { outline: 2px solid var(--accent-light); border-color: var(--accent-light); }
+  .vstatus {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+    background: var(--card-2); color: var(--ink-soft);
+    border: 1px solid var(--line); transition: all .25s;
+  }
+  .vstatus.checking { background: var(--warn-soft); color: var(--warn-strong); border-color: var(--warn); animation: spin 1s linear infinite; }
+  .vstatus.ok { background: var(--success-soft); color: var(--success); border-color: var(--success); }
+  .vstatus.fail { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .vmsg { font-size: 12.5px; color: var(--ink-dim); margin-top: 4px; min-height: 18px; }
+  .vmsg.ok { color: var(--success); }
+  .vmsg.fail { color: var(--danger); }
+
+  /* ───── Info boxes ───── */
+  .info {
+    background: var(--warn-soft);
+    border-left: 3px solid var(--warn);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .info strong { color: var(--warn-strong); }
+  .success-box {
+    background: var(--success-soft);
+    border-left: 3px solid var(--success);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .danger-box {
+    background: var(--danger-soft);
+    border-left: 3px solid var(--danger);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .copy-row {
+    background: var(--card-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--mono); font-size: 13px;
+    display: flex; align-items: center; gap: 10px; margin: 10px 0;
+  }
+  .copy-row .val { flex: 1; word-break: break-all; color: var(--ink); }
+  .copy-btn {
+    background: white; border: 1px solid var(--rule);
+    padding: 6px 12px; border-radius: 6px;
+    cursor: pointer; font-size: 12px; font-weight: 600;
+    color: var(--ink-dim);
+  }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent-light); }
+
+  /* Verification panel (welcome) */
+  .verify-panel {
+    background: linear-gradient(135deg, #f8f3e8, #f4ecdc);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 20px 0;
+    font-size: 13px; line-height: 1.55;
+  }
+  .verify-panel-title {
+    font-weight: 700; color: var(--accent);
+    margin-bottom: 8px; font-size: 13.5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* ───── Logs/important locations section (NEW) ───── */
+  .info-section {
+    background: var(--card-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .info-section-title {
+    font-weight: 700; font-size: 14px; color: var(--ink);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .info-section ul { margin: 6px 0; padding-left: 18px; }
+  .info-section li { font-size: 13px; line-height: 1.6; margin-bottom: 5px; color: var(--ink-dim); }
+  .info-section li strong { color: var(--ink); }
+  .info-section code {
+    background: white; padding: 1px 6px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11.5px;
+    border: 1px solid var(--line);
+  }
+
+  /* ───── Tools grid ───── */
+  .tools-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin: 16px 0 22px;
+  }
+  .tool-card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    padding: 14px 14px 12px;
+    display: flex; flex-direction: column; gap: 6px;
+    transition: border-color .15s;
+  }
+  .tool-card:hover { border-color: var(--accent-light); }
+  .tool-logo {
+    width: 44px; height: 44px; margin-bottom: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tool-logo svg { width: 100%; height: 100%; }
+  .tool-name { font-weight: 700; font-size: 14px; color: var(--ink); letter-spacing: -.1px; }
+  .tool-role { font-size: 12px; color: var(--ink-dim); line-height: 1.4; }
+  .tool-tier {
+    margin-top: auto;
+    font-family: var(--mono); font-size: 11px; color: var(--success);
+    background: var(--success-soft);
+    padding: 4px 8px; border-radius: 6px; align-self: flex-start;
+  }
+  .tool-tier.umbrella { color: var(--ink-dim); background: var(--card-2); }
+
+  /* ───── Footer nav (per-step) ───── */
+  .nav-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 28px; padding-top: 22px;
+    border-top: 1px solid var(--line); gap: 12px;
+    flex-wrap: wrap;
+  }
+  .nav-row .nav-center { flex: 1; text-align: center; }
+
+  /* ───── Network map ───── */
+  aside.map {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    padding: 22px 22px 26px;
+    position: sticky; top: 88px; height: fit-content;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  }
+  .map-title { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-dim); font-weight: 700; margin-bottom: 14px; }
+  .node {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background: var(--card);
+    margin-bottom: 10px;
+    transition: all .3s;
+  }
+  .node.done { border-color: var(--success); background: var(--success-soft); }
+  .node.active {
+    border-color: var(--accent-vivid);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 4px rgba(217, 115, 57, 0.15);
+  }
+  .node .nico {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--card-2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; padding: 4px;
+  }
+  .node .nico svg { width: 100%; height: 100%; }
+  .node.done .nico { background: var(--success); }
+  .node.active .nico { background: var(--accent-vivid); }
+  .node .ndetails { flex: 1; min-width: 0; }
+  .node .nname { font-weight: 700; font-size: 13.5px; color: var(--ink); }
+  .node .nstatus { font-size: 11.5px; color: var(--ink-dim); margin-top: 1px; }
+  .node.done .nstatus { color: var(--success); font-weight: 600; }
+  .node.active .nstatus { color: var(--accent); font-weight: 600; }
+  .node .nbadge {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--line); color: transparent;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .node.done .nbadge { background: var(--success); color: white; }
+  .node.done .nbadge::after { content: "✓"; }
+  .node.active .nbadge { background: var(--accent-vivid); animation: pulse 1.5s infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(217, 115, 57, 0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(217, 115, 57, 0); }
+  }
+  .connector { margin: -6px 0 -6px 30px; width: 3px; height: 14px; background: var(--line); border-radius: 2px; transition: background .3s; }
+  .connector.done { background: var(--success); }
+
+  /* ───── Welcome hero ───── */
+  .welcome-hero { text-align: center; padding: 30px 0 10px; }
+  .welcome-mark { font-size: 56px; margin-bottom: 16px; }
+  .welcome-title {
+    font-family: Georgia, serif; font-size: 42px; font-weight: 700;
+    color: var(--accent); margin: 0 0 8px; letter-spacing: -.5px;
+  }
+  .welcome-sub { font-size: 16px; color: var(--ink-dim); margin-bottom: 28px; }
+
+  /* ───── Footer ───── */
+  footer {
+    padding: 22px 28px;
+    text-align: center;
+    border-top: 1px solid var(--line);
+    background: var(--card);
+  }
+  footer .meta { font-size: 12px; color: var(--ink-soft); }
+  footer .meta a { color: var(--ink-dim); text-decoration: none; margin: 0 8px; }
+  footer .meta a:hover { color: var(--accent); }
+  footer .meta .email-link { color: var(--accent); font-weight: 600; }
+  footer .disclaimer {
+    font-size: 10.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-top: 14px;
+    max-width: 760px;
+    margin-left: auto; margin-right: auto;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+  }
+
+  /* ───── Sticky skip button (welcome screen only) ───── */
+  .skip-intro {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    background: var(--card);
+    color: var(--ink-dim);
+    border: 1.5px solid var(--rule);
+    padding: 10px 18px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .12);
+    z-index: 40;
+    display: none;
+    transition: all .15s;
+  }
+  .skip-intro.visible { display: inline-flex; align-items: center; gap: 4px; }
+  .skip-intro:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* ───── Hidden screens ───── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; padding: 16px; gap: 16px; }
+    aside.map { position: static; }
+    .card { padding: 24px 22px; }
+    .progress { display: none; }
+    .trust { flex-wrap: wrap; }
+    .tools-grid { grid-template-columns: repeat(2, 1fr); }
+    .names-diagram { grid-template-columns: 1fr; }
+    .nav-row { flex-direction: column; align-items: stretch; }
+    .nav-row .troubleshoot-btn { text-align: center; justify-content: center; }
+  }
+  @media (max-width: 520px) {
+    .tools-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ───────────────────── SVG LOGO DEFINITIONS ───────────────────── -->
+<svg width="0" height="0" style="position: absolute;">
+  <defs>
+    <symbol id="logo-telegram" viewBox="0 0 24 24">
+      <path fill="#229ED9" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.464.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+    </symbol>
+    <symbol id="logo-gemini" viewBox="0 0 24 24">
+      <defs>
+        <linearGradient id="gemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#9168C0"/>
+          <stop offset="50%" stop-color="#5684D1"/>
+          <stop offset="100%" stop-color="#1BA1E3"/>
+        </linearGradient>
+      </defs>
+      <path fill="url(#gemGrad)" d="M12 0C12 8.84 8.84 12 0 12C8.84 12 12 15.16 12 24C12 15.16 15.16 12 24 12C15.16 12 12 8.84 12 0Z"/>
+    </symbol>
+    <symbol id="logo-gcloud" viewBox="0 0 24 24">
+      <defs>
+        <linearGradient id="gcloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#4285F4"/>
+          <stop offset="33%" stop-color="#34A853"/>
+          <stop offset="66%" stop-color="#FBBC04"/>
+          <stop offset="100%" stop-color="#EA4335"/>
+        </linearGradient>
+      </defs>
+      <path fill="url(#gcloudGrad)" d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+    </symbol>
+    <symbol id="logo-cloudrun" viewBox="0 0 24 24">
+      <rect width="24" height="24" rx="4" fill="#4285F4"/>
+      <circle cx="12" cy="12" r="5.5" fill="none" stroke="white" stroke-width="1.5"/>
+      <path d="M12 6.5V10h3" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="12" cy="12" r="1.5" fill="white"/>
+    </symbol>
+    <symbol id="logo-gcs" viewBox="0 0 24 24">
+      <rect width="24" height="24" rx="4" fill="#4285F4"/>
+      <ellipse cx="12" cy="7" rx="5.5" ry="1.7" fill="white"/>
+      <path d="M6.5 7V17a5.5 1.7 0 0 0 11 0V7" fill="white"/>
+    </symbol>
+    <symbol id="logo-secret" viewBox="0 0 24 24">
+      <rect width="24" height="24" rx="4" fill="#4285F4"/>
+      <path d="M12 5L17 7V11.5C17 15 14.5 18 12 19C9.5 18 7 15 7 11.5V7L12 5Z" fill="white"/>
+      <rect x="10" y="11" width="4" height="4" rx="0.5" fill="#4285F4"/>
+      <path d="M11 11V9.8a1 1 0 1 1 2 0V11" fill="none" stroke="#4285F4" stroke-width="0.8"/>
+    </symbol>
+    <symbol id="logo-github" viewBox="0 0 24 24">
+      <path fill="#181717" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+    </symbol>
+    <symbol id="logo-webhook" viewBox="0 0 24 24">
+      <rect width="24" height="24" rx="4" fill="#4285F4"/>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ───────────────── TRUST BANNER ───────────────── -->
+<div class="trust" id="trustBanner">
+  <div class="trust-inner">
+    <div class="ti">🛡️</div>
+    <div class="tx">
+      <div><strong>Bu kurulum yalnızca official kaynaktan güvenli:</strong> <code>github.com/poeple-app/kitabi</code></div>
+      <div style="margin-top: 3px;">Buradan açtığın tüm linkler şu domain'lere gider: <code>t.me</code> · <code>github.com</code> · <code>aistudio.google.com</code> · <code>console.cloud.google.com</code> · <code>deploy.cloud.run</code>. Başka domain'e gönderilirsen <strong>kapat</strong>.</div>
+    </div>
+    <button class="trust-close" onclick="document.getElementById('trustBanner').classList.add('hidden')" title="Anladım, kapat">×</button>
+  </div>
+</div>
+
+<header>
+  <div class="header-inner">
+    <div class="brand-line">
+      <span class="brand">Kitabi</span>
+      <span class="brand-tag">— kurulum</span>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="progress">
+      <span class="progress-text" id="progressText">Adım 0/9</span>
+      <div class="progress-dots" id="progDots"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="cardArea">
+
+    <!-- ═══════════════════════ WELCOME ═══════════════════════ -->
+    <div class="card screen active" data-step="welcome">
+      <div class="welcome-hero">
+        <div class="welcome-mark">📚</div>
+        <h1 class="welcome-title">Kitabi'ye hoş geldin</h1>
+        <p class="welcome-sub">Telegram'da yaşayan, kişisel okuma günlüğü botun. 9 adımda hazır (sonuncusu opsiyonel).</p>
+      </div>
+
+      <p class="lede" style="text-align: center; margin: 0 auto 12px; max-width: 720px;">
+        Bu kurulum seni hesap açmaktan ilk konuşmaya kadar götürecek. Kod yazmana gerek yok —
+        birkaç sayfada gezeceksin, kutulara tıklayacaksın, GitHub'daki repoyu kendi hesabına
+        kopyalayacaksın (fork), birkaç anahtar yapıştıracaksın ve sonunda botun konuşmaya hazır olacak.
+      </p>
+      <p class="sub-caption" style="text-align: center;">
+        ⏱ Toplam ~40-55 dakika · 💰 0 TL · 🆓 Tüm servisler ücretsiz katmanlarda
+      </p>
+
+      <div class="success-box" style="text-align: center;">
+        <strong>📍 Bu sayfa kendi bilgisayarında çalışıyor.</strong> Tarayıcının dışına hiçbir veri gitmiyor. Form'a yazdıklarını, ürettiğin webhook secret'ını, hiçbirini senin dışında kimse görmüyor.
+      </div>
+
+      <!-- ─── INTRO CARDS (NEW) ─── -->
+      <h2 class="section-h">Kitabi ne yapıyor?</h2>
+      <p class="lede" style="max-width: none;">
+        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: okurken sesli mesaj, sayfa fotoğrafı veya yazılı not gönderirsin, bot bunları Gemini AI ile metne döker, kategorilere ayırır ve okuduğun kitaba bağlayarak SQLite veritabanına kaydeder; kitap bittiğinde de istatistikleri, alıntıları ve favorilerinle birlikte tasarımlı bir PDF okuma günlüğüne dönüştürür.
+      </p>
+      <p class="input-help">Aşağıdaki kartlar arasında oklarla gezin — bot'un kurulumdan sonra neler yapabileceğini kart açıklamalarında okuyabilirsin.</p>
+
+      <div class="intro-cards-container">
+        <button class="intro-scroll-btn prev" id="introScrollPrev" aria-label="Önceki kart" onclick="scrollIntroCards(-1)">‹</button>
+        <button class="intro-scroll-btn next" id="introScrollNext" aria-label="Sonraki kart" onclick="scrollIntroCards(1)">›</button>
+        <div class="intro-cards" id="introCards">
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📚</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kitap ekleme]</div>
+            </div>
+            <div class="intro-card-title">📚 Kitap ekle</div>
+            <div class="intro-card-cap">ISBN'i ver, başlık-yazar-kapak-sayfa sayısı otomatik gelir.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">▶️</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>oturum başlatma]</div>
+            </div>
+            <div class="intro-card-title">▶️ Okumaya başla</div>
+            <div class="intro-card-cap">Kitap seç, kaç sayfadan başlıyorsun söyle. Oturum açılır.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🎤</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>sesli not]</div>
+            </div>
+            <div class="intro-card-title">🎤 Sesli not</div>
+            <div class="intro-card-cap">Telefonuna konuş, bot yazıya çevirip kaydeder. Yazmana gerek yok.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📷</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>sayfa fotoğrafı]</div>
+            </div>
+            <div class="intro-card-title">📷 Sayfa fotoğrafı</div>
+            <div class="intro-card-cap">Kitap sayfasını çek, metin otomatik çıkar. Alıntı yazmaya gerek yok.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🏷️</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kategori önerisi]</div>
+            </div>
+            <div class="intro-card-title">🏷️ Otomatik kategori</div>
+            <div class="intro-card-cap">Alıntı / Fikir / Kavram / Yeni Bilgi / Kelime / Özet — Gemini önerir, sen onaylarsın.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📚</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kelime tanımı]</div>
+            </div>
+            <div class="intro-card-title">📚 Kelime + Kavram tanımı</div>
+            <div class="intro-card-cap">"Bu kavramı yeni öğrendim" dersen Gemini otomatik 2-3 cümlelik tanım ekler.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">❓</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>soru-cevap]</div>
+            </div>
+            <div class="intro-card-title">❓ Soru sor</div>
+            <div class="intro-card-cap">"Bu kavram neydi?" diye sor — okuduğun kitap ve aldığın notlarla cevap gelir.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📋</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>oturum özeti]</div>
+            </div>
+            <div class="intro-card-title">📋 Oturum özeti</div>
+            <div class="intro-card-cap">Bitirirken kısa özet at, bot sonraki oturum başında hatırlatır.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📕</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>PDF günlük]</div>
+            </div>
+            <div class="intro-card-title">📕 PDF okuma günlüğü</div>
+            <div class="intro-card-cap">Kitap bittiğinde kapak + oturum dökümü + sözlük + istatistikli PDF üretilir.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📤</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>export menü]</div>
+            </div>
+            <div class="intro-card-title">📤 Esnek export</div>
+            <div class="intro-card-cap">PDF, JSON, CSV, Markdown, ZIP — verileri istediğin yere taşı (Notion, Obsidian, NotebookLM).</div>
+          </div>
+
+        </div>
+      </div>
+
+      <p class="sub-caption">
+        Kurulumdan sonra bu özelliklerin hepsi Telegram'da bot'la mesajlaşır gibi çalışacak — yeni uygulama yok, ekstra hesap yok.
+      </p>
+
+      <!-- ─── TOOLS ─── -->
+      <h2 class="section-h">Kullanılan araçlar</h2>
+      <p class="input-help">Hepsi ücretsiz katmanlarda; kişisel kullanım için limitlerin çok altında kalacaksın. Ancak Gemini taleplerini takip et — çok fazla görsel işleme ya da sorgu, günlük limitini doldurabilir.</p>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-logo"><svg><use href="#logo-telegram"/></svg></div>
+          <div class="tool-name">Telegram</div>
+          <div class="tool-role">Botun yüzü, mesajlaşma</div>
+          <div class="tool-tier">Sınırsız ücretsiz</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-logo"><svg><use href="#logo-gemini"/></svg></div>
+          <div class="tool-name">Gemini AI</div>
+          <div class="tool-role">Ses → metin, kategori, tanım, soru-cevap</div>
+          <div class="tool-tier">250 istek/gün</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-logo"><svg><use href="#logo-gcloud"/></svg></div>
+          <div class="tool-name">Google Cloud Project</div>
+          <div class="tool-role">Şemsiye proje; altındaki üç servis burada yaşar</div>
+          <div class="tool-tier umbrella">Free tier kapsamı</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-logo"><svg><use href="#logo-cloudrun"/></svg></div>
+          <div class="tool-name">Google Cloud Run</div>
+          <div class="tool-role">Botun kodunun çalıştığı yer (webhook)</div>
+          <div class="tool-tier">2 M istek / ay</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-logo"><svg><use href="#logo-gcs"/></svg></div>
+          <div class="tool-name">Google Cloud Storage</div>
+          <div class="tool-role">SQLite veritabanı dosyası burada saklanır</div>
+          <div class="tool-tier">5 GB</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-logo"><svg><use href="#logo-secret"/></svg></div>
+          <div class="tool-name">Google Cloud Secret Manager</div>
+          <div class="tool-role">Token ve API key'lerin şifreli kasası</div>
+          <div class="tool-tier">4/6 version (Kitabi)</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-logo"><svg><use href="#logo-github"/></svg></div>
+          <div class="tool-name">GitHub</div>
+          <div class="tool-role">Kodun barındığı repo (fork edip kendi hesabına alacaksın)</div>
+          <div class="tool-tier">Public + private free</div>
+        </div>
+      </div>
+
+      <div class="success-box">
+        <strong>💰 Toplam maliyet: 0 TL.</strong> Yukarıdaki tüm servislerin ücretsiz katmanları kişisel kullanımı fazlasıyla karşılıyor, kredi kartı istenmiyor.
+      </div>
+
+      <!-- ─── VERIFICATION PANEL ─── -->
+      <div class="verify-panel">
+        <div class="verify-panel-title">🔍 Doğrulama yöntemi</div>
+        <p style="margin: 4px 0 6px;">İki tür adım var:</p>
+        <ul style="margin: 4px 0 10px; padding-left: 20px;">
+          <li><span class="verify-mode auto"><span class="vi">✅</span> Otomatik</span> Kurulum arka planda servisi çağırıp doğruluyor (örn: GitHub fork URL, Cloud Run URL)</li>
+          <li><span class="verify-mode manual"><span class="vi">✋</span> Manuel</span> Token ve key gibi secret'lar manuel olarak senin tik atmanla onaylanır çünkü kurulum sihirbazı ya da bir başkası bunları görmemeli ve kaydetmemelidir.</li>
+        </ul>
+        <p style="margin: 0;"><strong>Sonraki butonu her zaman aktif</strong> — doğrulama yanlışlıkla hata verirse takılmayasın diye.</p>
+      </div>
+
+      <!-- ─── LOGS / TROUBLESHOOT SECTION (NEW) ─── -->
+      <h2 class="section-h">Sorun çıkarsa ne yapacağım?</h2>
+      <p class="sub-caption" style="margin-top: 0;">Üç katmanlı destek — her birinde nereye bakacağını biliyorsun.</p>
+
+      <div class="info-section">
+        <div class="info-section-title">🆘 Her adımda sorun çözüm rehberi</div>
+        <ul>
+          <li>Her adımın altında turuncu <strong>"Bu adımda sorun yaşıyorum"</strong> butonu var.</li>
+          <li>Tıklayınca o adıma özel detaylı sorun-giderme rehberi açılır.</li>
+          <li>Hesap açma, kart sorunu, yetkilendirme — olası senaryolar listede.</li>
+        </ul>
+      </div>
+
+      <div class="info-section">
+        <div class="info-section-title">📋 Bot'ta hata olursa — log'lar nerede?</div>
+        <ul>
+          <li>Bot Telegram'a hata mesajı atar; mesajdaki 📋 link doğrudan o hatanın log'una götürür.</li>
+          <li>Manuel inceleme için: <strong>console.cloud.google.com/run</strong> → <code>kitabi</code> servisi → <strong>LOGS</strong> sekmesi.</li>
+          <li>Her log satırında olay etiketi (örn. <code>ai.transcribe_voice.failed</code>) ve kodun tam yeri var.</li>
+        </ul>
+      </div>
+
+      <div class="info-section">
+        <div class="info-section-title">📧 Yardım gerekirse</div>
+        <ul>
+          <li>Rehberlerde çözülmediyse <strong><a href="mailto:poeple.api@gmail.com" style="color: var(--accent);">poeple.api@gmail.com</a></strong> adresine yaz.</li>
+          <li>Hangi adımda takıldığını + aldığın hata mesajını eklersen daha hızlı yardım edebilirim.</li>
+        </ul>
+      </div>
+
+      <!-- ─── SECURITY ─── -->
+      <div class="info">
+        <strong>🔒 Güvenlik:</strong> Aldığın token ve API key'leri bu sihirbaza yapıştırman <em>gerekmiyor</em>. Hepsi doğrudan senin Google Cloud Secret Manager'ına gidiyor. Sihirbaz onları okumuyor.
+      </div>
+
+      <div class="nav-row" style="justify-content: center; flex-direction: column; gap: 10px; align-items: center;">
+        <button class="btn btn-primary btn-big" onclick="goTo('telegram')">Hadi başlayalım →</button>
+        <button class="btn-link" onclick="goTo('manual')">
+          🛠️ Yazılım biliyorum, tek sayfalık manuel kurulum özetine git →
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ MANUAL INSTALL (advanced / single-page) ═══════════════════════ -->
+    <div class="card screen" data-step="manual">
+      <div class="step-eyebrow">Manuel Kurulum</div>
+      <h1 class="step-title">Tek sayfada Kitabi kurulumu</h1>
+      <p class="lede" style="max-width: none;">
+        Yazılım bilen kullanıcılar için kompakt referans. Sihirbazın 9 adımının tamamı burada,
+        sadece olması gerekenler ve kabuk komutlarıyla. Tahmini süre: <strong>15–25 dk</strong>.
+      </p>
+
+      <div class="manual-section">
+        <h2>Önkoşullar</h2>
+        <ul>
+          <li>Telegram hesabı (mobil ya da web)</li>
+          <li>Google hesabı (faturalama bağlı olmasına gerek yok — free tier yeterli)</li>
+          <li>GitHub hesabı</li>
+          <li><code>gcloud</code> CLI — bu sayfadaki komutların tamamı buna dayalı. Lokal kurulum istemiyorsan <a href="https://shell.cloud.google.com" target="_blank">Cloud Shell</a>'i aç, <code>gcloud</code> orada hazır + senin hesabınla authenticated gelir.</li>
+        </ul>
+      </div>
+
+      <div class="manual-section">
+        <h2>1 · Telegram bot + kendi user ID</h2>
+        <ul>
+          <li><a href="https://t.me/BotFather" target="_blank">@BotFather</a> → <code>/newbot</code> → <strong>token</strong> al</li>
+          <li><a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> → <code>/start</code> → <strong>kullanıcı ID</strong> al (sadece rakam)</li>
+        </ul>
+      </div>
+
+      <div class="manual-section">
+        <h2>2 · Gemini API key</h2>
+        <ul>
+          <li><a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a> → <strong>Create API key</strong> → kopyala</li>
+          <li>Free tier: <code>gemini-2.5-flash</code> 10 RPM, 250 RPD</li>
+        </ul>
+      </div>
+
+      <div class="manual-section">
+        <h2>3 · Kaynak kodu al</h2>
+        <p style="font-size: 13.5px; color: var(--ink-soft); margin: 0 0 8px;">
+          İki yol: (A) GitHub fork — güncelleme almak için ideal. (B) ZIP indir — GitHub hesabı bile gerekmez, tek seferlik kurulum.
+        </p>
+
+        <h3 style="font-size: 13px; margin-top: 10px;">A) GitHub fork (güncelleme almak istersen)</h3>
+        <ul>
+          <li><a href="https://github.com/poeple-app/kitabi/fork" target="_blank">github.com/poeple-app/kitabi/fork</a> → fork</li>
+          <li>Cloud Shell'de: <code>git clone &lt;fork_url&gt; &amp;&amp; cd kitabi</code></li>
+        </ul>
+
+        <h3 style="font-size: 13px; margin-top: 12px;">B) ZIP indir (GitHub hesabı yok)</h3>
+        <p style="font-size: 13px; margin: 0 0 6px;">
+          <a href="https://shell.cloud.google.com" target="_blank">Cloud Shell'i aç</a> ve şu tek satırı çalıştır — ZIP'i indirir, açar, içine girer:
+        </p>
+<div class="manual-code-block">curl -L https://github.com/poeple-app/kitabi/archive/refs/heads/main.tar.gz | tar xz
+cd kitabi-main</div>
+        <p style="font-size: 12.5px; color: var(--ink-dim); margin: 4px 0 0;">
+          Güncelleme almak istediğinde aynı komutu yeniden çalıştırırsın — eski klasörü silip yeniden indirir.
+        </p>
+      </div>
+
+      <div class="manual-section">
+        <h2>4 · GCP project + API'ler</h2>
+        <ul>
+          <li>Project yarat (örn <code>kitabi-prod</code>) — billing zorunlu değil, sadece free tier kullanıyoruz</li>
+          <li>4 API enable:
+            <code>secretmanager</code>,
+            <code>run</code>,
+            <code>storage</code>,
+            <code>artifactregistry</code> .googleapis.com
+          </li>
+        </ul>
+<div class="manual-code-block"><span class="cm"># gcloud ile:</span>
+gcloud config set project &lt;PROJECT_ID&gt;
+gcloud services enable secretmanager.googleapis.com run.googleapis.com \
+  storage.googleapis.com artifactregistry.googleapis.com</div>
+      </div>
+
+      <div class="manual-section">
+        <h2>5 · Cloud Storage bucket (kalıcı SQLite)</h2>
+        <ul>
+          <li>Region: Cloud Run ile aynı (örn <code>europe-west1</code>)</li>
+          <li>Uniform access, public access prevention: <code>Enforced</code></li>
+        </ul>
+<div class="manual-code-block">gcloud storage buckets create gs://&lt;BUCKET_NAME&gt; \
+  --location=europe-west1 \
+  --uniform-bucket-level-access \
+  --public-access-prevention</div>
+      </div>
+
+      <div class="manual-section">
+        <h2>6 · Secret Manager — 4 secret</h2>
+<div class="manual-code-block"><span class="cm"># webhook-secret üret (32 byte hex)</span>
+WH=$(openssl rand -hex 32)
+
+printf "%s" "&lt;TELEGRAM_TOKEN&gt;"     | gcloud secrets create telegram-bot-token  --data-file=-
+printf "%s" "$WH"                    | gcloud secrets create webhook-secret      --data-file=-
+printf "%s" "&lt;YOUR_TG_USER_ID&gt;"   | gcloud secrets create allowed-tg-user-ids --data-file=-
+printf "%s" "&lt;GEMINI_API_KEY&gt;"    | gcloud secrets create gemini-api-key      --data-file=-</div>
+      </div>
+
+      <div class="manual-section">
+        <h2>7 · Deploy</h2>
+<div class="manual-code-block">gcloud run deploy kitabi \
+  --source . \
+  --region=europe-west1 \
+  --allow-unauthenticated \
+  --max-instances=1 \
+  --memory=512Mi \
+  --set-env-vars="GCS_BUCKET_NAME=&lt;BUCKET_NAME&gt;,DB_PATH=/data/kitabi.db,LOG_LEVEL=INFO" \
+  --update-secrets="TELEGRAM_BOT_TOKEN=telegram-bot-token:latest,WEBHOOK_SECRET=webhook-secret:latest,ALLOWED_TG_USER_IDS=allowed-tg-user-ids:latest,GEMINI_API_KEY=gemini-api-key:latest"
+</div>
+        <p class="sub-caption" style="margin-top: 4px;">
+          Service account'a bucket için <code>roles/storage.objectAdmin</code> gerek;
+          Cloud Run otomatik atamadıysa elle ver.
+        </p>
+      </div>
+
+      <div class="manual-section">
+        <h2>8 · BOT_BASE_URL ve redeploy</h2>
+<div class="manual-code-block">URL=$(gcloud run services describe kitabi --region=europe-west1 --format='value(status.url)')
+gcloud run services update kitabi --region=europe-west1 \
+  --update-env-vars="BOT_BASE_URL=$URL"</div>
+        <p class="sub-caption" style="margin-top: 4px;">
+          Yeni revision açılınca bot kendi setWebhook'unu çağırır. Doğrulama için Cloud Run
+          loglarında <code>main.webhook.registered</code> event'ini ara.
+        </p>
+      </div>
+
+      <div class="manual-section">
+        <h2>9 · Cloud Scheduler (opsiyonel — proaktif hatırlatma)</h2>
+<div class="manual-code-block">WH=$(gcloud secrets versions access latest --secret=webhook-secret)
+gcloud scheduler jobs create http kitabi-daily-nudge \
+  --location=europe-west1 \
+  --schedule="0 9 * * *" \
+  --time-zone="Europe/Istanbul" \
+  --uri="$URL/cron/nudge" \
+  --http-method=POST \
+  --headers="X-Telegram-Bot-Api-Secret-Token=$WH"</div>
+        <p class="sub-caption" style="margin-top: 4px;">
+          Atlanabilir. Bot ayar ekranından da kapatılabilir (<code>nudge_enabled</code>).
+        </p>
+      </div>
+
+      <div class="manual-section">
+        <h2>Mimari özet</h2>
+        <ul>
+          <li><strong>Stack:</strong> FastAPI + python-telegram-bot 21+ webhook mode, SQLAlchemy 2 + SQLite (WAL), google-genai (Gemini), WeasyPrint, structlog JSON</li>
+          <li><strong>Modüller:</strong> <code>kitabi/main.py</code> (FastAPI app + lifespan), <code>bot.py</code> (handlers/screens), <code>data.py</code> (ORM + GCS backup + FTS5 + export), <code>ai.py</code> (Gemini wrapper, 3-model fallback)</li>
+          <li><strong>Persistence:</strong> Container disk ephemeral; <code>data.periodic_sync_loop</code> her 60s SQLite Online Backup API ile bucket'a snapshot, shutdown'da force-flush</li>
+          <li><strong>Auth:</strong> Webhook <code>X-Telegram-Bot-Api-Secret-Token</code> header'ı <code>hmac.compare_digest</code> ile doğrulanır; sonra <code>ALLOWED_TG_USER_IDS</code> allowlist</li>
+          <li><strong>State:</strong> Chat-level ephemeral state SQLite'ta <code>ephemeral_state</code> tablosunda; cold-start'ta hayatta kalır</li>
+        </ul>
+      </div>
+
+      <div class="manual-section">
+        <h2>Kaynak dosyalar</h2>
+        <ul>
+          <li><a href="https://github.com/poeple-app/kitabi/blob/main/README.md" target="_blank">README.md</a></li>
+          <li><a href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md" target="_blank">TROUBLESHOOTING.md</a></li>
+          <li><a href="https://github.com/poeple-app/kitabi/blob/main/app.json" target="_blank">app.json</a> (Cloud Run Button config)</li>
+          <li><a href="https://github.com/poeple-app/kitabi/blob/main/Dockerfile" target="_blank">Dockerfile</a></li>
+          <li><a href="https://github.com/poeple-app/kitabi/blob/main/pyproject.toml" target="_blank">pyproject.toml</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-row" style="justify-content: space-between; margin-top: 26px;">
+        <button class="btn btn-ghost" onclick="goTo('welcome')">← Sihirbaza geri dön</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ STEP 1 — TELEGRAM ═══════════════════════ -->
+    <div class="card screen" data-step="telegram">
+      <div class="step-eyebrow">Adım 1 — Telegram</div>
+      <div class="step-meta">
+        <span class="step-pill">⏱ ~3-5 dakika</span>
+        <span class="step-pill">📲 Telegram uygulaması</span>
+        <span class="step-pill">🆓 Ücretsiz</span>
+        <span class="step-pill manual">✋ Manuel onay</span>
+      </div>
+      <h1 class="step-title">Botun için bir Telegram bot hesabı oluştur</h1>
+
+      <p class="lede">
+        Telegram, dünyada en yaygın anlık mesajlaşma uygulamalarından biri. Kitabi bu uygulamanın
+        içinde yaşayacak — yani sen yeni bir uygulama indirmeyeceksin, normalde mesajlaştığın gibi
+        Kitabi'ye de mesaj atacaksın.
+      </p>
+      <p class="lede dim">
+        Telegram'ın özel bir özelliği var: kendi bot'larını yaratabiliyorsun. Bot'lar sıradan
+        kullanıcı gibi görünür ama arka planda senin kodunla çalışır. Bu adımda
+        <strong>BotFather</strong> adındaki özel bota "yeni bir bot yarat" diyeceğiz.
+      </p>
+      <p class="sub-caption">
+        BotFather'dan iki şey alacaksın: <strong>token</strong> (botun şifresi, hiçbir yerde paylaşılmaz)
+        ve <strong>username</strong> (botun adresi, herkes görür). Token'ı Adım 5'te Google'ın güvenli
+        kasasına yapıştıracaksın.
+      </p>
+
+      <a class="open-svc" href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-telegram"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">@BotFather'ı aç</div>
+          <div class="url">https://t.me/BotFather</div>
+          <div class="sub">Yeni sekmede Telegram açılır (resmi mavi-tikli Telegram bot'u)</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <h2 class="section-h">Botun iki kimliği var, ikisini de belirleyeceksin</h2>
+      <p class="sub-caption" style="margin-top: 0;">
+        Twitter'daki "ad + @kullanıcı adı" mantığı gibi düşün.
+      </p>
+
+      <div class="names-diagram">
+        <div class="names-col">
+          <div class="nlabel">Görünür ad (name)</div>
+          <div class="nexample">Kitabi</div>
+          <div class="nhelp">Kullanıcıların sohbet listesinde gördüğü ad. Türkçe karakter kullanabilirsin. <strong>Sonradan değiştirilebilir.</strong></div>
+        </div>
+        <div class="names-col">
+          <div class="nlabel">Username (handle)</div>
+          <div class="nexample">@kitabi_okuma_bot</div>
+          <div class="nhelp">Global benzersiz, mutlaka <code>bot</code> ile bitmeli. Birkaç deneme gerekebilir. <strong>Değiştirilemez.</strong></div>
+        </div>
+      </div>
+
+      <h2 class="section-h">Yaptıkların</h2>
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="telegram" />
+          <span class="box"></span>
+          <span class="lbl">BotFather'a <code>/newbot</code> yazıp gönderdim
+            <small>Cevap olarak önce görünür ad, sonra username isteyecek</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="telegram" />
+          <span class="box"></span>
+          <span class="lbl">Görünür adı ve username'i belirledim
+            <small>Yukarıdaki diagramda iki örnek var; sen istediğini koyabilirsin</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="telegram" />
+          <span class="box"></span>
+          <span class="lbl">BotFather'ın bana verdiği <strong>token</strong>'ı bir yere kaydettim
+            <small><code>123456:ABC-...</code> şeklinde uzun bir string. Notepad'e koy ya da clipboard'da tut — Adım 5'te Google Cloud Secret Manager'a girilecek.</small>
+          </span>
+        </label>
+      </div>
+
+      <h2 class="section-h">Telegram kullanıcı ID'ni alalım</h2>
+      <p class="lede dim">
+        Bot başkası ona ulaşamasın diye <strong>sadece sana</strong> cevap vermelidir. Bunun için
+        kendi Telegram kullanıcı ID'ni öğrenmemiz gerek. ID, kullanıcı adından farklı — sadece
+        rakamlardan oluşan bir numara.
+      </p>
+
+      <a class="open-svc" href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-telegram"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">@userinfobot'u aç</div>
+          <div class="url">https://t.me/userinfobot</div>
+          <div class="sub">/start yaz, sana ID'ni söyler</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="telegram" />
+          <span class="box"></span>
+          <span class="lbl">userinfobot bana ID'mi söyledi (sadece rakamlar), kaydettim
+            <small>Örnek: <code>123456789</code></small>
+          </span>
+        </label>
+      </div>
+
+      <div class="danger-box">
+        <strong>⛔ Token'ı bu sayfaya YAPIŞTIRMA.</strong> Kurulum token'ları okumaz, ihtiyacı yok. Adım 5'te doğrudan Google Cloud Secret Manager'a yapıştıracaksın — orası senin Google Cloud Project'inin içindeki şifreli kasası.
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="goTo('welcome')">← Geri</button>
+        <a class="troubleshoot-btn" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md#adim-1-telegram" target="_blank" rel="noopener noreferrer">
+          🆘 Bu adımda sorun yaşıyorum
+        </a>
+        <button class="btn btn-primary btn-big" onclick="goTo('gemini')">Sıradakine →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ STEP 2 — GEMINI ═══════════════════════ -->
+    <div class="card screen" data-step="gemini">
+      <div class="step-eyebrow">Adım 2 — Gemini AI</div>
+      <div class="step-meta">
+        <span class="step-pill">⏱ ~2-3 dakika</span>
+        <span class="step-pill">🌐 aistudio.google.com</span>
+        <span class="step-pill">🆓 Ücretsiz katman</span>
+        <span class="step-pill manual">✋ Manuel onay</span>
+      </div>
+      <h1 class="step-title">Botun beyni: Gemini API anahtarı al</h1>
+
+      <p class="lede">
+        Botun "beyni" olarak Google'ın Gemini yapay zekasını kullanacağız. Sen Kitabi'ye sesli
+        mesaj atınca onu yazıya o çeviriyor; bir notun kategorisini o öneriyor; "bu kavram neydi?"
+        diye sorduğunda kitabını ve notlarını dikkate alıp cevap veren o. Gemini olmazsa bot
+        sadece bir kaydedici olurdu.
+      </p>
+      <p class="lede dim">
+        Gemini ücretsiz katmanda günde 250 isteğin olabiliyor — kişisel okuma için fazlasıyla yeter
+        (sen normalde günde 5-20 istek atarsın). API key, Gemini'ye "bu istek senin botundan
+        geliyor" demek için bir kimlik.
+      </p>
+      <p class="sub-caption">
+        Key'i de <strong>bu sayfaya değil</strong>, doğrudan Adım 5'te Secret Manager'a yapıştıracaksın.
+      </p>
+
+      <a class="open-svc" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-gemini"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Google AI Studio'da API key oluştur</div>
+          <div class="url">https://aistudio.google.com/app/apikey</div>
+          <div class="sub">Resmi Google domain'i — Gmail ile giriş yap</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gemini" />
+          <span class="box"></span>
+          <span class="lbl">Sayfa açıldı, Gmail ile giriş yaptım</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gemini" />
+          <span class="box"></span>
+          <span class="lbl">"Create API Key" butonuna bastım
+            <small>Henüz Google Cloud Project'in yoksa bir tane oluşturmanı isteyecek, kabul et</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gemini" />
+          <span class="box"></span>
+          <span class="lbl">Çıkan API key'i bir yere kaydettim
+            <small><code>AIza...</code> şeklinde uzun bir string. Adım 5'te Secret Manager'a gidecek.</small>
+          </span>
+        </label>
+      </div>
+
+      <div class="danger-box">
+        <strong>⛔ API key'i bu sayfaya YAPIŞTIRMA.</strong> Doğrudan Google Cloud Secret Manager'a koyacaksın.
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="goTo('telegram')">← Geri</button>
+        <a class="troubleshoot-btn" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md#adim-2-gemini" target="_blank" rel="noopener noreferrer">
+          🆘 Bu adımda sorun yaşıyorum
+        </a>
+        <button class="btn btn-primary btn-big" onclick="goTo('github')">Sıradakine →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ STEP 3 — GITHUB ═══════════════════════ -->
+    <div class="card screen" data-step="github">
+      <div class="step-eyebrow">Adım 3 — GitHub</div>
+      <div class="step-meta">
+        <span class="step-pill">⏱ ~5 dakika</span>
+        <span class="step-pill">🌐 github.com</span>
+        <span class="step-pill">🆓 Ücretsiz</span>
+        <span class="step-pill auto">✅ Otomatik doğrulama</span>
+      </div>
+      <h1 class="step-title">Kodun kopyasını kendi GitHub hesabına al</h1>
+
+      <p class="lede">
+        GitHub, açık kaynak kodun yaşadığı yer — milyonlarca proje burada. Kitabi'nin kodu da
+        açık kaynak, yani sen sıfırdan yazmayacaksın; hazır kodu kendi hesabına "kopyalayacaksın".
+        Bu işleme <strong>fork</strong> denir (çatallamak / kopyasını almak).
+      </p>
+      <p class="lede dim">
+        Forklamanın amacı: kodu seninle bağlamak. Senin botun senin hesabındaki kopyadan
+        çalışacak. Sen istediğin gibi değiştirebilirsin, ben de güncelleme yaparken senin sürümün
+        etkilenmez (sen "Sync fork" diyerek manuel çekersin).
+      </p>
+      <p class="sub-caption">
+        GitHub hesabın yoksa hızlıca açıyoruz (e-posta + şifre, telefon istemez). Sonra tek tıkla forklayacaksın.
+      </p>
+
+      <h2 class="section-h">Repo'da neler var?</h2>
+      <div class="files-panel">
+        <div class="fp-title">📂 poeple-app/kitabi</div>
+        <div class="fp-sub">Fork etmeden önce neyi alacağını gör — her dosyaya tıklayıp GitHub'da içeriğini inceleyebilirsin.</div>
+        <div class="files-tree">
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/README.md" target="_blank">README.md</a><span class="ft-desc">— Proje tanıtımı, kurulum yönergeleri</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/LICENSE" target="_blank">LICENSE</a><span class="ft-desc">— MIT (serbest kullanım)</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md" target="_blank">TROUBLESHOOTING.md</a><span class="ft-desc">— Detaylı sorun-giderme rehberi</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/pyproject.toml" target="_blank">pyproject.toml</a><span class="ft-desc">— Python paket meta ve bağımlılıklar</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/Dockerfile" target="_blank">Dockerfile</a><span class="ft-desc">— Cloud Run container tarifi</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/app.json" target="_blank">app.json</a><span class="ft-desc">— "Deploy to Cloud Run" otomatik konfigürasyon</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/.env.example" target="_blank">.env.example</a><span class="ft-desc">— Hangi env değişkenlerin gerektiğini gösteren şablon</span></div>
+          <div class="ft-row ft-folder">kitabi/<span class="ft-desc">— Ana paket (4 Python dosyası)</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/main.py" target="_blank">main.py</a><span class="ft-desc">— FastAPI giriş noktası, webhook handler</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/bot.py" target="_blank">bot.py</a><span class="ft-desc">— Telegram menüleri, akışlar, handler'lar</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/data.py" target="_blank">data.py</a><span class="ft-desc">— SQLite schema, ISBN lookup, PDF, export'lar</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/ai.py" target="_blank">ai.py</a><span class="ft-desc">— Gemini wrapper (retry + 3-model fallback)</span></div>
+          <div class="ft-row ft-folder">templates/<span class="ft-desc">— PDF iskelet HTML+CSS</span></div>
+        </div>
+      </div>
+
+      <h2 class="section-h">Henüz GitHub hesabın yoksa</h2>
+      <a class="open-svc" href="https://github.com/signup" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-github"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">GitHub'da yeni hesap aç</div>
+          <div class="url">https://github.com/signup</div>
+          <div class="sub">Email + kullanıcı adı + şifre, 2 dakika, telefon istemez</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <h2 class="section-h">Kitabi'yi fork'la</h2>
+      <a class="open-svc" href="https://github.com/poeple-app/kitabi/fork" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-github"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Kitabi repo'sunu fork et</div>
+          <div class="url">https://github.com/poeple-app/kitabi/fork</div>
+          <div class="sub">Tek tıkla kendi hesabına kopya açar</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <h2 class="section-h">Fork'unun URL'ini gir</h2>
+      <p class="input-help">Yapıştırınca kurulum <strong>GitHub'a sorup repo'nun gerçekten var olup olmadığını otomatik kontrol eder</strong>. Bu bir gizli anahtar (secret) değil, yapıştırabilirsin.</p>
+      <div class="input-row">
+        <input class="text" id="repoUrl" placeholder="https://github.com/kullaniciAdin/kitabi" />
+        <div class="vstatus" id="repoUrlStatus">⚪</div>
+      </div>
+      <div class="vmsg" id="repoUrlMsg">Yapıştırınca otomatik doğrularım</div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="goTo('gemini')">← Geri</button>
+        <a class="troubleshoot-btn" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md#adim-3-github" target="_blank" rel="noopener noreferrer">
+          🆘 Bu adımda sorun yaşıyorum
+        </a>
+        <button class="btn btn-primary btn-big" onclick="goTo('gcp')">Sıradakine →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ STEP 4 — GOOGLE CLOUD PROJECT ═══════════════════════ -->
+    <div class="card screen" data-step="gcp">
+      <div class="step-eyebrow">Adım 4 — Google Cloud Project</div>
+      <div class="step-meta">
+        <span class="step-pill">⏱ ~5-8 dakika</span>
+        <span class="step-pill">🌐 console.cloud.google.com</span>
+        <span class="step-pill">🆓 Ücretsiz katman</span>
+        <span class="step-pill warm">💳 Kart isteyebilir (para çekilmez)</span>
+        <span class="step-pill manual">✋ Manuel onay</span>
+      </div>
+      <h1 class="step-title">Botun yaşayacağı Google Cloud Project'ini aç</h1>
+
+      <p class="lede">
+        Google Cloud, Google'ın "kira-yer" hizmeti gibi düşün. Bot kodun bir sunucuda çalışmak
+        zorunda — bu sunucuyu Google Cloud üzerinde kiralayacağız. Ücretsiz katmanlarda yeterince
+        kullanabileceğin için 0 TL ödeyeceksin.
+      </p>
+      <p class="lede dim">
+        <strong>Project</strong> = klasör gibi. Tek bir Google Cloud Project oluşturacaksın ve
+        içinde üç tane Google servisi yaşayacak: <strong>Cloud Run</strong> (kodun çalıştığı yer),
+        <strong>Cloud Storage</strong> (veritabanı dosyasının saklandığı yer) ve
+        <strong>Secret Manager</strong> (anahtarların güvenli kasası).
+      </p>
+      <p class="sub-caption">
+        Hesap açarken kredi kartı isteyebilir; ödeme yapılmaz, sadece "ücretsiz limit dışına çıkarsam fark edeyim" emniyeti için. Kitabi limitlere yaklaşmaz.
+      </p>
+
+      <a class="open-svc" href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-gcloud"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Yeni Google Cloud Project oluştur</div>
+          <div class="url">https://console.cloud.google.com/projectcreate</div>
+          <div class="sub">Resmi Google Cloud Console — Gmail ile giriş</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl">Project adı verdim (örn: <code>Kitabi</code>)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl">Project ID'mi gördüm
+            <small>Google otomatik üretiyor, mesela <code>kitabi-487291</code>. Aşağıya gir:</small>
+          </span>
+        </label>
+      </div>
+
+      <p class="input-label">Project ID</p>
+      <p class="input-help">Bu bir gizli anahtar (secret) değil — sadece Google Cloud Project'i tanımlayan kimlik. Buraya gir, aşağıdaki linkleri sana özel hale getireyim.</p>
+      <div class="input-row">
+        <input class="text" id="gcpProjectId" placeholder="kitabi-487291" />
+        <div class="vstatus" id="gcpProjectIdStatus">⚪</div>
+      </div>
+      <div class="vmsg" id="gcpProjectIdMsg">Format kontrolü yaparım (gerçek var-yok kontrolü için Google Cloud auth gerek)</div>
+
+      <h2 class="section-h">Gerekli Google Cloud API'lerini aç</h2>
+      <p class="lede dim">
+        Google Cloud'un içindeki her servis ayrı bir API. Kullanmak için "aktifleştir" demek gerek.
+        Aşağıdaki dört API'yi tek tıkla aktif edebilirsin. Aktifleştirme sadece "bu projede bu
+        hizmeti açıyorum" demek; kullanmadığın sürece ücret yok.
+      </p>
+
+      <div class="api-list">
+        <div class="api-item">
+          <div class="api-num">1</div>
+          <div class="api-body">
+            <div class="api-name">Secret Manager API <code>secretmanager.googleapis.com</code></div>
+            <div class="api-role">Token ve API key'leri şifreli kasada tutar; Cloud Run çalışırken oradan çeker.</div>
+            <div class="api-tier">Ücretsiz: 6 aktif version + 10K erişim/ay</div>
+          </div>
+        </div>
+        <div class="api-item">
+          <div class="api-num">2</div>
+          <div class="api-body">
+            <div class="api-name">Cloud Run Admin API <code>run.googleapis.com</code></div>
+            <div class="api-role">Botun kodunu container'da çalıştırır, Telegram'dan gelen webhook isteklerini karşılar.</div>
+            <div class="api-tier">Ücretsiz: 2 M istek / 360K vCPU-saniye / 180K GB-saniye RAM (ay)</div>
+          </div>
+        </div>
+        <div class="api-item">
+          <div class="api-num">3</div>
+          <div class="api-body">
+            <div class="api-name">Cloud Storage API <code>storage.googleapis.com</code></div>
+            <div class="api-role">SQLite veritabanı dosyasını saklar — container yeniden başlasa bile veriler kaybolmaz.</div>
+            <div class="api-tier">Ücretsiz: 5 GB standart depolama / ay</div>
+          </div>
+        </div>
+        <div class="api-item">
+          <div class="api-num">4</div>
+          <div class="api-body">
+            <div class="api-name">Artifact Registry API <code>artifactregistry.googleapis.com</code></div>
+            <div class="api-role">Cloud Run'ın deploy edeceği Docker image'larını depolar.</div>
+            <div class="api-tier">Ücretsiz: 500 MB depolama / ay</div>
+          </div>
+        </div>
+      </div>
+
+      <a class="open-svc" id="enableApisLink" href="#" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-gcloud"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">4 API'yi tek tıkla aç</div>
+          <div class="url" id="enableApisUrl">Önce Project ID gir, link buna göre güncellenir</div>
+          <div class="sub">Hepsini birden açan kombine link</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl">API'leri aktif ettim (her birinde "Enable" tamamlandı)</span>
+        </label>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="goTo('github')">← Geri</button>
+        <a class="troubleshoot-btn" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md#adim-4-gcp" target="_blank" rel="noopener noreferrer">
+          🆘 Bu adımda sorun yaşıyorum
+        </a>
+        <button class="btn btn-primary btn-big" onclick="goTo('bucket')">Sıradakine →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ STEP 5 — CLOUD STORAGE BUCKET ═══════════════════════ -->
+    <div class="card screen" data-step="bucket">
+      <div class="step-eyebrow">Adım 5 — Cloud Storage Bucket</div>
+      <div class="step-meta">
+        <span class="step-pill">⏱ ~2 dakika</span>
+        <span class="step-pill">🗄️ Veritabanı yedeği</span>
+        <span class="step-pill">🆓 5 GB ücretsiz</span>
+        <span class="step-pill manual">✋ Manuel</span>
+      </div>
+      <h1 class="step-title">Botun veritabanı için bir kutu yarat</h1>
+
+      <p class="lede">
+        Cloud Run'ın diski <strong>kalıcı değil</strong> — container yeniden başlayınca her şey
+        silinir. Bu yüzden botun SQLite veritabanını her 60 saniyede bir bu "kutu"ya
+        (Cloud Storage <strong>bucket</strong>) yedekleyeceğiz, container açılırken de
+        geri yükleyeceğiz. Bu olmadan kitap eklediğinde 5-10 dakika sonra hepsi gider.
+      </p>
+      <p class="lede dim">
+        Bucket bir dosya kutusu gibidir — sınırsız klasör, dosya tutabilir. Biz sadece bir
+        tane SQLite dosyası (<code>kitabi.db</code>) tutacağız. 5 GB'a kadar ücretsiz; senin
+        veritabanın ömründe muhtemelen 10 MB'ı geçmez.
+      </p>
+      <p class="sub-caption">
+        Bucket adı global olarak benzersiz olmalı (tüm Google Cloud'da). <code>kitabi-&lt;senin-github-kullanıcı-adın&gt;</code> öner.
+      </p>
+
+      <a class="open-svc" id="openBucketLink" href="https://console.cloud.google.com/storage/browser" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-gcs"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Cloud Storage'ı aç</div>
+          <div class="url" id="openBucketUrl">https://console.cloud.google.com/storage/browser</div>
+          <div class="sub">Project ID girersen direkt project'inin Storage'ı açılır</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <h2 class="section-h">Bucket ayarları</h2>
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="bucket" />
+          <span class="box"></span>
+          <span class="lbl"><strong>"CREATE" / "Bucket Oluştur"</strong> butonuna bastım</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="bucket" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Name</strong>: benzersiz bir ad verdim (örn <code>kitabi-poeple-app</code>) — bunu not aldım, Adım 7'de Cloud Run'a yazacağım</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="bucket" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Location type</strong>: <code>Region</code> seçtim (Multi-region pahalı, gereksiz)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="bucket" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Location</strong>: <code>europe-west1</code> (Cloud Run ile aynı bölge — Belçika)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="bucket" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Storage class</strong>: <code>Standard</code> (default — değiştirme)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="bucket" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Access control</strong>: <code>Uniform</code> (default — değiştirme)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="bucket" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Public access prevention</strong>: <code>Enforced</code> — kimse dışarıdan göremesin</span>
+        </label>
+      </div>
+
+      <div class="success-box">
+        <strong>Yetki not'u:</strong> Cloud Run'ın bu bucket'a yazabilmesi için service account'a
+        <code>Storage Object Admin</code> rolü lazım. Çoğu durumda Cloud Run deploy sırasında
+        otomatik veriliyor; vermezse Adım 7'den sonra bucket sayfasında <strong>Permissions</strong>
+        sekmesinde manuel eklenir. Wizard adım 7'deki troubleshoot link'i bunu da gösteriyor.
+      </div>
+
+      <p class="input-label">Yarattığın bucket'ın adı</p>
+      <p class="input-help">Bu adı Adım 7'de Cloud Run'a env değişkeni olarak yazacaksın. Buraya not olarak yapıştırınca wizard senin için saklar (lokalstorage, dışarı çıkmaz).</p>
+      <div class="input-row">
+        <input class="text" id="gcsBucketName" placeholder="kitabi-poeple-app" />
+        <div class="vstatus" id="gcsBucketStatus">⚪</div>
+      </div>
+      <div class="vmsg" id="gcsBucketMsg">Bucket adı 3-63 karakter, sadece küçük harf/rakam/tire</div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="goTo('gcp')">← Geri</button>
+        <a class="troubleshoot-btn" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md#adim-5-bucket" target="_blank" rel="noopener noreferrer">
+          🆘 Bu adımda sorun yaşıyorum
+        </a>
+        <button class="btn btn-primary btn-big" onclick="goTo('secrets')">Sıradakine →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ STEP 6 — SECRETS ═══════════════════════ -->
+    <div class="card screen" data-step="secrets">
+      <div class="step-eyebrow">Adım 6 — Google Cloud Secret Manager</div>
+      <div class="step-meta">
+        <span class="step-pill">⏱ ~5 dakika</span>
+        <span class="step-pill">🔒 Şifreli kasa</span>
+        <span class="step-pill">🆓 Ücretsiz</span>
+        <span class="step-pill manual">✋ Manuel onay</span>
+      </div>
+      <h1 class="step-title">Tüm anahtarları güvenli kasaya koy</h1>
+
+      <p class="lede">
+        Şimdiye kadar topladığın token ve key'leri (Telegram bot token, Telegram user ID,
+        Gemini API key) Google Cloud Secret Manager'a koyacaksın. Bu, senin Google Cloud
+        Project'inin içindeki şifreli kasası — kimse okuyamaz, bot çalışırken oradan çekecek.
+      </p>
+      <p class="lede dim">
+        Neden kasa? Çünkü token'lar şifre gibidir. Bilgisayardaki bir dosyada yazılı dursa,
+        bilgisayar başkasının eline geçince çalınabilir. Secret Manager'da: sadece senin
+        Google hesabın görebilir, şifreli depolanır, değiştirildiğinde versiyonu kaydedilir,
+        bot her seferinde yeniden çeker.
+      </p>
+      <p class="sub-caption">
+        Bu adımda 4 secret oluşturacaksın. Her birinin adı sabit — adlar bu olmazsa bot çekemez.
+      </p>
+
+      <div class="success-box">
+        <strong>🔒 Bu adımda kurulum hiçbir secret görmüyor.</strong> Sen doğrudan Google'ın console'una yapıştırıyorsun. Kurulum sadece "şu adla secret oluştur, şu değeri koy" diyor.
+      </div>
+
+      <a class="open-svc" id="openSecretsLink" href="https://console.cloud.google.com/security/secret-manager" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-secret"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Google Cloud Secret Manager'ı aç</div>
+          <div class="url" id="openSecretsUrl">https://console.cloud.google.com/security/secret-manager</div>
+          <div class="sub">Project ID girersen direkt project'inin Secret Manager'ı açılır</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <h2 class="section-h">Oluşturulacak secret'lar (4 adet)</h2>
+
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="secrets" />
+          <span class="box"></span>
+          <span class="lbl">
+            <strong>1. telegram-bot-token</strong>
+            <small>Değer: BotFather'dan aldığın token. Secret Manager'da "Create Secret" → name: <code>telegram-bot-token</code> → value alanına yapıştır → Create.</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="secrets" />
+          <span class="box"></span>
+          <span class="lbl">
+            <strong>2. allowed-tg-user-ids</strong>
+            <small>Değer: userinfobot'tan aldığın kendi ID'in (sadece rakamlar). Birden fazla kullanıcı yetkilendirmek istersen virgülle ayır.</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="secrets" />
+          <span class="box"></span>
+          <span class="lbl">
+            <strong>3. gemini-api-key</strong>
+            <small>Değer: AI Studio'dan aldığın API key (<code>AIza...</code> ile başlar).</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="secrets" />
+          <span class="box"></span>
+          <span class="lbl">
+            <strong>4. webhook-secret</strong>
+            <small>Aşağıdan üreteceğin 64 karakterlik rastgele string. Telegram webhook'un sahte istekleri ayıklamak için kullanır.</small>
+          </span>
+        </label>
+      </div>
+
+      <h2 class="section-h">webhook-secret nedir, niye rastgele?</h2>
+      <p class="lede dim">
+        Bot Cloud Run'da public bir URL'de yaşıyor. Birisi bu URL'i keşfederse, sahte mesaj atıp
+        botu kandırabilir. Önlem: Telegram her webhook isteğine secret bir token ekliyor. Bot bu
+        token'ı kontrol ediyor — eşleşmezse isteği çöpe atıyor. Token'ın <strong>tahmin
+        edilemez</strong> olması için browser'ın kriptografik rastgele üreteciyle 256-bit (64
+        karakter hex) üretiyoruz. Brute-force pratik olarak imkânsız.
+      </p>
+
+      <p class="input-label">webhook-secret üreteci</p>
+      <p class="input-help">Browser'ın <code>crypto.getRandomValues</code> fonksiyonu üretiyor. Dışarı çıkmıyor — sayfayı kapatınca kaybolur.</p>
+      <div class="copy-row">
+        <span class="val" id="webhookSecret">[Üret] butonuna bas</span>
+        <button class="copy-btn" onclick="genSecret()">Üret</button>
+        <button class="copy-btn" onclick="copySecret(event)">Kopyala</button>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="goTo('bucket')">← Geri</button>
+        <a class="troubleshoot-btn" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md#adim-6-secrets" target="_blank" rel="noopener noreferrer">
+          🆘 Bu adımda sorun yaşıyorum
+        </a>
+        <button class="btn btn-primary btn-big" onclick="goTo('deploy')">Sıradakine →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ STEP 7 — DEPLOY ═══════════════════════ -->
+    <div class="card screen" data-step="deploy">
+      <div class="step-eyebrow">Adım 7 — Deploy</div>
+      <div class="step-meta">
+        <span class="step-pill">⏱ ~5 dakika (build dahil)</span>
+        <span class="step-pill">🌐 deploy.cloud.run</span>
+        <span class="step-pill">🚀 Tek tık</span>
+        <span class="step-pill auto">✅ Otomatik doğrulama</span>
+      </div>
+      <h1 class="step-title">Şimdi botu Google Cloud Run'a kur</h1>
+
+      <p class="lede">
+        Şimdi kodu Google Cloud Run'a "kuruyoruz" (deploy). Google'ın resmi "Deploy to Cloud Run"
+        sayfası kodu GitHub'daki repondan otomatik çekip Cloud Run'a yükleyecek.
+      </p>
+      <p class="lede dim">
+        İlk deploy 3-5 dakika sürer çünkü Google önce kodu <strong>build</strong> ediyor
+        (Python paketlerini yüklüyor, Docker image üretiyor). Sonraki güncellemeler 1 dakikaya iner.
+      </p>
+      <p class="sub-caption">
+        Deploy ekranında dikkat: 4 secret'ı <strong>"Reference a secret"</strong> ile bağlamayı
+        ve <strong><code>GCS_BUCKET_NAME</code></strong> plain env'ini girmeyi unutma. Yoksa bot
+        başlarken "token boş" der ya da veri kalıcı olmaz.
+      </p>
+
+      <div class="success-box">
+        <strong>🚀 "Deploy to Cloud Run" Google'ın resmi tek-tık deploy hizmeti.</strong> Repo URL'ini alıyor, Google Cloud üzerinde build edip yayına alıyor. Senin tarayıcında yapıyor, kurulumdan veri çıkmıyor.
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a class="btn btn-primary btn-huge" id="deployBtn" href="#" target="_blank" rel="noopener noreferrer">
+          🚀 Bilgisayarına Kur (Cloud Run)
+        </a>
+        <p class="url" style="font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin: 10px 0 4px; word-break: break-all;" id="deployUrl">Repo URL girince link aktif olur</p>
+        <p style="font-size: 12px; color: var(--ink-dim); margin-top: 4px;">
+          Google Cloud'a yönlendireceğim. Project'i ve region'ı seç, deploy bekle.
+        </p>
+      </div>
+
+      <h2 class="section-h">Deploy ekranında dikkat</h2>
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Project</strong>: az önce açtığın Google Cloud Project'i seçtim</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Region</strong>: <code>europe-west1</code> (Belçika) — sana en yakın bedava region</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Authentication</strong>: "Allow unauthenticated invocations" — webhook için gerekli (kötü amaçlı erişimi webhook-secret engelliyor)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Environment variables (secret)</strong>: "Reference a secret" ile Secret Manager'daki 4 secret'ı bağladım (TELEGRAM_BOT_TOKEN, WEBHOOK_SECRET, ALLOWED_TG_USER_IDS, GEMINI_API_KEY)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Environment variables (plain)</strong>: <code>GCS_BUCKET_NAME</code> değişkenine Adım 5'te yarattığım bucket adını girdim</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Environment variables (plain)</strong>: <code>BOT_BASE_URL</code> değişkenini <em>boş</em> bıraktım (Adım 8'de Cloud Run URL'i alınca dolduracağım)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl">Deploy başarılı oldu, Cloud Run bana bir URL verdi</span>
+        </label>
+      </div>
+
+      <div class="info" style="margin-top: 16px;">
+        <strong>Neden 2 tür env var?</strong> Secret'lar (4 adet) <strong>"Reference a secret"</strong>
+        seçeneğiyle bağlanır — Cloud Run runtime'da Secret Manager'dan çeker, asla dosyaya yazmaz.
+        <code>GCS_BUCKET_NAME</code> ve <code>BOT_BASE_URL</code> ise sadece konfigürasyon — secret
+        değiller, doğrudan plain text olarak girilir.
+      </div>
+
+      <p class="input-label">Cloud Run'ın sana verdiği URL</p>
+      <p class="input-help">Yapıştırınca kurulum URL'i fetch edip <strong>servisin gerçekten ayağa kalkıp kalkmadığını otomatik kontrol eder</strong>.</p>
+      <div class="input-row">
+        <input class="text" id="cloudRunUrl" placeholder="https://kitabi-xxxxx-ew.a.run.app" />
+        <div class="vstatus" id="cloudRunUrlStatus">⚪</div>
+      </div>
+      <div class="vmsg" id="cloudRunUrlMsg">Yapıştırınca servis erişimini kontrol ederim</div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="goTo('secrets')">← Geri</button>
+        <a class="troubleshoot-btn" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md#adim-7-deploy" target="_blank" rel="noopener noreferrer">
+          🆘 Bu adımda sorun yaşıyorum
+        </a>
+        <button class="btn btn-primary btn-big" onclick="goTo('webhook')">Sıradakine →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ STEP 8 — WEBHOOK ═══════════════════════ -->
+    <div class="card screen" data-step="webhook">
+      <div class="step-eyebrow">Adım 8 — Bağlantı (BOT_BASE_URL + Webhook)</div>
+      <div class="step-meta">
+        <span class="step-pill">⏱ ~2 dakika</span>
+        <span class="step-pill">🔗 Telegram ↔ Cloud Run</span>
+        <span class="step-pill manual">✋ Manuel onay</span>
+      </div>
+      <h1 class="step-title">Son adım: Telegram'a botun adresini söyle</h1>
+
+      <p class="lede">
+        Şu an bot ayakta ama <strong>Telegram nereye mesaj göndereceğini bilmiyor</strong> —
+        çünkü Adım 7'de bot'u kurarken Cloud Run sana hangi adresi vereceğini henüz
+        bilmiyorduk, oradaki adres kutusunu boş bırakmıştık. Şimdi o adresi bot'a yazacağız.
+        Bot bunu öğrenir öğrenmez Telegram'a "ben buradayım, mesajları buraya yolla"
+        diyecek.
+      </p>
+      <p class="sub-caption">
+        Teknik adı: <strong>webhook</strong>. "Telegram, kullanıcı mesaj atınca şu URL'e ilet" demek.
+        webhook-secret de sahte istekleri kapıda döndüren bir parola gibi.
+      </p>
+
+      <h2 class="section-h">1) Cloud Run'a bot'un kendi adresini söyle</h2>
+      <p class="lede dim" style="margin-bottom: 8px;">
+        Bunun için bot'u <strong>yeniden başlatmamız</strong> gerek — yeni bir bilgiyle
+        açılsın diye. Cloud Run buna "yeni revision" diyor; tek tıkla oluyor, ~1 dakika sürer.
+      </p>
+      <ol style="margin: 4px 0 12px 18px; padding: 0; font-size: 14px; line-height: 1.6;">
+        <li>Cloud Run console'da kitabi servisini aç</li>
+        <li>Üstteki <strong>EDIT &amp; DEPLOY NEW REVISION</strong> butonuna bas</li>
+        <li><strong>Variables &amp; Secrets</strong> sekmesine geç</li>
+        <li>Listede <code>BOT_BASE_URL</code> satırını bul (Adım 7'de boş bırakmıştın)</li>
+        <li>Değer kutusuna Cloud Run'ın sana verdiği URL'i yapıştır</li>
+        <li>Alt sağdaki <strong>DEPLOY</strong> butonuna bas</li>
+      </ol>
+
+      <div class="checklist" style="margin-top: 8px;">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="webhook" />
+          <span class="box"></span>
+          <span class="lbl"><code>BOT_BASE_URL</code> değişkenine Cloud Run URL'imi yazdım (örn <code>https://kitabi-xxxxx-ew.a.run.app</code>) — <strong>sonunda eğik çizgi yok</strong></span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="webhook" />
+          <span class="box"></span>
+          <span class="lbl">"Deploy" butonuna bastım, bot yaklaşık 1 dakika içinde yeniden ayağa kalktı</span>
+        </label>
+      </div>
+
+      <p class="lede dim" style="margin-top: 12px;">
+        Bot bu adresi öğrenir öğrenmez kendi kendine Telegram'a haber veriyor. Yani ek bir
+        şey yapmana gerek yok — sadece bağlantının kurulduğunu kontrol et.
+      </p>
+
+      <h2 class="section-h">2) Bağlantı kuruldu mu — kontrol</h2>
+      <div class="info">
+        <strong>İki yol var:</strong> (a) Cloud Run loglarında "webhook hazır" mesajını ara
+        (kolayı bu). (b) Cloud Shell'den aşağıdaki komutla manuel kontrol et.
+      </div>
+
+      <h2 class="section-h">Yöntem A: Cloud Shell (token'a dokunmadan)</h2>
+      <a class="open-svc" id="openCloudShellLink" href="https://shell.cloud.google.com" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-gcloud"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Cloud Shell'i aç</div>
+          <div class="url">https://shell.cloud.google.com</div>
+          <div class="sub">Google Cloud'un yerleşik terminali, gcloud zaten authenticated</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+      <p class="lede" style="margin-bottom: 8px;">Açılan terminale aşağıdakini yapıştır (Cloud Run URL'ini sen koyduğun için zaten dolu):</p>
+      <div class="copy-row">
+        <span class="val" id="curlCmd">curl 'https://api.telegram.org/bot$(gcloud secrets versions access latest --secret=telegram-bot-token)/setWebhook?url=&lt;CloudRunURL&gt;&amp;secret_token=$(gcloud secrets versions access latest --secret=webhook-secret)'</span>
+        <button class="copy-btn" onclick="copyCurl(event)">Kopyala</button>
+      </div>
+      <p class="input-help">Cloud Shell <code>gcloud secrets versions access</code> ile Secret Manager'dan token'ı çekiyor — değerler ekranda görünmüyor, sadece curl ile yollanıyor.</p>
+
+      <h2 class="section-h">Yöntem B: Bot kendi kendine bağlasın (önerilen)</h2>
+      <p class="lede dim" style="margin-bottom: 8px;">
+        Yukarıdaki adımdan sonra bot zaten kendiliğinden Telegram'a "ben buradayım" diyor.
+        Doğrulamak için Cloud Run loglarını aç ve <strong>"webhook hazır"</strong> ya da
+        <strong>"main.webhook.registered"</strong> yazan bir satır ara. Bu satırı görürsen
+        bağlantı kurulmuş demektir.
+      </p>
+
+      <a class="open-svc" id="openLogsLink" href="https://console.cloud.google.com/logs" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-cloudrun"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Cloud Run loglarını gör</div>
+          <div class="url" id="openLogsUrl">https://console.cloud.google.com/logs</div>
+          <div class="sub">"webhook hazır" mesajını ara</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <div class="checklist" style="margin-top: 20px;">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="webhook" />
+          <span class="box"></span>
+          <span class="lbl">Bağlantıyı doğruladım (loglarda "webhook hazır" yazan bir satır gördüm <strong>ya da</strong> Cloud Shell komutu <code>{"ok":true}</code> yanıtladı)</span>
+        </label>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="goTo('deploy')">← Geri</button>
+        <a class="troubleshoot-btn" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md#adim-8-webhook" target="_blank" rel="noopener noreferrer">
+          🆘 Bu adımda sorun yaşıyorum
+        </a>
+        <button class="btn btn-primary btn-big" onclick="goTo('scheduler')">Sıradakine →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ STEP 9 — CLOUD SCHEDULER (OPSİYONEL) ═══════════════════════ -->
+    <div class="card screen" data-step="scheduler">
+      <div class="step-eyebrow">Adım 9 — Cloud Scheduler (opsiyonel)</div>
+      <div class="step-meta">
+        <span class="step-pill">⏱ ~3 dakika</span>
+        <span class="step-pill">🔔 Hatırlatma için</span>
+        <span class="step-pill">🆓 3 job/ay ücretsiz</span>
+        <span class="step-pill manual">✋ Opsiyonel</span>
+      </div>
+      <h1 class="step-title">Hatırlatma için Cloud Scheduler (atlanabilir)</h1>
+
+      <p class="lede">
+        Bot, "uzun süredir okumadığın kitap" varsa sana otomatik mesaj atabiliyor.
+        Bunun için Google Cloud Scheduler'a günde bir kez botun <code>/cron/nudge</code>
+        endpoint'ini tetikleten bir iş kurman gerek. <strong>Atlarsan bot yine çalışır</strong> —
+        sadece proaktif hatırlatma olmaz; Telegram'dan kendin gittiğinde her şey aynı.
+      </p>
+      <p class="lede dim">
+        Cloud Scheduler ücretsiz katmanda ayda 3 job veriyor; biz 1 tane kullanacağız.
+      </p>
+
+      <a class="open-svc" id="openSchedulerLink" href="https://console.cloud.google.com/cloudscheduler" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-gcloud"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Cloud Scheduler'ı aç</div>
+          <div class="url" id="openSchedulerUrl">https://console.cloud.google.com/cloudscheduler</div>
+          <div class="sub">Project ID girersen direkt project'inin Scheduler'ı açılır</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <h2 class="section-h">Job ayarları</h2>
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl"><strong>"CREATE JOB"</strong> butonuna bastım</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Name</strong>: <code>kitabi-daily-nudge</code></span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Region</strong>: <code>europe-west1</code> (Cloud Run ile aynı)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Frequency</strong>: <code>0 9-21/2 * * *</code> (09:00-21:00 arası her 2 saatte bir)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Timezone</strong>: <code>Europe/Istanbul</code></span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Target type</strong>: <code>HTTP</code></span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl"><strong>URL</strong>: <code>&lt;CloudRunURL&gt;/cron/nudge</code> — Adım 8'deki URL'in sonuna <code>/cron/nudge</code> ekledim</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl"><strong>HTTP method</strong>: <code>POST</code></span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Headers</strong>: <code>X-Telegram-Bot-Api-Secret-Token</code> = <em>webhook-secret değeri</em> (Adım 6'da Secret Manager'a koyduğun)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="scheduler" />
+          <span class="box"></span>
+          <span class="lbl">"CREATE" → job oluştu, "FORCE RUN" ile elle çalıştırdım. Eğer uzun süredir okumadığın bir kitap varsa bot Telegram'dan hatırlatma mesajı attı; yoksa sessizce başarılı oldu — ikisi de normal</span>
+        </label>
+      </div>
+
+      <div class="info" style="margin-top: 12px;">
+        <strong>Header değerini nasıl alacağım?</strong> Adım 6'da webhook-secret'ı üretmiştin
+        ve Secret Manager'a koymuştun. Cloud Shell'de aşağıdaki komutla göstertebilirsin —
+        sonra Scheduler header'ına yapıştır:
+      </div>
+      <div class="copy-row">
+        <span class="val" id="schedulerSecretCmd">gcloud secrets versions access latest --secret=webhook-secret</span>
+        <button class="copy-btn" onclick="copySchedulerSecret(event)">Kopyala</button>
+      </div>
+
+      <div class="success-box" style="margin-top: 16px;">
+        <strong>Ayar değiştirmek istersen:</strong> Bot içinden Ana Menü → Ayarlar → "Hatırlatmayı kapat" /
+        "± gün" ile yönetirsin. Scheduler her gün tetikler ama bot ayarına göre mesaj atıp atmadığına karar verir.
+        Yani tamamen kapatmak için job'ı silmen gerekmez; bot ayarından kapat.
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="goTo('webhook')">← Geri</button>
+        <a class="troubleshoot-btn" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md#adim-9-scheduler" target="_blank" rel="noopener noreferrer">
+          🆘 Bu adımda sorun yaşıyorum
+        </a>
+        <button class="btn btn-primary btn-big" onclick="goTo('done')">Bitir →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ DONE ═══════════════════════ -->
+    <div class="card screen" data-step="done">
+      <div class="welcome-hero">
+        <div class="welcome-mark">🎉</div>
+        <h1 class="welcome-title">Kitabi hazır!</h1>
+        <p class="welcome-sub">Şimdi Telegram'da botuna git ve ilk mesajı at.</p>
+      </div>
+
+      <div class="success-box">
+        <strong>İlk yapacakların:</strong>
+        <ol style="margin: 10px 0 0 20px; padding: 0;">
+          <li>Telegram'da kendi botunu aç</li>
+          <li><code>/start</code> yazıp gönder</li>
+          <li>Bot seni karşılayacak, ana menü gelecek</li>
+          <li>📚 Yeni Kitap ekle, ▶️ Okumaya Başla</li>
+        </ol>
+      </div>
+
+      <h2 class="section-h">Yardım gerekirse</h2>
+      <div class="tools-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <a class="tool-card" href="https://github.com/poeple-app/kitabi#readme" target="_blank" style="text-decoration:none; color:inherit;">
+          <div class="tool-logo"><svg><use href="#logo-github"/></svg></div>
+          <div class="tool-name">README</div>
+          <div class="tool-role">Tüm özellikler, sorun giderme</div>
+        </a>
+        <a class="tool-card" href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md" target="_blank" style="text-decoration:none; color:inherit;">
+          <div class="tool-logo"><svg><use href="#logo-github"/></svg></div>
+          <div class="tool-name">Troubleshooting</div>
+          <div class="tool-role">Detaylı sorun-giderme rehberi</div>
+        </a>
+        <a class="tool-card" href="https://console.cloud.google.com/run" target="_blank" style="text-decoration:none; color:inherit;">
+          <div class="tool-logo"><svg><use href="#logo-cloudrun"/></svg></div>
+          <div class="tool-name">Cloud Run Logs</div>
+          <div class="tool-role">Bot çalışırken log'ları burada</div>
+        </a>
+        <a class="tool-card" href="mailto:poeple.api@gmail.com" style="text-decoration:none; color:inherit;">
+          <div class="tool-logo" style="font-size: 32px;">📧</div>
+          <div class="tool-name">poeple.api@gmail.com</div>
+          <div class="tool-role">Çözülemeyen sorunlar için</div>
+        </a>
+      </div>
+
+      <div class="nav-row" style="justify-content: center;">
+        <button class="btn btn-ghost" onclick="resetWizard()">↺ Başa dön (sıfırla)</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ───────────────────── NETWORK MAP ───────────────────── -->
+  <aside class="map">
+    <div class="map-title">Bağlantı Haritası</div>
+    <div class="map-canvas" id="mapCanvas">
+      <div class="node" data-node="telegram">
+        <div class="nico"><svg><use href="#logo-telegram"/></svg></div>
+        <div class="ndetails">
+          <div class="nname">Telegram Bot</div>
+          <div class="nstatus">henüz yok</div>
+        </div>
+        <div class="nbadge"></div>
+      </div>
+      <div class="connector"></div>
+      <div class="node" data-node="gemini">
+        <div class="nico"><svg><use href="#logo-gemini"/></svg></div>
+        <div class="ndetails">
+          <div class="nname">Gemini AI</div>
+          <div class="nstatus">henüz yok</div>
+        </div>
+        <div class="nbadge"></div>
+      </div>
+      <div class="connector"></div>
+      <div class="node" data-node="github">
+        <div class="nico"><svg><use href="#logo-github"/></svg></div>
+        <div class="ndetails">
+          <div class="nname">GitHub Repo</div>
+          <div class="nstatus">fork bekliyor</div>
+        </div>
+        <div class="nbadge"></div>
+      </div>
+      <div class="connector"></div>
+      <div class="node" data-node="gcp">
+        <div class="nico"><svg><use href="#logo-gcloud"/></svg></div>
+        <div class="ndetails">
+          <div class="nname">Google Cloud Project</div>
+          <div class="nstatus">açılmadı</div>
+        </div>
+        <div class="nbadge"></div>
+      </div>
+      <div class="connector"></div>
+      <div class="node" data-node="bucket">
+        <div class="nico"><svg><use href="#logo-gcs"/></svg></div>
+        <div class="ndetails">
+          <div class="nname">Cloud Storage Bucket</div>
+          <div class="nstatus">yaratılmadı</div>
+        </div>
+        <div class="nbadge"></div>
+      </div>
+      <div class="connector"></div>
+      <div class="node" data-node="secrets">
+        <div class="nico"><svg><use href="#logo-secret"/></svg></div>
+        <div class="ndetails">
+          <div class="nname">Secret Manager</div>
+          <div class="nstatus">4 secret eksik</div>
+        </div>
+        <div class="nbadge"></div>
+      </div>
+      <div class="connector"></div>
+      <div class="node" data-node="deploy">
+        <div class="nico"><svg><use href="#logo-cloudrun"/></svg></div>
+        <div class="ndetails">
+          <div class="nname">Cloud Run</div>
+          <div class="nstatus">deploy yapılmadı</div>
+        </div>
+        <div class="nbadge"></div>
+      </div>
+      <div class="connector"></div>
+      <div class="node" data-node="webhook">
+        <div class="nico"><svg><use href="#logo-webhook"/></svg></div>
+        <div class="ndetails">
+          <div class="nname">Webhook Bağlantısı</div>
+          <div class="nstatus">bağlanmadı</div>
+        </div>
+        <div class="nbadge"></div>
+      </div>
+      <div class="connector"></div>
+      <div class="node" data-node="scheduler">
+        <div class="nico"><svg><use href="#logo-gcloud"/></svg></div>
+        <div class="ndetails">
+          <div class="nname">Cloud Scheduler</div>
+          <div class="nstatus">opsiyonel</div>
+        </div>
+        <div class="nbadge"></div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <div class="meta">
+    <span>Kitabi · Open source · MIT</span>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/poeple-app/kitabi" target="_blank">GitHub</a>
+    <a href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md" target="_blank">Sorun Giderme</a>
+    <a class="email-link" href="mailto:poeple.api@gmail.com">📧 poeple.api@gmail.com</a>
+  </div>
+  <div class="disclaimer">
+    Kitabi <strong>açık kaynak bir kişisel projedir</strong> ve MIT lisansı altında "olduğu gibi" sunulur. Hiçbir garanti verilmez; kullanım tamamen kendi sorumluluğundadır. Bu yazılım <strong>satılmamaktadır</strong> ve para karşılığı dağıtılması yasaktır. Kitabi geliştiricileri kullanıcının hiçbir kişisel verisini, kitap notunu, sohbet içeriğini veya kimlik bilgisini toplamaz, saklamaz ya da göremez — tüm veriler yalnızca kullanıcının kendi Google Cloud hesabında kalır. Bu kurulum sayfası tarayıcıda lokal çalışır; sunucularımıza hiçbir veri gönderilmez. Servislerin (Telegram, Google, GitHub) kullanım koşulları ve gizlilik politikaları kullanıcıyı bağlar; bu projeyi kullanmadan önce ilgili koşulları okuduğun kabul edilir. İletişim: poeple.api@gmail.com
+  </div>
+</footer>
+
+<!-- Sticky skip-intro button — only visible on welcome screen -->
+<button class="skip-intro" id="skipIntroBtn" onclick="goTo('telegram')">Tanıtımı geç →</button>
+
+<script>
+const STEP_ORDER = ['welcome', 'telegram', 'gemini', 'github', 'gcp', 'bucket', 'secrets', 'deploy', 'webhook', 'scheduler', 'done'];
+const STEP_LABELS = {
+  telegram:  { done: '✓ token ve ID alındı', active: 'şu an: bot oluşturuluyor' },
+  gemini:    { done: '✓ API key alındı', active: 'şu an: API key oluşturuluyor' },
+  github:    { done: '✓ repo fork\'landı', active: 'şu an: fork yapılıyor' },
+  gcp:       { done: '✓ project ve API\'ler hazır', active: 'şu an: project açılıyor' },
+  bucket:    { done: '✓ bucket yaratıldı', active: 'şu an: bucket yaratılıyor' },
+  secrets:   { done: '✓ 4 secret kasada', active: 'şu an: secret\'lar yükleniyor' },
+  deploy:    { done: '✓ bot Cloud Run\'da', active: 'şu an: deploy ediliyor' },
+  webhook:   { done: '✓ Telegram bağlandı', active: 'şu an: webhook bağlanıyor' },
+  scheduler: { done: '✓ hatırlatma aktif', active: 'şu an: scheduler kuruluyor' },
+};
+
+const STATE_KEY = 'kitabi_install_state_v6';
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (!raw) return { current: 'welcome', completed: [], checks: {}, inputs: {} };
+    return JSON.parse(raw);
+  } catch { return { current: 'welcome', completed: [], checks: {}, inputs: {} }; }
+}
+function saveState() {
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify({
+      current: state.current,
+      completed: Array.from(completed),
+      checks: collectChecks(),
+      inputs: collectInputs(),
+    }));
+  } catch {}
+}
+function collectChecks() {
+  const obj = {};
+  document.querySelectorAll('[data-step-check]').forEach((c, i) => {
+    obj[c.dataset.stepCheck + ':' + i] = c.checked;
+  });
+  return obj;
+}
+function collectInputs() {
+  const obj = {};
+  ['repoUrl', 'gcpProjectId', 'cloudRunUrl', 'gcsBucketName'].forEach(id => {
+    obj[id] = document.getElementById(id)?.value || '';
+  });
+  return obj;
+}
+function restoreFromState() {
+  const checks = state.checks || {};
+  document.querySelectorAll('[data-step-check]').forEach((c, i) => {
+    if (checks[c.dataset.stepCheck + ':' + i]) c.checked = true;
+  });
+  ['repoUrl', 'gcpProjectId', 'cloudRunUrl', 'gcsBucketName'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && state.inputs?.[id]) el.value = state.inputs[id];
+  });
+}
+
+let currentStep = state.current || 'welcome';
+let completed = new Set(state.completed || []);
+
+function goTo(step) {
+  if (currentStep !== 'welcome' && currentStep !== 'done' && currentStep !== 'manual' && STEP_LABELS[currentStep]) {
+    completed.add(currentStep);
+  }
+  currentStep = step;
+  state.current = step;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.querySelector(`.screen[data-step="${step}"]`);
+  if (target) target.classList.add('active');
+  // Hide the network map sidebar in manual mode for a denser single-page view.
+  const mainEl = document.querySelector('main');
+  const mapEl = document.querySelector('aside.map');
+  if (step === 'manual') {
+    if (mainEl) mainEl.style.gridTemplateColumns = '1fr';
+    if (mapEl) mapEl.style.display = 'none';
+  } else {
+    if (mainEl) mainEl.style.gridTemplateColumns = '';
+    if (mapEl) mapEl.style.display = '';
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  updateMap();
+  updateProgress();
+  updateDynamicLinks();
+  updateSkipButton();
+  saveState();
+}
+
+function resetWizard() {
+  if (!confirm('Tüm kurulum durumunu sıfırlamak istediğine emin misin?')) return;
+  localStorage.removeItem(STATE_KEY);
+  location.reload();
+}
+
+function updateMap() {
+  document.querySelectorAll('.node').forEach(n => {
+    n.classList.remove('active', 'done');
+    const name = n.dataset.node;
+    const status = n.querySelector('.nstatus');
+    if (completed.has(name)) {
+      n.classList.add('done');
+      status.textContent = STEP_LABELS[name]?.done || 'tamam';
+    } else if (name === currentStep) {
+      n.classList.add('active');
+      status.textContent = STEP_LABELS[name]?.active || 'şu an burada';
+    }
+  });
+  const nodes = Array.from(document.querySelectorAll('.node[data-node]'));
+  const connectors = Array.from(document.querySelectorAll('.connector'));
+  connectors.forEach((c, i) => {
+    const next = nodes[i + 1];
+    if (next && completed.has(next.dataset.node)) c.classList.add('done');
+    else c.classList.remove('done');
+  });
+}
+
+function updateProgress() {
+  const i = STEP_ORDER.indexOf(currentStep);
+  const numFlowSteps = 9;
+  let n = 0;
+  if (currentStep === 'welcome') n = 0;
+  else if (currentStep === 'manual') {
+    // Off-flow advanced view — render "Manuel" badge instead of step count.
+    document.getElementById('progressText').textContent = `🛠️ Manuel kurulum`;
+    const dotsHost = document.getElementById('progDots');
+    dotsHost.innerHTML = '';
+    return;
+  }
+  else if (currentStep === 'done') n = 9;
+  else n = i;
+  document.getElementById('progressText').textContent = `Adım ${n}/${numFlowSteps}`;
+  const dotsHost = document.getElementById('progDots');
+  dotsHost.innerHTML = '';
+  for (let k = 1; k <= numFlowSteps; k++) {
+    const d = document.createElement('div');
+    d.className = 'pdot';
+    if (k < n) d.classList.add('done');
+    else if (k === n) d.classList.add('active');
+    dotsHost.appendChild(d);
+  }
+}
+
+function updateSkipButton() {
+  const btn = document.getElementById('skipIntroBtn');
+  if (!btn) return;
+  if (currentStep === 'welcome') btn.classList.add('visible');
+  else btn.classList.remove('visible');
+}
+
+function updateDynamicLinks() {
+  const pid = document.getElementById('gcpProjectId')?.value?.trim();
+  const apisLink = document.getElementById('enableApisLink');
+  const apisUrlSpan = document.getElementById('enableApisUrl');
+  if (apisLink) {
+    const apis = 'secretmanager.googleapis.com,run.googleapis.com,storage.googleapis.com,artifactregistry.googleapis.com';
+    const url = pid
+      ? `https://console.cloud.google.com/apis/enableflow?apiid=${apis}&project=${encodeURIComponent(pid)}`
+      : `https://console.cloud.google.com/apis/enableflow?apiid=${apis}`;
+    apisLink.href = url;
+    if (apisUrlSpan) apisUrlSpan.textContent = pid ? url : 'Önce Project ID gir, link buna göre güncellenir';
+  }
+  const secretsLink = document.getElementById('openSecretsLink');
+  const secretsUrlSpan = document.getElementById('openSecretsUrl');
+  if (secretsLink) {
+    const url = pid
+      ? `https://console.cloud.google.com/security/secret-manager?project=${encodeURIComponent(pid)}`
+      : 'https://console.cloud.google.com/security/secret-manager';
+    secretsLink.href = url;
+    if (secretsUrlSpan) secretsUrlSpan.textContent = url;
+  }
+  const logsLink = document.getElementById('openLogsLink');
+  const logsUrlSpan = document.getElementById('openLogsUrl');
+  if (logsLink) {
+    const url = pid
+      ? `https://console.cloud.google.com/run?project=${encodeURIComponent(pid)}`
+      : 'https://console.cloud.google.com/run';
+    logsLink.href = url;
+    if (logsUrlSpan) logsUrlSpan.textContent = url;
+  }
+  const bucketLink = document.getElementById('openBucketLink');
+  const bucketUrlSpan = document.getElementById('openBucketUrl');
+  if (bucketLink) {
+    const url = pid
+      ? `https://console.cloud.google.com/storage/browser?project=${encodeURIComponent(pid)}`
+      : 'https://console.cloud.google.com/storage/browser';
+    bucketLink.href = url;
+    if (bucketUrlSpan) bucketUrlSpan.textContent = url;
+  }
+  const schedulerLink = document.getElementById('openSchedulerLink');
+  const schedulerUrlSpan = document.getElementById('openSchedulerUrl');
+  if (schedulerLink) {
+    const url = pid
+      ? `https://console.cloud.google.com/cloudscheduler?project=${encodeURIComponent(pid)}`
+      : 'https://console.cloud.google.com/cloudscheduler';
+    schedulerLink.href = url;
+    if (schedulerUrlSpan) schedulerUrlSpan.textContent = url;
+  }
+  const schedulerCmd = document.getElementById('schedulerSecretCmd');
+  if (schedulerCmd) {
+    schedulerCmd.textContent =
+      `gcloud secrets versions access latest --secret=webhook-secret --project=${pid || '<PROJECT_ID>'}`;
+  }
+  const repoUrl = document.getElementById('repoUrl')?.value?.trim();
+  const deployBtn = document.getElementById('deployBtn');
+  const deployUrlSpan = document.getElementById('deployUrl');
+  if (deployBtn) {
+    if (repoUrl) {
+      const u = `https://deploy.cloud.run/?git_repo=${encodeURIComponent(repoUrl)}`;
+      deployBtn.href = u;
+      if (deployUrlSpan) deployUrlSpan.textContent = u;
+    } else {
+      deployBtn.href = 'https://deploy.cloud.run/';
+      if (deployUrlSpan) deployUrlSpan.textContent = 'Önce Adım 3\'te repo URL girilmeli';
+    }
+  }
+  const cloudRunUrl = document.getElementById('cloudRunUrl')?.value?.trim();
+  const curlCmd = document.getElementById('curlCmd');
+  if (curlCmd) {
+    const url = cloudRunUrl ? cloudRunUrl + '/webhook' : '<CloudRunURL>/webhook';
+    curlCmd.textContent =
+      `TG_TOKEN=$(gcloud secrets versions access latest --secret=telegram-bot-token --project=${pid || '<PROJECT_ID>'}); ` +
+      `WH_SECRET=$(gcloud secrets versions access latest --secret=webhook-secret --project=${pid || '<PROJECT_ID>'}); ` +
+      `curl -sS "https://api.telegram.org/bot$TG_TOKEN/setWebhook?url=${url}&secret_token=$WH_SECRET"`;
+  }
+}
+
+let repoDebounce;
+function validateRepoUrl(url) {
+  const status = document.getElementById('repoUrlStatus');
+  const msg = document.getElementById('repoUrlMsg');
+  if (!url) {
+    status.className = 'vstatus'; status.textContent = '⚪';
+    msg.className = 'vmsg'; msg.textContent = 'Yapıştırınca otomatik doğrularım';
+    return;
+  }
+  const m = url.match(/^https?:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git|\/)?$/);
+  if (!m) {
+    status.className = 'vstatus fail'; status.textContent = '✕';
+    msg.className = 'vmsg fail'; msg.textContent = 'URL formatı tanınmadı (örnek: https://github.com/kullanici/kitabi)';
+    return;
+  }
+  const [_, owner, repo] = m;
+  status.className = 'vstatus checking'; status.textContent = '⟳';
+  msg.className = 'vmsg'; msg.textContent = `github.com/${owner}/${repo} kontrol ediliyor...`;
+  fetch(`https://api.github.com/repos/${owner}/${repo}`)
+    .then(r => {
+      if (r.status === 200) return r.json();
+      if (r.status === 404) throw new Error('Repo bulunamadı — fork yaptın mı? Private ise public yap. (Yine de ileri gidebilirsin.)');
+      if (r.status === 403) throw new Error('GitHub API rate limit — birkaç dakika bekle. (Yine de ileri gidebilirsin.)');
+      throw new Error('Beklenmedik yanıt: ' + r.status + ' (Yine de ileri gidebilirsin.)');
+    })
+    .then(repoData => {
+      status.className = 'vstatus ok'; status.textContent = '✓';
+      msg.className = 'vmsg ok';
+      msg.textContent = `✓ Repo bulundu (${repoData.stargazers_count || 0} ⭐, ${repoData.fork ? 'fork' : 'orijinal'})`;
+    })
+    .catch(err => {
+      status.className = 'vstatus fail'; status.textContent = '✕';
+      msg.className = 'vmsg fail'; msg.textContent = err.message;
+    });
+}
+
+let cloudRunDebounce;
+function validateCloudRunUrl(url) {
+  const status = document.getElementById('cloudRunUrlStatus');
+  const msg = document.getElementById('cloudRunUrlMsg');
+  if (!url) {
+    status.className = 'vstatus'; status.textContent = '⚪';
+    msg.className = 'vmsg'; msg.textContent = 'Yapıştırınca servis erişimini kontrol ederim';
+    return;
+  }
+  const m = url.match(/^https?:\/\/[\w.-]+\.(?:run\.app|a\.run\.app)\/?$/);
+  if (!m) {
+    status.className = 'vstatus fail'; status.textContent = '✕';
+    msg.className = 'vmsg fail'; msg.textContent = 'Cloud Run URL formatı tanınmadı (yine de ileri gidebilirsin)';
+    return;
+  }
+  status.className = 'vstatus checking'; status.textContent = '⟳';
+  msg.className = 'vmsg'; msg.textContent = 'Servise ulaşılıyor...';
+  fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' })
+    .then(() => {
+      status.className = 'vstatus ok'; status.textContent = '✓';
+      msg.className = 'vmsg ok'; msg.textContent = '✓ Servise ulaşıldı (Cloud Run ayakta)';
+    })
+    .catch(() => {
+      status.className = 'vstatus fail'; status.textContent = '✕';
+      msg.className = 'vmsg fail'; msg.textContent = 'Servise ulaşılamadı — deploy hâlâ devam ediyor olabilir (yine de ileri gidebilirsin)';
+    });
+}
+
+function validateProjectId(pid) {
+  const status = document.getElementById('gcpProjectIdStatus');
+  const msg = document.getElementById('gcpProjectIdMsg');
+  if (!pid) {
+    status.className = 'vstatus'; status.textContent = '⚪';
+    msg.className = 'vmsg'; msg.textContent = 'Format kontrolü yaparım (gerçek var-yok kontrolü için Google Cloud auth gerek)';
+    return;
+  }
+  const valid = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(pid);
+  if (valid) {
+    status.className = 'vstatus ok'; status.textContent = '✓';
+    msg.className = 'vmsg ok'; msg.textContent = '✓ Format geçerli (gerçek erişim deploy adımında kontrol edilecek)';
+  } else {
+    status.className = 'vstatus fail'; status.textContent = '✕';
+    msg.className = 'vmsg fail'; msg.textContent = 'Format hatalı (6-30 karakter, küçük harf/rakam/tire, harfle başlamalı)';
+  }
+}
+
+document.querySelectorAll('[data-step-check]').forEach(c => {
+  c.addEventListener('change', () => { saveState(); });
+});
+document.getElementById('repoUrl')?.addEventListener('input', e => {
+  clearTimeout(repoDebounce);
+  repoDebounce = setTimeout(() => { validateRepoUrl(e.target.value.trim()); updateDynamicLinks(); saveState(); }, 400);
+});
+document.getElementById('gcpProjectId')?.addEventListener('input', e => {
+  validateProjectId(e.target.value.trim());
+  updateDynamicLinks();
+  saveState();
+});
+document.getElementById('cloudRunUrl')?.addEventListener('input', e => {
+  clearTimeout(cloudRunDebounce);
+  cloudRunDebounce = setTimeout(() => { validateCloudRunUrl(e.target.value.trim()); updateDynamicLinks(); saveState(); }, 400);
+});
+
+function genSecret() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  document.getElementById('webhookSecret').textContent = hex;
+}
+function copySecret(ev) {
+  const s = document.getElementById('webhookSecret').textContent;
+  if (!s || s.startsWith('[')) return;
+  navigator.clipboard.writeText(s);
+  flashCopy(ev?.target);
+}
+function copyCurl(ev) {
+  const cmd = document.getElementById('curlCmd').textContent;
+  navigator.clipboard.writeText(cmd);
+  flashCopy(ev?.target);
+}
+function copySchedulerSecret(ev) {
+  const cmd = document.getElementById('schedulerSecretCmd').textContent;
+  navigator.clipboard.writeText(cmd);
+  flashCopy(ev?.target);
+}
+
+// Intro cards: scroll one card width per click and update button states.
+function scrollIntroCards(direction) {
+  const wrap = document.getElementById('introCards');
+  if (!wrap) return;
+  const card = wrap.querySelector('.intro-card');
+  const step = card ? (card.getBoundingClientRect().width + 14 /* gap */) : 240;
+  wrap.scrollBy({ left: direction * step, behavior: 'smooth' });
+}
+function updateIntroScrollBtns() {
+  const wrap = document.getElementById('introCards');
+  const prev = document.getElementById('introScrollPrev');
+  const next = document.getElementById('introScrollNext');
+  if (!wrap || !prev || !next) return;
+  const atStart = wrap.scrollLeft <= 2;
+  const atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 2;
+  prev.disabled = atStart;
+  next.disabled = atEnd;
+}
+document.getElementById('introCards')?.addEventListener('scroll', updateIntroScrollBtns);
+window.addEventListener('resize', updateIntroScrollBtns);
+// Initial state
+setTimeout(updateIntroScrollBtns, 50);
+
+// Bucket name validation: 3-63 chars, lowercase letters/digits/hyphens.
+function validateBucketName(name) {
+  const status = document.getElementById('gcsBucketStatus');
+  const msg = document.getElementById('gcsBucketMsg');
+  if (!status || !msg) return;
+  if (!name) {
+    status.className = 'vstatus'; status.textContent = '⚪';
+    msg.className = 'vmsg'; msg.textContent = 'Bucket adı 3-63 karakter, sadece küçük harf/rakam/tire';
+    return;
+  }
+  const ok = /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(name) && !name.includes('..');
+  if (ok) {
+    status.className = 'vstatus ok'; status.textContent = '✓';
+    msg.className = 'vmsg ok'; msg.textContent = 'Format geçerli. Bu adın Google Cloud çapında benzersiz olması gerek — yaratırken çakışırsa farklı bir ad dene.';
+  } else {
+    status.className = 'vstatus fail'; status.textContent = '✕';
+    msg.className = 'vmsg fail'; msg.textContent = 'Geçersiz format: 3-63 küçük harf/rakam/tire, başta ve sonda harf/rakam, ".." içermez.';
+  }
+}
+document.getElementById('gcsBucketName')?.addEventListener('input', e => {
+  validateBucketName(e.target.value.trim()); saveState();
+});
+function flashCopy(btn) {
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.textContent = 'Kopyalandı ✓';
+  setTimeout(() => btn.textContent = orig, 1200);
+}
+
+restoreFromState();
+goTo(state.current || 'welcome');
+if (document.getElementById('repoUrl')?.value) validateRepoUrl(document.getElementById('repoUrl').value.trim());
+if (document.getElementById('gcpProjectId')?.value) validateProjectId(document.getElementById('gcpProjectId').value.trim());
+if (document.getElementById('cloudRunUrl')?.value) validateCloudRunUrl(document.getElementById('cloudRunUrl').value.trim());
+if (document.getElementById('gcsBucketName')?.value) validateBucketName(document.getElementById('gcsBucketName').value.trim());
+</script>
+
+</body>
+</html>

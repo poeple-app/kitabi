@@ -1,0 +1,27 @@
+{
+  "name": "kitabi",
+  "description": "Kitabi — personal reading-tracker Telegram bot",
+  "homepage": "https://github.com/poeple-app/kitabi",
+  "options": {
+    "region": "europe-west1",
+    "allow-unauthenticated": true,
+    "min-instances": 0,
+    "max-instances": 1,
+    "memory": "512Mi",
+    "cpu": "1",
+    "timeout": "60s",
+    "concurrency": 10,
+    "set-secrets": [
+      "TELEGRAM_BOT_TOKEN=telegram-bot-token:latest",
+      "WEBHOOK_SECRET=webhook-secret:latest",
+      "ALLOWED_TG_USER_IDS=allowed-tg-user-ids:latest",
+      "GEMINI_API_KEY=gemini-api-key:latest"
+    ],
+    "set-env-vars": [
+      "GCS_BUCKET_NAME=REPLACE_WITH_YOUR_BUCKET",
+      "BOT_BASE_URL=",
+      "DB_PATH=/data/kitabi.db",
+      "LOG_LEVEL=INFO"
+    ]
+  }
+}
