@@ -351,6 +351,60 @@ Eğer her seferinde uzun: `min-instances=1` yapabilirsin (cold start tamamen yok
 
 Deploy ile her revision yeni URL döndürebilir (eski URL de çalışır). Eski URL'i `BOT_BASE_URL`'de tutuyorsan webhook patlar.
 
+### "Permission denied on secret" — deploy failed
+
+Hata mesajı: `Permission denied on secret: projects/XXX/secrets/telegram-bot-token/versions/latest for Revision service account XXX-compute@developer.gserviceaccount.com`
+
+Cloud Run default service account'a Secret Manager erişimi verilmemiş. Cloud Shell'de:
+
+```bash
+SA=<PROJECT_NUMBER>-compute@developer.gserviceaccount.com
+
+gcloud projects add-iam-policy-binding <PROJECT_ID> \
+  --member="serviceAccount:$SA" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+`PROJECT_NUMBER`'ı hata mesajından alırsın (servis account adındaki sayı). Sonra Cloud Run → kitabi → **EDIT & DEPLOY NEW REVISION** → DEPLOY.
+
+Aynı şekilde **Cloud Storage** erişimi de gerek (GCS backup için):
+
+```bash
+gcloud storage buckets add-iam-policy-binding gs://<BUCKET_NAME> \
+  --member="serviceAccount:$SA" \
+  --role="roles/storage.objectAdmin"
+```
+
+### "Container failed to start and listen on the port" — deploy failed
+
+Container Python tarafında bir exception ile patlamış, port 8080'i dinleyemedi. **Container ayarları yanlış değil**, içerdeki kodda problem var.
+
+Log'a bak:
+
+```bash
+gcloud run services logs read kitabi --region=europe-west1 --project=<PROJECT_ID> --limit=100 | grep -A 60 Traceback
+```
+
+Traceback'in en altındaki satır gerçek sebep. Yaygın olanlar:
+
+#### `pydantic_core._pydantic_core.ValidationError: ... allowed_tg_user_ids ... Input should be a valid list`
+
+`ALLOWED_TG_USER_IDS` secret'ı tek bir sayı içeriyor (örn. `123456789`) — eski versiyon kodda bu int olarak parse ediliyordu. **v0.1.1+ kodu artık her formatı kabul ediyor** (tek int, virgüllü string, JSON array). Eğer hâlâ bu hatayı alıyorsan kodun eski sürümde:
+1. Repo'da en son main.py'yi kullandığından emin ol
+2. ya da secret değerini `[123456789]` (köşeli parantezli) olarak güncelle + new version oluştur + redeploy
+
+#### `pydantic_core._pydantic_core.ValidationError: ... field required ...`
+
+Bir secret veya env değişkeni eksik. Hata mesajı hangi field olduğunu söyler. Cloud Run → kitabi → **Variables & Secrets** sekmesini kontrol et — 4 secret (TELEGRAM_BOT_TOKEN, WEBHOOK_SECRET, ALLOWED_TG_USER_IDS, GEMINI_API_KEY) bağlanmış olmalı + 2 env (`GCS_BUCKET_NAME`, `DB_PATH`).
+
+#### `google.api_core.exceptions.NotFound: 404 ... Bucket "..." not found`
+
+`GCS_BUCKET_NAME` env'i yanlış. Bucket adın Cloud Storage'da gerçekten var mı kontrol et:
+
+```bash
+gcloud storage buckets list --project=<PROJECT_ID>
+```
+
 ---
 
 ## Adım 7: Webhook bağlantısı {#adim-7-webhook}
@@ -399,9 +453,14 @@ Başka bir kullanıcıya mesaj atıyorsan o cevap vermez (allowlist sadece sen).
 
 ### "User not allowed" log'u var
 
-`ALLOWED_TG_USER_IDS` secret'ı yanlış. Sadece **rakamlar** olmalı (`123456789`), virgülle birden fazla olabilir (`123,456`). Username yazma, telefon numarası yazma — Telegram **user ID** olmalı.
+`ALLOWED_TG_USER_IDS` secret'ı yanlış. Sadece **rakamlar** olmalı — Telegram **user ID**.
+Username yazma, telefon numarası yazma. Kabul edilen formatlar:
 
-ID'i öğrenmek için [@userinfobot](https://t.me/userinfobot)'a `/start` at.
+- `123456789` (tek kullanıcı)
+- `123456789,234567890` (birden fazla, virgülle)
+- `[123456789, 234567890]` (JSON array)
+
+ID'i öğrenmek için [@userinfobot](https://web.telegram.org/k/#@userinfobot)'a `/start` at.
 
 ### Webhook URL'i set edilmemiş
 

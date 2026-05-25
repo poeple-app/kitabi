@@ -1906,40 +1906,69 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
 
       <h2 class="section-h">Oluşturulacak secret'lar (4 adet)</h2>
 
-      <div class="checklist">
-        <label class="check-item">
-          <input type="checkbox" data-step-check="secrets" />
-          <span class="box"></span>
-          <span class="lbl">
-            <strong>1. telegram-bot-token</strong>
-            <small>Değer: BotFather'dan aldığın token. Secret Manager'da "Create Secret" → name: <code>telegram-bot-token</code> → value alanına yapıştır → Create.</small>
-          </span>
-        </label>
-        <label class="check-item">
-          <input type="checkbox" data-step-check="secrets" />
-          <span class="box"></span>
-          <span class="lbl">
-            <strong>2. allowed-tg-user-ids</strong>
-            <small>Değer: userinfobot'tan aldığın kendi ID'in (sadece rakamlar). Birden fazla kullanıcı yetkilendirmek istersen virgülle ayır.</small>
-          </span>
-        </label>
-        <label class="check-item">
-          <input type="checkbox" data-step-check="secrets" />
-          <span class="box"></span>
-          <span class="lbl">
-            <strong>3. gemini-api-key</strong>
-            <small>Değer: AI Studio'dan aldığın API key (<code>AIza...</code> ile başlar).</small>
-          </span>
-        </label>
-        <label class="check-item">
-          <input type="checkbox" data-step-check="secrets" />
-          <span class="box"></span>
-          <span class="lbl">
-            <strong>4. webhook-secret</strong>
-            <small>Aşağıdan üreteceğin 64 karakterlik rastgele string. Telegram webhook'un sahte istekleri ayıklamak için kullanır.</small>
-          </span>
-        </label>
+      <div class="info" style="background: #fff4e0; border-color: #e8a23a; margin-bottom: 14px;">
+        ⚠️ <strong>İsimler birebir aynı olmalı.</strong> Bu 4 isim Cloud Run'daki kodda
+        hardcoded — bir harf yanlış (örn. <code>telegram_bot_token</code> alt-çizgi yerine
+        tire, ya da <code>Telegram-Bot-Token</code> büyük harf) → bot başlarken "secret bulunamadı"
+        hatası verir. Her satırın yanındaki <strong>kopyala</strong> butonuyla al, Secret
+        Manager'a yapıştır.
       </div>
+
+      <p class="input-label">1. telegram-bot-token</p>
+      <p class="input-help">Değer: BotFather'dan aldığın token (<code>123456:ABC-...</code>).</p>
+      <div class="copy-row">
+        <span class="val">telegram-bot-token</span>
+        <button class="copy-btn" onclick="copyText('telegram-bot-token', event)">Kopyala</button>
+      </div>
+      <label class="check-item" style="margin-top: 6px;">
+        <input type="checkbox" data-step-check="secrets" />
+        <span class="box"></span>
+        <span class="lbl">Secret oluşturdum (name + value tam yazıldı)</span>
+      </label>
+
+      <p class="input-label" style="margin-top: 14px;">2. allowed-tg-user-ids</p>
+      <p class="input-help">
+        Değer: userinfobot'tan aldığın kendi ID'in (sadece rakamlar, örn. <code>123456789</code>).
+        Birden fazla kullanıcı yetkilendirmek için virgülle ayır: <code>123456789,234567890</code>.
+      </p>
+      <div class="info" style="margin: 6px 0 10px; font-size: 13px;">
+        💡 <strong>Hangi format çalışır?</strong> Bot 3 yazımı da kabul eder:
+        <code>123456789</code> · <code>123456789,234567890</code> · <code>[123456789, 234567890]</code>.
+        En basiti tek rakam yazmak.
+      </div>
+      <div class="copy-row">
+        <span class="val">allowed-tg-user-ids</span>
+        <button class="copy-btn" onclick="copyText('allowed-tg-user-ids', event)">Kopyala</button>
+      </div>
+      <label class="check-item" style="margin-top: 6px;">
+        <input type="checkbox" data-step-check="secrets" />
+        <span class="box"></span>
+        <span class="lbl">Secret oluşturdum (name + value tam yazıldı)</span>
+      </label>
+
+      <p class="input-label" style="margin-top: 14px;">3. gemini-api-key</p>
+      <p class="input-help">Değer: AI Studio'dan aldığın API key (<code>AIza...</code> ile başlar).</p>
+      <div class="copy-row">
+        <span class="val">gemini-api-key</span>
+        <button class="copy-btn" onclick="copyText('gemini-api-key', event)">Kopyala</button>
+      </div>
+      <label class="check-item" style="margin-top: 6px;">
+        <input type="checkbox" data-step-check="secrets" />
+        <span class="box"></span>
+        <span class="lbl">Secret oluşturdum (name + value tam yazıldı)</span>
+      </label>
+
+      <p class="input-label" style="margin-top: 14px;">4. webhook-secret</p>
+      <p class="input-help">Aşağıdan ürettiğin 64 karakterlik rastgele string'i value olarak yapıştır.</p>
+      <div class="copy-row">
+        <span class="val">webhook-secret</span>
+        <button class="copy-btn" onclick="copyText('webhook-secret', event)">Kopyala</button>
+      </div>
+      <label class="check-item" style="margin-top: 6px;">
+        <input type="checkbox" data-step-check="secrets" />
+        <span class="box"></span>
+        <span class="lbl">Secret oluşturdum (name + value tam yazıldı)</span>
+      </label>
 
       <h2 class="section-h">webhook-secret nedir, niye rastgele?</h2>
       <p class="lede dim">
@@ -2006,50 +2035,213 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
         </p>
       </div>
 
-      <h2 class="section-h">Deploy ekranında dikkat</h2>
+      <h2 class="section-h">"Create service" ekranı — yukarıdan aşağıya</h2>
+
+      <div class="info" style="margin-bottom: 14px;">
+        Cloud Run sayfası 4 ana bölüm gösterir: <b>Source</b>, <b>Configure</b>,
+        <b>Build configuration</b>, <b>Containers, volumes, networking, security</b>.
+        Çoğu default doğru; aşağıda <strong>elle değiştirmen gereken</strong> alanlar var.
+      </div>
+
+      <h3 style="font-size: 14px; margin: 14px 0 6px;">📍 Üst bölüm — Source & Configure</h3>
       <div class="checklist">
         <label class="check-item">
           <input type="checkbox" data-step-check="deploy" />
           <span class="box"></span>
-          <span class="lbl"><strong>Project</strong>: az önce açtığın Google Cloud Project'i seçtim</span>
+          <span class="lbl"><strong>Source repository</strong>: GitHub URL'i otomatik doldu (<code>github.com/poeple-app/kitabi</code>)
+            <small>Eğer "Connect a new repository" butonu görürsen tıkla, GitHub yetkilendirmesi iste, Kitabi repo'sunu seç.</small>
+          </span>
         </label>
         <label class="check-item">
           <input type="checkbox" data-step-check="deploy" />
           <span class="box"></span>
-          <span class="lbl"><strong>Region</strong>: <code>europe-west1</code> (Belçika) — sana en yakın bedava region</span>
+          <span class="lbl"><strong>Service name</strong>: <code>kitabi</code>
+            <small>Bu Cloud Run service adı; URL'inde de bu görünür. Değiştirme.</small>
+          </span>
         </label>
         <label class="check-item">
           <input type="checkbox" data-step-check="deploy" />
           <span class="box"></span>
-          <span class="lbl"><strong>Authentication</strong>: "Allow unauthenticated invocations" — webhook için gerekli (kötü amaçlı erişimi webhook-secret engelliyor)</span>
+          <span class="lbl"><strong>Region</strong>: <code>europe-west1 (Belgium)</code>
+            <small>En yakın bedava region. Adım 5'te bucket'ı da burada açtın, aynı bölge önemli.</small>
+          </span>
         </label>
         <label class="check-item">
           <input type="checkbox" data-step-check="deploy" />
           <span class="box"></span>
-          <span class="lbl"><strong>Environment variables (secret)</strong>: "Reference a secret" ile Secret Manager'daki 4 secret'ı bağladım (TELEGRAM_BOT_TOKEN, WEBHOOK_SECRET, ALLOWED_TG_USER_IDS, GEMINI_API_KEY)</span>
+          <span class="lbl"><strong>Authentication</strong>: <em>"Allow public access"</em> ⚠️
+            <small>Google default olarak "Require authentication" seçili gelir — <b>bunu değiştir</b>! Webhook'un Telegram'dan erişilebilmesi için public olması şart. Güvenlik <code>webhook-secret</code> header'ı ile sağlanıyor.</small>
+          </span>
+        </label>
+      </div>
+
+      <h3 style="font-size: 14px; margin: 22px 0 6px;">📍 "Containers, volumes, networking, security" — açılır panel</h3>
+      <p class="lede dim" style="margin-bottom: 8px;">
+        Bu başlığa tıkla, alttaki sekmeler açılır. <b>3 sekme</b> ile işin var:
+      </p>
+
+      <h4 style="font-size: 13px; font-weight: 700; margin: 12px 0 6px; color: var(--accent);">→ Variables & Secrets sekmesi</h4>
+      <p class="lede dim" style="margin-bottom: 6px;">
+        Burası 2 alt-bölüme ayrılır: "Environment variables" (plain) ve "Secrets exposed as environment variables" (Secret Manager bağlama).
+      </p>
+
+      <p class="input-label" style="margin-top: 12px;"><b>(A) Environment variables — "Add Variable" butonu, 3 satır:</b></p>
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl">Name: <code>GCS_BUCKET_NAME</code> · Value: <em>Adım 5'te yarattığın bucket adı</em>
+            <small>(örn. <code>kitabi-poeple-app</code>) — yanlış yazılırsa veri kalıcı olmaz!</small>
+          </span>
         </label>
         <label class="check-item">
           <input type="checkbox" data-step-check="deploy" />
           <span class="box"></span>
-          <span class="lbl"><strong>Environment variables (plain)</strong>: <code>GCS_BUCKET_NAME</code> değişkenine Adım 5'te yarattığım bucket adını girdim</span>
+          <span class="lbl">Name: <code>BOT_BASE_URL</code> · Value: <em>boş bırak</em>
+            <small>Adım 8'de Cloud Run URL'i alınca dolduracaksın.</small>
+          </span>
         </label>
         <label class="check-item">
           <input type="checkbox" data-step-check="deploy" />
           <span class="box"></span>
-          <span class="lbl"><strong>Environment variables (plain)</strong>: <code>BOT_BASE_URL</code> değişkenini <em>boş</em> bıraktım (Adım 8'de Cloud Run URL'i alınca dolduracağım)</span>
+          <span class="lbl">Name: <code>DB_PATH</code> · Value: <code>/data/kitabi.db</code>
+            <small>SQLite dosya yolu. Default'u set etmek garanti olsun diye.</small>
+          </span>
+        </label>
+      </div>
+
+      <p class="input-label" style="margin-top: 14px;"><b>(B) Secrets exposed as environment variables — "Reference a secret" butonu, 4 satır:</b></p>
+      <p class="lede dim" style="margin-bottom: 8px;">
+        Her satırda <b>"env variable name"</b> (BÜYÜK HARF) ve <b>"secret"</b> (küçük harf) eşleşmesi var. Eşleştirmeyi tam yap, harf farkı = bot başlamaz.
+      </p>
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl">Env: <code>TELEGRAM_BOT_TOKEN</code> · Secret: <code>telegram-bot-token</code> · Version: <code>latest</code></span>
         </label>
         <label class="check-item">
           <input type="checkbox" data-step-check="deploy" />
           <span class="box"></span>
-          <span class="lbl">Deploy başarılı oldu, Cloud Run bana bir URL verdi</span>
+          <span class="lbl">Env: <code>WEBHOOK_SECRET</code> · Secret: <code>webhook-secret</code> · Version: <code>latest</code></span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl">Env: <code>ALLOWED_TG_USER_IDS</code> · Secret: <code>allowed-tg-user-ids</code> · Version: <code>latest</code></span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl">Env: <code>GEMINI_API_KEY</code> · Secret: <code>gemini-api-key</code> · Version: <code>latest</code></span>
+        </label>
+      </div>
+
+      <h4 style="font-size: 13px; font-weight: 700; margin: 16px 0 6px; color: var(--accent);">→ "Revision scaling" bölümü (sayfanın aşağısında, "Variables & Secrets"in altında)</h4>
+      <p class="lede dim" style="margin-bottom: 8px;">
+        Eskiden "Settings → Auto-scaling" denirdi; Google son UI güncellemesinde
+        <strong>"Revision scaling"</strong> başlığına aldı. Container ayarları sekmelerinin
+        (Settings/Variables&Secrets/Volumes) altında, kart olarak görünür.
+      </p>
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Minimum number of instances</strong>: <em>boş bırak</em>
+            <small>Default 0 — scale-to-zero, kullanmadığın sürece ücret yok.</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Maximum number of instances</strong>: <code>1</code> ⚠️
+            <small>Kritik! Default 100; <b>1</b>'e çek. SQLite paralel yazımı desteklemiyor, birden fazla instance = data corruption riski.</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Startup CPU boost</strong>: işaretli kalsın (default)
+            <small>Cold start hızlandırır, ekstra ücret yok.</small>
+          </span>
+        </label>
+      </div>
+      <div class="info" style="margin-top: 10px; font-size: 13px;">
+        💡 <strong>Bulamazsan:</strong> Önce default ile deploy et, sonra Cloud Shell'den update:
+        <div class="copy-row" style="margin-top: 6px;">
+          <span class="val" id="updateMaxInstancesCmd">gcloud run services update kitabi --max-instances=1 --region=europe-west1 --project=&lt;PROJECT_ID&gt;</span>
+          <button class="copy-btn" onclick="copyUpdateMaxInstancesCmd(event)">Kopyala</button>
+        </div>
+      </div>
+
+      <h4 style="font-size: 13px; font-weight: 700; margin: 16px 0 6px; color: var(--accent);">→ Container sekmesi (genelde dokunma)</h4>
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Memory</strong>: <code>512 MiB</code> (WeasyPrint için yeterli, default 512 olabilir, değilse 512'ye çek)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Request timeout</strong>: <code>60s</code> (Gemini ASR + OCR maks 60sn alabilir, default 300 OK ama 60 da yeter)</span>
+        </label>
+      </div>
+
+      <h3 style="font-size: 14px; margin: 22px 0 6px;">📍 "Create"den ÖNCE: Service account'a yetki ver</h3>
+      <p class="lede dim" style="margin-bottom: 8px;">
+        Cloud Run default service account ile çalışır
+        (<code>&lt;PROJECT_NUMBER&gt;-compute@developer.gserviceaccount.com</code>). Bu account'a
+        2 yetki vermen gerek:
+      </p>
+      <ul style="margin: 0 0 10px 22px; padding: 0; font-size: 13.5px; line-height: 1.6;">
+        <li><b>Secret Manager Secret Accessor</b> — 4 secret'ı okuyabilsin</li>
+        <li><b>Storage Object Admin</b> — bucket'a SQLite snapshot yazıp okuyabilsin</li>
+      </ul>
+      <p class="lede dim" style="margin-bottom: 8px;">
+        Cloud Shell'de tek seferde ver (PROJECT_ID ve BUCKET_NAME'ini girdiysen otomatik dolar):
+      </p>
+      <div class="copy-row">
+        <span class="val" id="grantIamCmd">SA=&lt;PROJECT_NUMBER&gt;-compute@developer.gserviceaccount.com
+gcloud projects add-iam-policy-binding &lt;PROJECT_ID&gt; \
+  --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
+gcloud storage buckets add-iam-policy-binding gs://&lt;BUCKET_NAME&gt; \
+  --member="serviceAccount:$SA" --role="roles/storage.objectAdmin"</span>
+        <button class="copy-btn" onclick="copyGrantIamCmd(event)">Kopyala</button>
+      </div>
+      <p class="input-help">
+        <code>PROJECT_NUMBER</code>'ı <code>gcloud projects describe &lt;PROJECT_ID&gt; --format='value(projectNumber)'</code> ile öğrenirsin.
+        "Create" sırasında <code>Permission denied on secret ...</code> hatası alıyorsan bu adımı atlamışsındır.
+      </p>
+      <div class="checklist" style="margin-top: 8px;">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl">Service account'a Secret Manager + Storage yetkilerini verdim</span>
+        </label>
+      </div>
+
+      <h3 style="font-size: 14px; margin: 22px 0 6px;">📍 Deploy</h3>
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl">Alt sağdaki <strong>"Create"</strong> butonuna bastım, build başladı (3-5 dk)
+            <small>Build log'unu izleyebilirsin. Bittiğinde "Deployment successful" görmen lazım. "Permission denied on secret" alırsan yukarıdaki IAM adımını atlamışsındır.</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="deploy" />
+          <span class="box"></span>
+          <span class="lbl">Cloud Run bana bir URL verdi (<code>https://kitabi-<i>NUMARA</i>.europe-west1.run.app</code>)</span>
         </label>
       </div>
 
       <div class="info" style="margin-top: 16px;">
-        <strong>Neden 2 tür env var?</strong> Secret'lar (4 adet) <strong>"Reference a secret"</strong>
-        seçeneğiyle bağlanır — Cloud Run runtime'da Secret Manager'dan çeker, asla dosyaya yazmaz.
-        <code>GCS_BUCKET_NAME</code> ve <code>BOT_BASE_URL</code> ise sadece konfigürasyon — secret
-        değiller, doğrudan plain text olarak girilir.
+        <strong>Neden 2 tür env var?</strong> Secret'lar (4 adet) "Reference a secret" ile bağlanır
+        — Cloud Run runtime'da Secret Manager'dan çeker, asla dosyaya yazmaz. <code>GCS_BUCKET_NAME</code>,
+        <code>BOT_BASE_URL</code>, <code>DB_PATH</code> ise sadece konfigürasyon — secret değiller,
+        plain text olarak girilir.
       </div>
 
       <p class="input-label">Cloud Run'ın sana verdiği URL</p>
@@ -2637,6 +2829,32 @@ function updateDynamicLinks() {
       `gcloud beta billing projects link ${pid || '<PROJECT_ID>'} ` +
       `--billing-account=<BILLING_ACCOUNT_ID>`;
   }
+  // Cloud Run max-instances fallback command
+  const updateMaxInstancesCmd = document.getElementById('updateMaxInstancesCmd');
+  if (updateMaxInstancesCmd) {
+    updateMaxInstancesCmd.textContent =
+      `gcloud run services update kitabi --max-instances=1 ` +
+      `--region=europe-west1 --project=${pid || '<PROJECT_ID>'}`;
+  }
+  // Service-account IAM grant command (Secret Manager + Storage)
+  const grantIamCmd = document.getElementById('grantIamCmd');
+  const bucket = document.getElementById('gcsBucketName')?.value?.trim();
+  if (grantIamCmd) {
+    const pidPart = pid || '<PROJECT_ID>';
+    const bucketPart = bucket || '<BUCKET_NAME>';
+    grantIamCmd.textContent =
+      `# PROJECT_NUMBER'u öğren:\n` +
+      `PN=$(gcloud projects describe ${pidPart} --format='value(projectNumber)')\n` +
+      `SA=$PN-compute@developer.gserviceaccount.com\n\n` +
+      `# Secret Manager yetkisi (tüm secret'lar için)\n` +
+      `gcloud projects add-iam-policy-binding ${pidPart} \\\n` +
+      `  --member="serviceAccount:$SA" \\\n` +
+      `  --role="roles/secretmanager.secretAccessor"\n\n` +
+      `# Cloud Storage yetkisi (bucket için)\n` +
+      `gcloud storage buckets add-iam-policy-binding gs://${bucketPart} \\\n` +
+      `  --member="serviceAccount:$SA" \\\n` +
+      `  --role="roles/storage.objectAdmin"`;
+  }
   // Budgets link — project-scoped if PID known
   const budgetsLink = document.getElementById('openBudgetsLink');
   const budgetsUrlSpan = document.getElementById('openBudgetsUrl');
@@ -2840,6 +3058,20 @@ function copyEnableApisCmd(ev) {
 }
 function copyLinkBillingCmd(ev) {
   const cmd = document.getElementById('linkBillingCmd').textContent;
+  navigator.clipboard.writeText(cmd);
+  flashCopy(ev?.target);
+}
+function copyText(text, ev) {
+  navigator.clipboard.writeText(text);
+  flashCopy(ev?.target);
+}
+function copyUpdateMaxInstancesCmd(ev) {
+  const cmd = document.getElementById('updateMaxInstancesCmd').textContent;
+  navigator.clipboard.writeText(cmd);
+  flashCopy(ev?.target);
+}
+function copyGrantIamCmd(ev) {
+  const cmd = document.getElementById('grantIamCmd').textContent;
   navigator.clipboard.writeText(cmd);
   flashCopy(ev?.target);
 }
