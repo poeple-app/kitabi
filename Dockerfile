@@ -2,16 +2,18 @@
 FROM python:3.11-slim
 
 # Native deps for WeasyPrint (PDF rendering) + Turkish-capable fonts.
-# v1.0.3+: also bundle several Debian-packaged serif/sans faces so the
-# note-share PDF can offer the user a font picker. Faces not available as
-# Debian packages (Crimson Pro, Playfair Display) are loaded at render time
-# via WeasyPrint's URL fetcher from the Google Fonts CDN; a fallback chain
-# keeps text Turkish-readable if the CDN call fails.
+# v1.0.3+: bundle the Debian-packaged faces we can rely on; the rest of the
+# note-share font picker (Crimson Pro, Playfair Display, Cormorant Garamond,
+# Lora, Merriweather) is loaded at render time via WeasyPrint's URL fetcher
+# from the Google Fonts CDN. A serif fallback chain in the CSS keeps text
+# Turkish-readable if the CDN call fails.
+# Note: fonts-lora, fonts-crimson-pro, fonts-playfair-display etc. are NOT in
+# Debian Trixie — don't add them here, they'll only break the build.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libpango-1.0-0 libpangoft2-1.0-0 libgdk-pixbuf-2.0-0 \
         libcairo2 libffi-dev shared-mime-info \
         fonts-noto fonts-noto-cjk fonts-dejavu-core \
-        fonts-liberation fonts-lato fonts-lora fonts-ebgaramond \
+        fonts-liberation fonts-lato fonts-ebgaramond \
         fontconfig \
     && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*

@@ -1536,7 +1536,8 @@ NOTE_SHARE_FONTS: dict[str, dict[str, str]] = {
     "lora": {
         "label":   "Lora (web-optimize)",
         "family":  "'Lora', 'Source Serif Pro', Georgia, serif",
-        "google":  "",  # Debian'da fonts-lora olarak yüklü
+        # Lora Debian Trixie'de yok → CDN'den çek
+        "google":  "https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,700;1,400&display=swap",
     },
     "merriweather": {
         "label":   "Merriweather (okunaklı)",
