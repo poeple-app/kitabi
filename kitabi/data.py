@@ -1100,6 +1100,25 @@ async def list_glossary() -> list[tuple[Note, Book]]:
     return await asyncio.to_thread(_impl)
 
 
+async def notes_by_category(category: Category) -> list[tuple[Note, Book]]:
+    """All notes of a given category, paired with their book. Newest first."""
+    def _impl() -> list[tuple[Note, Book]]:
+        with db_session() as s:
+            q = (
+                select(Note)
+                .where(Note.category == category)
+                .order_by(Note.created_at.desc())
+            )
+            notes = list(s.scalars(q).all())
+            results: list[tuple[Note, Book]] = []
+            for n in notes:
+                b = s.get(Book, n.book_id)
+                if b:
+                    results.append((n, b))
+            return results
+    return await asyncio.to_thread(_impl)
+
+
 async def list_quotes(favorites_only: bool = False) -> list[tuple[Note, Book]]:
     """All QUOTE-category notes (optionally favorites only)."""
     def _impl() -> list[tuple[Note, Book]]:

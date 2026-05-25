@@ -310,6 +310,52 @@ Notlar:
 Özet (2 cümle, fazlası kabul edilmez):
 """
 
+PROMPT_OCR_HIGHLIGHTED = """\
+Bu bir kitap sayfası fotoğrafı. Kullanıcı SADECE altını çizdiği, vurguladığı,
+fosforladığı ya da kutu içine aldığı parçaları not olarak almak istiyor.
+
+Yapacakların:
+1. Sayfadaki altı çizili / fosforlu / kalemle vurgulanmış / kutu içine alınmış
+   metinleri bul ve çıkar.
+2. Sayfa numarasını üst ya da alt margin'den oku (varsa).
+3. EĞER hiçbir vurgu işareti YOKSA, "VURGU_YOK" yaz — tam sayfayı KESİNLİKLE
+   kopyalama. Kullanıcının seçmediği metni kaydetmek istemiyoruz.
+
+Cevabını TAM olarak şu formatta ver, başka hiçbir şey yazma:
+PAGE: <sayfa numarası veya YOK>
+---
+<sadece vurgulu kısımlar; birden çok parça varsa her birini ayrı satıra koy>
+
+veya hiç vurgu yoksa:
+PAGE: <sayfa numarası veya YOK>
+---
+VURGU_YOK
+"""
+
+
+PROMPT_PHOTO_QUESTION = """\
+Kullanıcı bir kitap sayfasının fotoğrafını gönderdi ve fotoğraf üzerinde
+şu soruyu sordu:
+
+SORU: {question}
+
+Görevin:
+1. Sayfadaki ilgili metni OCR ile oku (gerekirse tamamını).
+2. Soruyu yalnızca sayfadaki bilgiye dayanarak cevapla.
+3. Sayfada cevap için yeterli bilgi yoksa açıkça "Sayfada bu bilgi yok" de.
+
+Bağlam (varsa):
+- Kitap: {book_title}
+- Yazar: {book_author}
+
+{style}
+
+KESİN LİMİT: cevabın en fazla 3 cümle olsun.
+
+Cevap:
+"""
+
+
 PROMPT_EXTRACT_BOOK = """Bu bir kitap kapağı fotoğrafı (ön ya da arka). İçinden şu 3 bilgiyi çıkar:
 - ISBN: arka kapakta, 10 veya 13 haneli sayı (barkodun altında veya yanında)
 - TITLE: kitabın adı (ön kapakta büyük yazılı)
@@ -361,30 +407,48 @@ async def transcribe_voice(audio_bytes: bytes, mime_type: str = "audio/ogg") -> 
     return text
 
 
-async def ocr_image(image_bytes: bytes, mime_type: str = "image/jpeg") -> tuple[str, int | None]:
+async def ocr_image(
+    image_bytes: bytes,
+    mime_type: str = "image/jpeg",
+    *,
+    mode: str = "highlight",
+) -> tuple[str, int | None]:
     """Extract Turkish text from a book-page photo (OCR via Gemini vision).
 
-    Returns a tuple of (text, page_number). The page number is `None` if the
-    model can't detect one in the image. The bot prompts the user when None.
+    Modes:
+        "highlight" (v1.0.2 default): only return underlined / highlighted /
+            boxed passages. If the user didn't mark anything, returns the
+            sentinel "VURGU_YOK" so the caller can ask for a manual note.
+        "full": original behaviour — full-page transcription (used internally
+            for question answering and orphan-photo fallback).
+
+    Returns (text, page_number). page_number is None when the model can't read
+    one off the image; the bot then prompts the user.
 
     Raises GeminiCallFailed on total failure.
     """
     t0 = time.time()
-    logger.info("ai.ocr_image.start", mime=mime_type, size_bytes=len(image_bytes))
+    logger.info("ai.ocr_image.start", mime=mime_type, size_bytes=len(image_bytes), mode=mode)
+    if mode == "highlight":
+        prompt_text = PROMPT_OCR_HIGHLIGHTED
+        operation = "ocr_image_highlight"
+    else:
+        prompt_text = (
+            "Bu kitap sayfası fotoğrafındaki metni Türkçe olarak çıkar. "
+            "Eğer sayfanın üstünde veya altında bir sayfa numarası görüyorsan "
+            "onu da bul.\n\n"
+            "Cevabını TAM olarak şu formatta ver, başka hiçbir şey yazma:\n"
+            "PAGE: <sayı veya YOK>\n"
+            "---\n"
+            "<sayfa metni>"
+        )
+        operation = "ocr_image_full"
     raw = await _call_gemini(
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-            (
-                "Bu kitap sayfası fotoğrafındaki metni Türkçe olarak çıkar. "
-                "Eğer sayfanın üstünde veya altında bir sayfa numarası görüyorsan "
-                "onu da bul.\n\n"
-                "Cevabını TAM olarak şu formatta ver, başka hiçbir şey yazma:\n"
-                "PAGE: <sayı veya YOK>\n"
-                "---\n"
-                "<sayfa metni>"
-            ),
+            prompt_text,
         ],
-        operation="ocr_image",
+        operation=operation,
     )
     page: int | None = None
     text = raw
@@ -405,9 +469,49 @@ async def ocr_image(image_bytes: bytes, mime_type: str = "image/jpeg") -> tuple[
         "ai.ocr_image.success",
         text_length=len(text),
         page_detected=page,
+        mode=mode,
         duration_ms=int((time.time() - t0) * 1000),
     )
     return text, page
+
+
+async def answer_about_image(
+    image_bytes: bytes,
+    question: str,
+    *,
+    book_title: str = "(bilinmiyor)",
+    book_author: str = "(bilinmiyor)",
+    mime_type: str = "image/jpeg",
+) -> str:
+    """The user attached a question to the photo's caption: read the page and
+    answer their question using only what's on it. Used by `handle_photo`
+    when `msg.caption` is non-empty.
+
+    Returns plain text. Raises GeminiCallFailed on total failure.
+    """
+    t0 = time.time()
+    logger.info(
+        "ai.answer_about_image.start",
+        question_length=len(question), size_bytes=len(image_bytes),
+    )
+    answer = await _call_gemini(
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+            PROMPT_PHOTO_QUESTION.format(
+                question=question,
+                book_title=book_title,
+                book_author=book_author,
+                style=STYLE_RULES,
+            ),
+        ],
+        operation="answer_about_image",
+    )
+    logger.info(
+        "ai.answer_about_image.success",
+        answer_length=len(answer),
+        duration_ms=int((time.time() - t0) * 1000),
+    )
+    return answer.strip()
 
 
 async def suggest_category(text: str) -> Category:

@@ -1,4 +1,4 @@
-"""Telegram bot logic for Kitabi (v1.0.2)."""
+"""Telegram bot logic for Kitabi (v1.0.3)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,8 @@ from typing import Any, Awaitable, Callable
 
 import structlog
 from telegram import (
-    BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, Update,
+    BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, InputFile,
+    KeyboardButton, ReplyKeyboardMarkup, Update,
 )
 from telegram.constants import ChatAction, ParseMode
 from telegram.ext import (
@@ -96,6 +97,63 @@ def _safe_filename(name: str) -> str:
     return "".join(c if c.isalnum() or c in "-_." else "_" for c in name) or "kitabi"
 
 
+# v1.0.2 — Persistent reply keyboard (Madde 5).
+# These buttons sit below the chat input box; tapping one sends the button's
+# label as a plain text message. `handle_text` matches the label and routes
+# to the right screen.
+_QUICK_OTURUMLAR = "🟢 Oturumlar"
+_QUICK_BITIR     = "⏹️ Bitir"
+_QUICK_KITAPLAR  = "📖 Kitaplar"
+_QUICK_YENI      = "➕ Yeni"
+
+
+def _quick_keyboard() -> ReplyKeyboardMarkup:
+    """Build the persistent quick-action reply keyboard (Madde 5)."""
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(_QUICK_OTURUMLAR), KeyboardButton(_QUICK_BITIR)],
+            [KeyboardButton(_QUICK_KITAPLAR),  KeyboardButton(_QUICK_YENI)],
+        ],
+        resize_keyboard=True,
+        is_persistent=True,
+        input_field_placeholder="Sesli not, fotoğraf veya yazı gönder…",
+    )
+
+
+_QUICK_LABELS = {_QUICK_OTURUMLAR, _QUICK_BITIR, _QUICK_KITAPLAR, _QUICK_YENI}
+
+
+async def _track_last_menu(cid: int | None, message_id: int) -> None:
+    """Remember the most recent bot 'menu' message so future renders can delete
+    it — keeping exactly one active inline menu in the chat at a time (Madde 3).
+    """
+    if cid is None:
+        return
+    try:
+        await _set(cid, "last_menu_msg_id", message_id, ttl_s=24 * 3600)
+    except Exception as e:
+        logger.debug("bot.track_last_menu.failed", error=str(e))
+
+
+async def _delete_previous_menu(
+    cid: int | None, context: ContextTypes.DEFAULT_TYPE,
+    *, except_id: int | None = None,
+) -> None:
+    """If we have a tracked previous menu, try to delete it. Best-effort —
+    Telegram refuses to delete messages older than 48h or with no permissions;
+    we swallow those errors.
+    """
+    if cid is None:
+        return
+    prev = await _get(cid, "last_menu_msg_id")
+    if not isinstance(prev, int) or prev == except_id:
+        return
+    try:
+        await context.bot.delete_message(chat_id=cid, message_id=prev)
+    except Exception as e:
+        logger.debug("bot.delete_previous_menu.failed", error=str(e))
+
+
 async def _send_screen(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -106,8 +164,15 @@ async def _send_screen(
 ) -> None:
     """Edit-in-place when triggered by callback; new bubble when user sent input.
 
+    v1.0.2: also deletes the *previously* tracked menu bubble so the user only
+    ever sees ONE active inline keyboard in the chat (Madde 3). The current
+    message becomes the new "active menu" via _track_last_menu.
+
     Handles photo↔text transitions by delete+send (Telegram can't edit between).
     """
+    cid = _chat_id(update)
+    sent_msg = None
+
     if update.callback_query:
         try:
             await update.callback_query.answer()
@@ -117,38 +182,46 @@ async def _send_screen(
         try:
             if photo_url:
                 await msg.delete()
-                await context.bot.send_photo(
+                sent_msg = await context.bot.send_photo(
                     chat_id=msg.chat_id, photo=photo_url,
                     caption=text, reply_markup=keyboard, parse_mode=ParseMode.HTML,
                 )
             elif msg.photo:
                 await msg.delete()
-                await context.bot.send_message(
+                sent_msg = await context.bot.send_message(
                     chat_id=msg.chat_id, text=text, reply_markup=keyboard,
                     parse_mode=ParseMode.HTML, disable_web_page_preview=True,
                 )
             else:
-                await msg.edit_text(
+                # Edit-in-place: same message stays the "active menu"
+                sent_msg = await msg.edit_text(
                     text, reply_markup=keyboard,
                     parse_mode=ParseMode.HTML, disable_web_page_preview=True,
                 )
         except Exception as e:
             logger.warning("bot.send_screen.fallback", error=str(e))
-            await context.bot.send_message(
+            sent_msg = await context.bot.send_message(
                 chat_id=msg.chat_id, text=text, reply_markup=keyboard,
                 parse_mode=ParseMode.HTML, disable_web_page_preview=True,
             )
     elif update.message:
+        # Fresh bubble in response to user input. Delete the previously tracked
+        # menu first so the chat stays clean.
+        await _delete_previous_menu(cid, context)
         if photo_url:
-            await update.message.reply_photo(
+            sent_msg = await update.message.reply_photo(
                 photo=photo_url, caption=text,
                 reply_markup=keyboard, parse_mode=ParseMode.HTML,
             )
         else:
-            await update.message.reply_text(
+            sent_msg = await update.message.reply_text(
                 text, reply_markup=keyboard,
                 parse_mode=ParseMode.HTML, disable_web_page_preview=True,
             )
+
+    # Track the new active menu
+    if sent_msg is not None and hasattr(sent_msg, "message_id"):
+        await _track_last_menu(cid, sent_msg.message_id)
 
 
 # Persistent chat-state shims (over data.EphemeralState)
@@ -393,11 +466,81 @@ async def screen_main() -> ScreenResult:
     kb += [
         [BTN("▶️ Oturum Başlat", "start_pick")],
         [BTN("📚 Kitaplarım", "books"), BTN("➕ Yeni Kitap", "newbook:start")],
-        [BTN("🔍 Ara", "search:start"), BTN("📖 Sözlük", "glossary")],
-        [BTN("💬 Alıntılar", "quotes:all"), BTN("📊 İstatistik", "stats")],
+        [BTN("📝 Notlarım", "notes_hub"), BTN("🔍 Ara", "search:start")],
+        [BTN("📖 Sözlük", "glossary"), BTN("📊 İstatistik", "stats")],
         [BTN("📤 Dışa Aktar", "export:menu"), BTN("⚙️ Ayarlar", "settings")],
     ]
     return "\n".join(parts), KB(kb)
+
+
+async def screen_notes_hub() -> ScreenResult:
+    """Top-level notes browser: groups all note types under one menu.
+
+    Sözlük dışarıda (screen_main'da) kalır; bu hub kullanıcının "kayıt" tipindeki
+    içeriklerini bir araya getirir.
+    """
+    # Get rough counts so the user knows what's behind each button
+    all_quotes = await data.list_quotes(favorites_only=False)
+    fav_quotes = [q for q, _ in all_quotes if q.is_favorite]
+    text = (
+        "🏠 Ana › 📝 <b>Notlarım</b>\n\n"
+        "Tüm notlarını kategoriye göre buradan gör:\n\n"
+        f"💬 <b>Alıntılar</b> — {len(all_quotes)} kayıt  ·  ⭐ {len(fav_quotes)} favori\n"
+        "💡 <b>Fikir</b> — kendi düşüncelerin\n"
+        "📚 <b>Yeni Bilgi</b> — kitabın aktardıkları\n"
+        "🧠 <b>Kavram</b> — yeni öğrenilen kavramlar\n"
+        "📋 <b>Özet</b> — oturum özetleri\n\n"
+        "<i>Kelime + Kavram için ayrıca ana menüde 📖 Sözlük var.</i>"
+    )
+    kb = [
+        [BTN(f"💬 Alıntılar ({len(all_quotes)})", "quotes:all"),
+         BTN(f"⭐ Favori Alıntılar ({len(fav_quotes)})", "quotes:fav")],
+        [BTN("💡 Fikir", _cb("notes_cat", "IDEA")),
+         BTN("📚 Yeni Bilgi", _cb("notes_cat", "NEW_INFO"))],
+        [BTN("🧠 Kavram", _cb("notes_cat", "CONCEPT")),
+         BTN("📋 Özet", _cb("notes_cat", "SUMMARY"))],
+        [BTN("🔤 Kelime", _cb("notes_cat", "WORD")),
+         BTN("📖 Sözlük (Kelime+Kavram)", "glossary")],
+        [BTN("🔍 Notlarda ara", "search:start")],
+        _nav_row(),
+    ]
+    return text, KB(kb)
+
+
+async def screen_notes_by_category(
+    category_name: str, limit: int = 5,
+) -> ScreenResult:
+    """List notes filtered by category, with pagination (Madde 14 semantik)."""
+    try:
+        cat = Category[category_name]
+    except KeyError:
+        return "Bilinmeyen kategori.", KB([_nav_row()])
+    results = await data.notes_by_category(cat)
+    total = len(results)
+    icon = {
+        "QUOTE": "💬", "IDEA": "💡", "NEW_INFO": "📚",
+        "WORD": "🔤", "CONCEPT": "🧠", "SUMMARY": "📋",
+    }.get(category_name, "📝")
+    lines = [f"🏠 Ana › 📝 Notlarım › <b>{icon} {esc(cat.value)}</b>  ({total})", ""]
+    kb: list[list[InlineKeyboardButton]] = []
+    if total == 0:
+        lines.append("<i>(Bu kategoride henüz not yok.)</i>")
+    else:
+        showing = min(limit, total)
+        lines.append(f"{showing}/{total} gösteriliyor\n")
+        for note, book in results[:limit]:
+            snip = note.transcript[:80] + ("…" if len(note.transcript) > 80 else "")
+            lines.append(
+                f"<code>{esc(note.code)}</code> · {esc(book.title)}\n  <i>{esc(snip)}</i>"
+            )
+            kb.append([BTN(f"{note.code} · {book.short_code}", _cb("note", note.id))])
+        if showing < total:
+            kb.append([BTN(
+                f"⬇️ {min(_LIST_PAGE_SIZE, total - showing)} not daha göster",
+                _cb("notes_cat", category_name, "more", limit + _LIST_PAGE_SIZE),
+            )])
+    kb.append(_nav_row())
+    return "\n".join(lines), KB(kb)
 
 
 def screen_onboarding_after_first_book(book: data.Book) -> ScreenResult:
@@ -854,28 +997,69 @@ async def screen_notes_for_book(book_id: int, offset: int = 0) -> ScreenResult:
     return "\n".join(lines), KB(kb)
 
 
-async def screen_note_detail(note_id: int) -> ScreenResult:
+# v1.0.2 — "...devamını oku" sınırı. ~10 satır / 500 karakter civarı
+_NOTE_PREVIEW_CHARS = 500
+_NOTE_PREVIEW_LINES = 10
+
+
+def _truncate_with_marker(text: str, *, chars: int = _NOTE_PREVIEW_CHARS,
+                          lines: int = _NOTE_PREVIEW_LINES) -> tuple[str, bool]:
+    """Return (display_text, was_truncated). Cuts at the smaller of char or
+    line limit and appends an ellipsis. Used for note transcripts in lists
+    and detail screens — full text always fetchable via 'note_full' callback.
+    """
+    if not text:
+        return "", False
+    line_split = text.split("\n")
+    truncated_by_line = False
+    if len(line_split) > lines:
+        text_l = "\n".join(line_split[:lines])
+        truncated_by_line = True
+    else:
+        text_l = text
+    if len(text_l) > chars:
+        text_l = text_l[:chars]
+        return text_l.rstrip() + "…", True
+    return text_l + ("…" if truncated_by_line else ""), truncated_by_line
+
+
+async def screen_note_detail(note_id: int, *, full: bool = False) -> ScreenResult:
     note = await data.get_note(note_id)
     if not note:
         return "Not bulunamadı.", KB([_nav_row()])
     book = await data.get_book(note.book_id)
     title = book.title if book else "?"
     ts = to_local(note.created_at).strftime("%d %b %Y · %H:%M") if note.created_at else ""
+    if full:
+        body = note.transcript or ""
+        truncated = False
+    else:
+        body, truncated = _truncate_with_marker(note.transcript or "")
     lines = [
         f"🏠 Ana › 📚 {esc(title)} › 📝 <b>Not</b>  ·  <code>{esc(note.code)}</code>",
         "",
         f"📅 {esc(ts)}",
         f"🏷️ {esc(note.category.value)}  ·  📄 s.{note.page or '—'}",
         "",
-        f"<i>“{esc(note.transcript)}”</i>",
+        f"<i>“{esc(body)}”</i>",
     ]
     if note.definition:
-        lines += ["", f"📚 Tanım: {esc(note.definition)}"]
+        d_body, d_trunc = _truncate_with_marker(note.definition) if not full else (note.definition, False)
+        lines += ["", f"📚 Tanım: {esc(d_body)}"]
+        truncated = truncated or d_trunc
     if note.explanation:
-        lines += ["", f"💡 Açıklama: {esc(note.explanation)}"]
+        e_body, e_trunc = _truncate_with_marker(note.explanation) if not full else (note.explanation, False)
+        lines += ["", f"💡 Açıklama: {esc(e_body)}"]
+        truncated = truncated or e_trunc
     if note.is_favorite:
         lines.append("\n⭐ Favori")
-    return "\n".join(lines), KB([
+
+    kb_rows: list[list[InlineKeyboardButton]] = []
+    if truncated:
+        kb_rows.append([BTN("📖 …devamını oku", _cb("note_full", note.id))])
+    elif full:
+        kb_rows.append([BTN("⤴️ Kısalt", _cb("note", note.id))])
+    kb_rows += [
         [BTN("⭐ Favoriden çıkar" if note.is_favorite else "⭐ Favoriye ekle",
              _cb("note_fav", note.id))],
         [BTN("✏️ Transkripti düzelt", _cb("note_edit", note.id)),
@@ -883,7 +1067,8 @@ async def screen_note_detail(note_id: int) -> ScreenResult:
         [BTN("📤 Paylaş (görsel/PDF)", _cb("note_share", note.id))],
         [BTN("🗑️ Notu sil", _cb("note_del", note.id))],
         _nav_row(),
-    ])
+    ]
+    return "\n".join(lines), KB(kb_rows)
 
 
 async def screen_sessions_for_book(book_id: int) -> ScreenResult:
@@ -1176,10 +1361,23 @@ async def handle_start_command(update: Update, context: ContextTypes.DEFAULT_TYP
     if cid is not None:
         await _clear(cid, "awaiting", "draft_note", "mode", "question_book_id",
                      "newbook_draft", "last_qa", "finish_book_id", "pending_input")
+    # 1) Install the persistent quick-action reply keyboard (Madde 5).
+    # We send it on a tiny separate message because a single message can't
+    # carry both an inline keyboard and a reply keyboard.
+    try:
+        await update.message.reply_text(
+            "⚡ Hızlı butonlar aşağıda hep açık olacak.",
+            reply_markup=_quick_keyboard(),
+        )
+    except Exception as e:
+        logger.debug("bot.start.quick_kb_failed", error=str(e))
+    # 2) Inline main menu
     text, kb = await screen_main()
-    await update.message.reply_text(
+    sent = await update.message.reply_text(
         text, reply_markup=kb, parse_mode=ParseMode.HTML, disable_web_page_preview=True,
     )
+    if cid is not None and sent is not None:
+        await _track_last_menu(cid, sent.message_id)
 
 
 # ────────────────────────── input routing ──────────────────────────
@@ -1305,37 +1503,96 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await _process_newbook_cover(update, context)
         return
 
-    # Route 2: regular note from a photo of a page
+    # Route 2: photo of a page. Three sub-routes:
+    #   2a — caption present → Q&A about the page (Gemini reads + answers)
+    #   2b — no caption + highlights detected → save highlight as note
+    #   2c — no caption + no highlights → orphan photo (user writes mandatory note)
     session = await _resolve_session_for_input(update, context)
     if session is None:
         return
 
     file_id = msg.photo[-1].file_id if msg.photo else None
+    caption = (msg.caption or "").strip()
+    book = await data.get_book(session.book_id)
+
+    # ── 2a: caption = soru, fotoğraf = sayfa ─────────────────────
+    if caption:
+        try:
+            async with _Progress(msg, "🔄 Sayfa okunup soruna cevap üretiliyor…"):
+                photo_file = await msg.photo[-1].get_file()
+                image_bytes = await photo_file.download_as_bytearray()
+                answer = await ai.answer_about_image(
+                    bytes(image_bytes), caption,
+                    book_title=book.title if book else "(bilinmiyor)",
+                    book_author=(book.author if book and book.author else "(bilinmiyor)"),
+                )
+        except Exception as e:
+            logger.error("bot.photo.qa_failed", error=str(e), exc_info=True)
+            await _err_reply(msg, e, "Sayfa-soru işlenirken hata")
+            return
+        # Save Q&A as a note so the user has a record
+        try:
+            await data.add_note(
+                book_id=session.book_id, session_id=session.id,
+                category=Category.CONCEPT, page=None,
+                transcript=f"Soru: {caption}\n\nCevap: {answer}",
+                from_qa=True, photo_file_id=file_id,
+            )
+        except Exception as e:
+            logger.warning("bot.photo.qa_save_failed", error=str(e))
+        await msg.reply_text(
+            f"📷 <b>Fotoğraf + soru</b>  ·  "
+            f"<code>{esc(book.short_code if book else '')}</code> "
+            f"{esc(book.title if book else '')}\n\n"
+            f"❓ <i>{esc(caption)}</i>\n\n"
+            f"🤖 {esc(answer)}\n\n"
+            f"<i>Soru-Cevap not olarak kaydedildi.</i>",
+            parse_mode=ParseMode.HTML,
+        )
+        return
+
+    # ── 2b/2c: caption yok → vurgu modu OCR ───────────────────────
+    # Davranış değişikliğini ilk kez gönderirken kısa bilgilendir.
+    show_hint = False
+    if cid is not None:
+        seen = await _get(cid, "photo_hint_shown")
+        if not seen:
+            show_hint = True
+            await _set(cid, "photo_hint_shown", True, ttl_s=30 * 24 * 3600)
+
     try:
-        async with _Progress(msg, "🔄 Fotoğraf işleniyor… (OCR + kategori)"):
+        async with _Progress(msg, "🔄 Fotoğraf işleniyor… (vurguları arıyorum)"):
             photo_file = await msg.photo[-1].get_file()
             image_bytes = await photo_file.download_as_bytearray()
-            transcript, detected_page = await ai.ocr_image(bytes(image_bytes), "image/jpeg")
+            transcript, detected_page = await ai.ocr_image(
+                bytes(image_bytes), "image/jpeg", mode="highlight",
+            )
             settings = await data.get_settings()
-            # If OCR returned anything substantive, classify it.
-            if (transcript or "").strip():
+            no_highlight = (
+                not (transcript or "").strip()
+                or "VURGU_YOK" in (transcript or "").upper()
+            )
+            if no_highlight:
+                category = Category.IDEA  # placeholder; orphan flow
+                transcript = ""
+            else:
                 category = (
                     await ai.suggest_category(transcript)
-                    if settings.auto_categorize else Category.NEW_INFO
+                    if settings.auto_categorize else Category.QUOTE
                 )
-            else:
-                category = Category.IDEA  # placeholder; user will overwrite text
     except Exception as e:
         logger.error("bot.photo.failed", error=str(e), exc_info=True)
         await _err_reply(msg, e, "Fotoğraf işlenirken hata")
         return
 
-    book = await data.get_book(session.book_id)
+    hint_text = (
+        "\n\n💡 <i>İpucu: bir sonraki sefer fotoğrafa caption (yazı) eklersen "
+        "sayfaya bakıp sorunu cevaplarım. Caption yoksa sadece <b>altı çizili / "
+        "vurgulanmış</b> kısımları çıkarırım, tam sayfayı değil.</i>"
+    ) if show_hint else ""
 
-    # Route 2a: orphan photo — no text on it. Ask the user for a mandatory note;
-    # we'll save the photo's file_id alongside their text so the PDF can show it.
-    orphan = not (transcript or "").strip()
-    if orphan:
+    # ── 2c: vurgu yok ─────────────────────────────────────────────
+    if no_highlight:
         if cid is not None:
             await _set(cid, "awaiting", {
                 "type": "orphan_photo_note",
@@ -1345,13 +1602,12 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 "page": detected_page,
             })
         await msg.reply_text(
-            f"📷 <b>Görselde okunabilir metin bulamadım.</b>  ·  "
+            f"📷 <b>Sayfada vurgu/altı çizili bir parça bulamadım.</b>  ·  "
             f"<code>{esc(book.short_code if book else '')}</code> "
             f"{esc(book.title if book else '')}\n\n"
-            "Bu görsel kitapla ilgili olmayabilir — ama yine de hatırlamak istediğin "
-            "bir şey olabilir.\n\n"
-            "👉 Bu fotoğrafla ilgili kısa bir not yaz (zorunlu). "
-            "Notu kaydedince PDF günlüğüne 'sahne' olarak eklenir.",
+            "Bu görselle ilgili bir not yaz (zorunlu). Yazdığını fotoğrafla "
+            "birlikte kaydederim; PDF günlüğüne 'sahne' olarak eklenir."
+            f"{hint_text}",
             reply_markup=KB([
                 [BTN("❌ Vazgeç (fotoğrafı atla)", "voice:cancel")],
             ]),
@@ -1359,6 +1615,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return
 
+    # ── 2b: vurgular var → not draft ──────────────────────────────
     draft = _build_draft(session, book, transcript, category, detected_page)
     draft["photo_file_id"] = file_id
     if cid is not None:
@@ -1368,10 +1625,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if cid is not None:
             await _set(cid, "awaiting", {"type": "draft_page"})
         text = (
-            f"📷 <b>OCR tamam</b>  ·  <code>{esc(book.short_code if book else '')}</code> "
+            f"📷 <b>Vurgular okundu</b>  ·  <code>{esc(book.short_code if book else '')}</code> "
             f"{esc(book.title if book else '')}\n\n"
             "Sayfa numarasını fotoğrafta bulamadım. Lütfen sayfa numarasını yaz "
             "(sadece sayı). Sonra notu onaylarsın."
+            f"{hint_text}"
         )
         await msg.reply_text(
             text, reply_markup=KB([[BTN("📄 Sayfa belirsiz, atla", "voice:skippage")]]),
@@ -1380,6 +1638,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     text, kb = screen_note_confirm(draft)
+    if hint_text:
+        text = text + hint_text
     await msg.reply_text(text, reply_markup=kb, parse_mode=ParseMode.HTML)
 
 
@@ -1389,6 +1649,50 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     msg = update.message
     text = (msg.text or "").strip()
     logger.info("bot.text.received", user_id=update.effective_user.id, length=len(text))
+
+    # v1.0.2 — quick reply-keyboard buttons (Madde 5).
+    # We intercept these BEFORE the question/awaiting/note routes so the user
+    # can always escape into a top-level menu.
+    if text in _QUICK_LABELS:
+        if cid is not None:
+            # Quick actions interrupt any pending awaiting/mode state
+            await _clear(cid, "awaiting", "mode")
+        if text == _QUICK_OTURUMLAR:
+            await handle_callback_proxy(update, context, "open_sessions")
+        elif text == _QUICK_KITAPLAR:
+            await handle_callback_proxy(update, context, "books")
+        elif text == _QUICK_YENI:
+            await handle_callback_proxy(update, context, "newbook:start")
+        elif text == _QUICK_BITIR:
+            # End the *current default* session; if none, fall back to chooser
+            open_sessions = await data.list_open_sessions()
+            if not open_sessions:
+                await msg.reply_text(
+                    "🟡 Bitirebileceğin açık oturum yok.",
+                    reply_markup=_quick_keyboard(),
+                )
+                return
+            if len(open_sessions) == 1:
+                target = open_sessions[0]
+            else:
+                default_id = await _get(cid, "default_session") if cid else None
+                target = next(
+                    (s for s in open_sessions if s.id == default_id),
+                    open_sessions[0],
+                )
+            # Ask for end page
+            if cid is not None:
+                await _set(cid, "awaiting", {
+                    "type": "end_page",
+                    "session_id": target.id,
+                    "book_id": target.book_id,
+                })
+            await msg.reply_text(
+                f"⏹️ <b>Oturumu Bitir</b>  ·  <code>{esc(target.code)}</code>\n\n"
+                "Şu an hangi sayfadasın? Numarayı yaz.",
+                parse_mode=ParseMode.HTML, reply_markup=_quick_keyboard(),
+            )
+        return
 
     mode = await _get(cid, "mode") if cid else None
     if isinstance(mode, dict) and mode.get("name") == "question":
@@ -2179,6 +2483,12 @@ async def _cb_note(update, context, args):
     await _send_screen(update, context, text, kb)
 
 
+async def _cb_note_full(update, context, args):
+    """Show the full transcript / definition / explanation (Madde 4)."""
+    text, kb = await screen_note_detail(int(args[0]), full=True)
+    await _send_screen(update, context, text, kb)
+
+
 async def _cb_note_fav(update, context, args):
     note_id = int(args[0])
     n = await data.get_note(note_id)
@@ -2426,6 +2736,23 @@ async def _cb_quotes(update, context, args):
     if len(args) >= 3 and args[1] == "more":
         limit = max(int(args[2]), _LIST_PAGE_SIZE)
     text, kb = await screen_quotes(favorites_only=favorites_only, limit=limit)
+    await _send_screen(update, context, text, kb)
+
+
+async def _cb_notes_hub(update, context, args):
+    text, kb = await screen_notes_hub()
+    await _send_screen(update, context, text, kb)
+
+
+async def _cb_notes_cat(update, context, args):
+    if not args:
+        await update.callback_query.answer("Kategori belirsiz.", show_alert=True)
+        return
+    category_name = args[0]
+    limit = _LIST_PAGE_SIZE
+    if len(args) >= 3 and args[1] == "more":
+        limit = max(int(args[2]), _LIST_PAGE_SIZE)
+    text, kb = await screen_notes_by_category(category_name, limit=limit)
     await _send_screen(update, context, text, kb)
 
 
@@ -3127,6 +3454,7 @@ _CALLBACKS: dict[str, Callable[..., Awaitable[None]]] = {
     "book":                  _cb_book,
     "notes":                 _cb_notes,
     "note":                  _cb_note,
+    "note_full":             _cb_note_full,
     "note_fav":              _cb_note_fav,
     "note_edit":             _cb_note_edit,
     "note_page":             _cb_note_page,
@@ -3158,6 +3486,8 @@ _CALLBACKS: dict[str, Callable[..., Awaitable[None]]] = {
     "search":                _cb_search,
     "glossary":              _cb_glossary,
     "quotes":                _cb_quotes,
+    "notes_hub":             _cb_notes_hub,
+    "notes_cat":             _cb_notes_cat,
     "shelves":               _cb_shelves,
     "shelf":                 _cb_shelf,
     "shelf_new":             _cb_shelf_new,
