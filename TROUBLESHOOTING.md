@@ -407,6 +407,32 @@ gcloud storage buckets list --project=<PROJECT_ID>
 
 ---
 
+## Yeni özelliklere özel sorunlar (v1.0.1+)
+
+### Kapak fotoğrafından kitap ekleme bulamadı
+
+Bot kapak fotoğrafından **ISBN/başlık/yazar** çıkarmaya çalışıyor, sonra Google Books'ta arıyor. İki yerde patlayabilir:
+
+**(a) Gemini kapaktan bilgi okuyamadı**: Kapak çok bulanık, yan açıdan, parlak yansımalı veya çok küçük olabilir. Bot sana "Bulunanlar: ISBN —, Başlık —, Yazar —" gösteriyorsa fotoğrafı yeniden çek (ön kapak + arka kapak ayrı denenebilir, ya da arka kapaktaki barkodu yakın çekim).
+
+**(b) Bilgi çıktı ama Google Books'ta yok**: Türkçe yerel yayınlar, eski baskılar veya küçük yayıncılar Google Books'ta olmayabilir. "Sadece başlıkla ekle" butonuyla manuel ekleyebilirsin, daha sonra **Kitap detayı → ✏️ Düzenle** ile yazar/sayfa/ISBN tamamlanır.
+
+### Slash command menüsü güncellenmedi
+
+Telegram istemcisi komut menüsünü cache'liyor — bot yeniden deploy edilse bile eski menü görünebilir. Telegram'ı kapat-aç, ya da botla yeni bir mesaj gönder, ardından `/` tuşuna bas. Sunucu tarafında `BotCommand` listesi `set_bot_commands` ile güncellenir (her container başlangıcında).
+
+### "🔄 İşleniyor..." mesajı silinmedi
+
+İşlem başarısız tamamlandıysa (timeout, ağ kopması, container restart) placeholder kalıcı kalabilir. Bunlar **18 saat sonra Telegram tarafından otomatik silinir**; istersen manuel sil. Bot crash log'unda hata var mı bakmaya değer.
+
+### Aktif oturumu sildim ama veri kaybı var mı?
+
+`🗑️ Oturumu Sil` butonu **bu oturuma bağlı notları da siler**. Sonradan geri alma yok; bu yüzden onay diyaloğu var. Notları kaybetmek istemiyorsan oturumu silmek yerine **⏹️ Bitir** ile düzgün kapat. Tamamen yanlış oturum açtıysan (boş, daha not yok) silmek güvenli.
+
+### Gemini cevapları çok kısa veya başlık atılmış
+
+v1.0.1'den itibaren her prompt'ta "TARZ KURALLARI" var: süslü dil yok, dolgu yok, 2-4 cümle hedefi. Bu bilinçli bir tasarım — Telegram'da uzun blok-cevaplar okunmuyor. Daha uzun cevap istersen "Açıkla" butonunu kullan (`PROMPT_EXPLAIN` daha uzun sınır).
+
 ## Adım 7: Webhook bağlantısı {#adim-7-webhook}
 
 ### Cloud Shell açılmıyor

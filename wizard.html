@@ -834,7 +834,7 @@
       <!-- ─── INTRO CARDS (NEW) ─── -->
       <h2 class="section-h">Kitabi ne yapıyor?</h2>
       <p class="lede" style="max-width: none;">
-        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: okurken sesli mesaj, sayfa fotoğrafı veya yazılı not gönderirsin, bot bunları Gemini AI ile metne döker, kategorilere ayırır ve okuduğun kitaba bağlayarak SQLite veritabanına kaydeder; kitap bittiğinde de istatistikleri, alıntıları ve favorilerinle birlikte tasarımlı bir PDF okuma günlüğüne dönüştürür.
+        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: kitabını ISBN'i yazarak ya da kapağının fotoğrafını çekerek eklersin, okurken sesli mesaj, sayfa fotoğrafı veya yazılı not gönderirsin, bot bunları Gemini AI ile metne döker, kategorilere ayırır ve okuduğun kitaba bağlayarak SQLite veritabanına kaydeder; istediğin zaman "/" ile ana menü kestirmelerine erişir, kitap bittiğinde de istatistikleri, alıntıları ve favorilerinle birlikte tasarımlı bir PDF okuma günlüğüne dönüştürür.
       </p>
       <p class="input-help">Aşağıdaki kartlar arasında oklarla gezin — bot'un kurulumdan sonra neler yapabileceğini kart açıklamalarında okuyabilirsin.</p>
 
@@ -849,7 +849,16 @@
               <div class="ss-placeholder">[ekran görüntüsü:<br/>kitap ekleme]</div>
             </div>
             <div class="intro-card-title">📚 Kitap ekle</div>
-            <div class="intro-card-cap">ISBN'i ver, başlık-yazar-kapak-sayfa sayısı otomatik gelir.</div>
+            <div class="intro-card-cap">ISBN yaz, başlığı yaz, ya da kapağının fotoğrafını çek — kapak/yazar/sayfa otomatik gelir.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📸</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kapak ile ekleme]</div>
+            </div>
+            <div class="intro-card-title">📸 Kapak fotosuyla ekle</div>
+            <div class="intro-card-cap">Kitap kapağının fotoğrafını çek — Gemini ISBN/başlık/yazar tanır, gerisini Google Books doldurur.</div>
           </div>
 
           <div class="intro-card">

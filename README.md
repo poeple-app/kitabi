@@ -34,22 +34,39 @@ Toplam süre: **~40-55 dakika**. Toplam maliyet: **0 TL** (tüm servislerin ücr
 |---|---|
 | 🎤 **Sesli not** | Telegram'a ses gönder → Gemini transkript eder → kategori önerir → kaydeder |
 | 📷 **Sayfa fotoğrafı** | Foto gönder → Gemini OCR + sayfa numarası otomatik bulunur → not olarak ekler |
+| 📸 **Kapak fotoğrafıyla kitap ekleme** | Kitap kapağını çek → Gemini ISBN/başlık/yazar tanır → Google Books'tan metadata + kapak otomatik gelir |
 | 🏷️ **Otomatik kategorize** | Alıntı / Fikir / Yeni Bilgi / Kelime / Kavram / Özet — Gemini önerir, sen onaylarsın |
 | 📚 **Kelime + Kavram tanımı** | Bu kategorilerde Gemini otomatik tanım ekler |
 | 💡 **"Açıkla" özelliği** | Bir notu Gemini ile genişlet, eleştir, bağlam ekle |
-| ❓ **Soru-cevap modu** | "Bu kavram neydi?" gibi sor → Gemini kitap + notların context'iyle cevaplar |
+| ❓ **Soru-cevap modu** | "Bu kavram neydi?" gibi sor → Gemini kitap + notların context'iyle cevaplar (kısa-net, dolgu yok) |
 | 📑 **Çoklu oturum** | Aynı anda birden fazla kitap okuyabilirsin; bot doğru oturuma yönlendirir |
+| ✏️ **Oturum düzenle/sil** | Aktif oturumda sayfa numarasını düzelt veya yanlış açılan oturumu (+notları) sil |
 | 🔤 **Kısa kod sistemi** | Her kitap/oturum/not human-readable kod alır: `SVC`, `SVC-S03`, `SVC001` |
 | 📋 **Oturum recap'i** | Yeni oturum başında geçen özetlerini geri okur |
 | 🔍 **Tam-metin arama** | Tüm notlarında FTS5 ile anında arama |
 | 📖 **Sözlük** | Tüm Kelime + Kavram notları alfabetik tek listede |
 | 💬 **Alıntılar + favoriler** | Tüm Alıntı notların tek yerde; ⭐ ile favori işaretle |
-| 📊 **Detaylı istatistik** | Streak, en verimli zaman aralığı, oturum dağılımı, gerçek verilerle |
+| 📊 **Detaylı istatistik** | Streak, en verimli zaman aralığı, oturum dağılımı, gerçek verilerle (ana menüde de özet) |
 | 🏁 **Bitirme ritüeli** | Kitap bitince ⭐ puan + tek cümlelik yorum + favori alıntı seçimi + öneri |
 | 📕 **PDF günlüğü** | Tasarımlı PDF: kapak (rating + review), oturum kronolojisi, sözlük, favori alıntılar, istatistik |
 | 📤 **Esnek export** | PDF, JSON, CSV, Markdown, ZIP — tüm veriler senin Cloud Storage'ında, hep dışa alınabilir |
 | 🔔 **Proaktif hatırlatma** | Bot "uzun süredir okumadın", "hâlâ okuyor musun?" gibi nudge'lar atar (opsiyonel) |
 | ⚙️ **Ayarlar** | Hatırlatma sıklığı, otomatik kategori, otomatik açıklama — hepsi tek menüde toggle |
+| 🔄 **Şeffaf işlem mesajları** | Uzun süren AI çağrılarında (ASR, OCR, soru-cevap) "İşleniyor..." placeholder mesajı, bitince silinir |
+
+## Slash komutları
+
+Telegram'ın `/` menüsünde her özelliğe kestirme komut var:
+
+- `/start` — Ana menü
+- `/oturum` — Yeni okuma oturumu başlat
+- `/kitaplar` — Kütüphanedeki kitaplar
+- `/yeni` — Yeni kitap ekle
+- `/ara` — Notlarda ara
+- `/sozluk` — Sözlük (Kelime + Kavram)
+- `/alintilar` — Alıntılar
+- `/istatistik` — İstatistik
+- `/ayarlar` — Bot ayarları
 
 ## Mimari
 
