@@ -824,7 +824,7 @@
         kopyalayacaksın (fork), birkaç anahtar yapıştıracaksın ve sonunda botun konuşmaya hazır olacak.
       </p>
       <p class="sub-caption" style="text-align: center;">
-        ⏱ Toplam ~40-55 dakika · 💰 0 TL · 🆓 Tüm servisler ücretsiz katmanlarda
+        ⏱ Toplam ~45-60 dakika · 💰 0 TL (kart gerekli, çekim yok) · 🆓 Tüm servisler ücretsiz katmanlarda
       </p>
 
       <div class="success-box" style="text-align: center;">
@@ -1068,8 +1068,8 @@
       <div class="manual-section">
         <h2>1 · Telegram bot + kendi user ID</h2>
         <ul>
-          <li><a href="https://t.me/BotFather" target="_blank">@BotFather</a> → <code>/newbot</code> → <strong>token</strong> al</li>
-          <li><a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> → <code>/start</code> → <strong>kullanıcı ID</strong> al (sadece rakam)</li>
+          <li><a href="https://web.telegram.org/k/#@BotFather" target="_blank">@BotFather</a> → <code>/newbot</code> → <strong>token</strong> al</li>
+          <li><a href="https://web.telegram.org/k/#@userinfobot" target="_blank">@userinfobot</a> → <code>/start</code> → <strong>kullanıcı ID</strong> al (sadece rakam)</li>
         </ul>
       </div>
 
@@ -1241,15 +1241,18 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
         kasasına yapıştıracaksın.
       </p>
 
-      <a class="open-svc" href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer">
+      <a class="open-svc" href="https://web.telegram.org/k/#@BotFather" target="_blank" rel="noopener noreferrer">
         <div class="ico"><svg><use href="#logo-telegram"/></svg></div>
         <div class="osvc-info">
-          <div class="ttl">@BotFather'ı aç</div>
-          <div class="url">https://t.me/BotFather</div>
-          <div class="sub">Yeni sekmede Telegram açılır (resmi mavi-tikli Telegram bot'u)</div>
+          <div class="ttl">@BotFather'ı aç (web)</div>
+          <div class="url">https://web.telegram.org/k/#@BotFather</div>
+          <div class="sub">Yeni sekmede Telegram Web açılır — uygulama kurmana gerek yok</div>
         </div>
         <div class="arr">↗</div>
       </a>
+      <p class="sub-caption" style="margin-top: 6px;">
+        Telegram uygulamasını kullanmak istiyorsan: <a href="tg://resolve?domain=BotFather"><code>tg://BotFather</code></a> ya da mobilden <a href="https://t.me/BotFather"><code>t.me/BotFather</code></a>.
+      </p>
 
       <h2 class="section-h">Botun iki kimliği var, ikisini de belirleyeceksin</h2>
       <p class="sub-caption" style="margin-top: 0;">
@@ -1301,12 +1304,12 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
         rakamlardan oluşan bir numara.
       </p>
 
-      <a class="open-svc" href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer">
+      <a class="open-svc" href="https://web.telegram.org/k/#@userinfobot" target="_blank" rel="noopener noreferrer">
         <div class="ico"><svg><use href="#logo-telegram"/></svg></div>
         <div class="osvc-info">
-          <div class="ttl">@userinfobot'u aç</div>
-          <div class="url">https://t.me/userinfobot</div>
-          <div class="sub">/start yaz, sana ID'ni söyler</div>
+          <div class="ttl">@userinfobot'u aç (web)</div>
+          <div class="url">https://web.telegram.org/k/#@userinfobot</div>
+          <div class="sub">/start yaz, sana ID'ni söyler — Telegram Web'de açılır</div>
         </div>
         <div class="arr">↗</div>
       </a>
@@ -1494,10 +1497,10 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
     <div class="card screen" data-step="gcp">
       <div class="step-eyebrow">Adım 4 — Google Cloud Project</div>
       <div class="step-meta">
-        <span class="step-pill">⏱ ~5-8 dakika</span>
+        <span class="step-pill">⏱ ~10-15 dakika</span>
         <span class="step-pill">🌐 console.cloud.google.com</span>
         <span class="step-pill">🆓 Ücretsiz katman</span>
-        <span class="step-pill warm">💳 Kart isteyebilir (para çekilmez)</span>
+        <span class="step-pill warm">💳 Kart gerekli (para çekilmez)</span>
         <span class="step-pill manual">✋ Manuel onay</span>
       </div>
       <h1 class="step-title">Botun yaşayacağı Google Cloud Project'ini aç</h1>
@@ -1550,7 +1553,63 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
       </div>
       <div class="vmsg" id="gcpProjectIdMsg">Format kontrolü yaparım (gerçek var-yok kontrolü için Google Cloud auth gerek)</div>
 
-      <h2 class="section-h">Gerekli Google Cloud API'lerini aç</h2>
+      <h2 class="section-h">Billing hesabı (kart) bağla</h2>
+      <p class="lede">
+        Google Cloud Run, Secret Manager ve Artifact Registry API'lerini açmak için <strong>billing
+        account</strong> (faturalama hesabı) gerekli — bu da kart bilgisi demek. Endişelenme:
+        <strong>free tier limitlerinde kaldığın sürece tek kuruş ücret çıkmaz.</strong> Google kartı
+        sadece doğrulama için ister ve "abuse"e karşı önlem olarak tutar.
+      </p>
+      <p class="lede dim">
+        Kullanım limitleri Kitabi için fazlasıyla rahat:
+      </p>
+      <ul style="margin: 4px 0 12px 22px; padding: 0; font-size: 13.5px; line-height: 1.7; color: var(--ink);">
+        <li><b>Cloud Run</b>: 2.000.000 istek / ay (sen ayda ~100 yaparsın)</li>
+        <li><b>Cloud Storage</b>: 5 GB depolama (veritabanın muhtemelen 10 MB'ı geçmez)</li>
+        <li><b>Secret Manager</b>: 6 aktif version + 10.000 erişim / ay</li>
+        <li><b>Artifact Registry</b>: 500 MB Docker depolama</li>
+        <li><b>Gemini AI</b>: 250 istek / gün (kendi quota'sı — billing'le ilgisi yok)</li>
+      </ul>
+      <p class="sub-caption">
+        Google ayrıca yeni hesaplara <strong>$300 / 90 gün</strong> trial credit veriyor —
+        Kitabi için kullanmana hiç gerek olmayacak ama bilmen iyi.
+      </p>
+
+      <a class="open-svc" href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-gcloud"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Billing console'unu aç</div>
+          <div class="url">https://console.cloud.google.com/billing</div>
+          <div class="sub">"CREATE ACCOUNT" → ülke seç → kart bilgisi gir</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <div class="checklist">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl">Billing console'unda <strong>CREATE ACCOUNT</strong> ile yeni hesap açtım (zaten varsa atla)
+            <small>Ülke seç → kart bilgisi → onay. Kart anında doğrulanır.</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl">Billing hesabını <code>Kitabi</code> project'ime <strong>bağladım</strong>
+            <small>Console: project Dashboard → sol menü Billing → "Link a billing account". Ya da Cloud Shell:</small>
+          </span>
+        </label>
+      </div>
+      <div class="copy-row" style="margin-top: 4px;">
+        <span class="val" id="linkBillingCmd">gcloud beta billing projects link &lt;PROJECT_ID&gt; --billing-account=&lt;BILLING_ACCOUNT_ID&gt;</span>
+        <button class="copy-btn" onclick="copyLinkBillingCmd(event)">Kopyala</button>
+      </div>
+      <p class="input-help">
+        <code>BILLING_ACCOUNT_ID</code>'yi <code>gcloud beta billing accounts list</code> ile öğrenirsin (örn. <code>0X0X0X-0X0X0X-0X0X0X</code>).
+      </p>
+
+      <h2 class="section-h" style="margin-top: 26px;">Gerekli Google Cloud API'lerini aç</h2>
       <p class="lede dim">
         Google Cloud'un içindeki her servis ayrı bir API. Kullanmak için "aktifleştir" demek gerek.
         Aşağıdaki dört API'yi tek tıkla aktif edebilirsin. Aktifleştirme sadece "bu projede bu
@@ -1592,22 +1651,109 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
         </div>
       </div>
 
-      <a class="open-svc" id="enableApisLink" href="#" target="_blank" rel="noopener noreferrer">
+      <h2 class="section-h">Yöntem A — Cloud Shell (önerilen, en hızlı)</h2>
+      <p class="lede dim" style="margin-bottom: 8px;">
+        <a href="https://shell.cloud.google.com" target="_blank">Cloud Shell'i aç</a> ve aşağıdaki komutu yapıştır. 4 API'yi birden aktif eder, ~30 saniye sürer.
+      </p>
+      <div class="copy-row">
+        <span class="val" id="enableApisCmd">gcloud services enable secretmanager.googleapis.com run.googleapis.com storage.googleapis.com artifactregistry.googleapis.com --project=&lt;PROJECT_ID&gt;</span>
+        <button class="copy-btn" onclick="copyEnableApisCmd(event)">Kopyala</button>
+      </div>
+      <p class="input-help">Project ID'yi yukarıdaki kutuya girdiysen komut hazır. Çıktıda <code>Operation finished successfully</code> gör.</p>
+
+      <h2 class="section-h" style="margin-top: 22px;">Yöntem B — Console'da tek tek aç</h2>
+      <p class="lede dim" style="margin-bottom: 8px;">
+        Komut satırı istemiyorsan her API'yi ayrı ayrı aç (her birinde mavi "Enable" butonu var):
+      </p>
+      <div class="checklist" style="margin-bottom: 4px;">
+        <a id="apiLink1" class="check-item" href="#" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit;">
+          <span class="box" style="background: var(--accent-soft); border-color: var(--accent-light); color: var(--accent);">↗</span>
+          <span class="lbl"><strong>Secret Manager API</strong> — <code>secretmanager.googleapis.com</code></span>
+        </a>
+        <a id="apiLink2" class="check-item" href="#" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit;">
+          <span class="box" style="background: var(--accent-soft); border-color: var(--accent-light); color: var(--accent);">↗</span>
+          <span class="lbl"><strong>Cloud Run API</strong> — <code>run.googleapis.com</code></span>
+        </a>
+        <a id="apiLink3" class="check-item" href="#" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit;">
+          <span class="box" style="background: var(--accent-soft); border-color: var(--accent-light); color: var(--accent);">↗</span>
+          <span class="lbl"><strong>Cloud Storage API</strong> — <code>storage.googleapis.com</code></span>
+        </a>
+        <a id="apiLink4" class="check-item" href="#" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit;">
+          <span class="box" style="background: var(--accent-soft); border-color: var(--accent-light); color: var(--accent);">↗</span>
+          <span class="lbl"><strong>Artifact Registry API</strong> — <code>artifactregistry.googleapis.com</code></span>
+        </a>
+      </div>
+
+      <a class="open-svc" id="enableApisLink" href="#" target="_blank" rel="noopener noreferrer" style="margin-top: 16px;">
         <div class="ico"><svg><use href="#logo-gcloud"/></svg></div>
         <div class="osvc-info">
-          <div class="ttl">4 API'yi tek tıkla aç</div>
+          <div class="ttl">Hepsini birden aç (denemeye değer)</div>
           <div class="url" id="enableApisUrl">Önce Project ID gir, link buna göre güncellenir</div>
-          <div class="sub">Hepsini birden açan kombine link</div>
+          <div class="sub">Google bazen 4 API ile bu link'i reddediyor — patlarsa yukarıdaki Yöntem A veya B kullan</div>
         </div>
         <div class="arr">↗</div>
       </a>
 
+      <div class="checklist" style="margin-top: 18px;">
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl">4 API'yi de aktif ettim (Cloud Shell çıktısı OK, ya da her sayfada "API enabled" gördüm)</span>
+        </label>
+      </div>
+
+      <h2 class="section-h" style="margin-top: 26px;">Bütçe alarmı kur (güvence için, şiddetle önerilir)</h2>
+      <p class="lede">
+        Yanlışlıkla free tier sınırını aşman ihtimaline karşı (kod hatası, kötü niyetli trafik vb.) bir
+        <strong>budget alarm</strong> kur. Belirlediğin eşik aşılırsa Google sana email atar — Kitabi
+        normalde tek kuruş tüketmez, ama bir gün hatırlatma alırsan müdahale etme şansın olur.
+      </p>
+
+      <a class="open-svc" id="openBudgetsLink" href="https://console.cloud.google.com/billing/budgets" target="_blank" rel="noopener noreferrer">
+        <div class="ico"><svg><use href="#logo-gcloud"/></svg></div>
+        <div class="osvc-info">
+          <div class="ttl">Bütçe ayarlarını aç</div>
+          <div class="url" id="openBudgetsUrl">https://console.cloud.google.com/billing/budgets</div>
+          <div class="sub">"CREATE BUDGET" → adım adım form</div>
+        </div>
+        <div class="arr">↗</div>
+      </a>
+
+      <h3 style="font-size: 13px; margin: 14px 0 6px;">Önerilen budget ayarları</h3>
       <div class="checklist">
         <label class="check-item">
           <input type="checkbox" data-step-check="gcp" />
           <span class="box"></span>
-          <span class="lbl">API'leri aktif ettim (her birinde "Enable" tamamlandı)</span>
+          <span class="lbl"><strong>Name</strong>: <code>kitabi-free-tier-guard</code></span>
         </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Scope</strong>: Sadece <code>Kitabi</code> project'i (Projects → kitabi seç)</span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Amount</strong>: Specified amount → <b>$1</b> (USD)
+            <small>Free tier'da kalırsan asla tetiklenmez; $1 eşiği hassas alarm sağlar.</small>
+          </span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Threshold rules</strong>: %50, %90, %100 alarm — hepsinde email</small></span>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" data-step-check="gcp" />
+          <span class="box"></span>
+          <span class="lbl"><strong>Actions</strong>: "Email alerts to billing admins and users" işaretli</span>
+        </label>
+      </div>
+
+      <div class="info" style="margin-top: 14px;">
+        <strong>İleri seviye:</strong> Eğer "limit aşılırsa servisi otomatik kapat" istersen,
+        budget'a Pub/Sub bildirimi + Cloud Function bağlayıp Cloud Run'ı otomatik durdurabilirsin.
+        Kitabi için gerekmez — sadece email alert yeterli.
       </div>
 
       <div class="nav-row">
@@ -2454,11 +2600,52 @@ function updateDynamicLinks() {
   const apisUrlSpan = document.getElementById('enableApisUrl');
   if (apisLink) {
     const apis = 'secretmanager.googleapis.com,run.googleapis.com,storage.googleapis.com,artifactregistry.googleapis.com';
+    // Use the modern flows/enableapi endpoint (the older apis/enableflow
+    // sometimes 500s on fresh projects with multiple APIs at once).
     const url = pid
-      ? `https://console.cloud.google.com/apis/enableflow?apiid=${apis}&project=${encodeURIComponent(pid)}`
-      : `https://console.cloud.google.com/apis/enableflow?apiid=${apis}`;
+      ? `https://console.cloud.google.com/flows/enableapi?apiid=${apis}&project=${encodeURIComponent(pid)}`
+      : `https://console.cloud.google.com/flows/enableapi?apiid=${apis}`;
     apisLink.href = url;
     if (apisUrlSpan) apisUrlSpan.textContent = pid ? url : 'Önce Project ID gir, link buna göre güncellenir';
+  }
+  // Per-API library links (fallback if the combined enable-flow fails)
+  const singleApiIds = [
+    ['apiLink1', 'secretmanager.googleapis.com'],
+    ['apiLink2', 'run.googleapis.com'],
+    ['apiLink3', 'storage.googleapis.com'],
+    ['apiLink4', 'artifactregistry.googleapis.com'],
+  ];
+  for (const [id, apiId] of singleApiIds) {
+    const a = document.getElementById(id);
+    if (!a) continue;
+    a.href = pid
+      ? `https://console.cloud.google.com/apis/library/${apiId}?project=${encodeURIComponent(pid)}`
+      : `https://console.cloud.google.com/apis/library/${apiId}`;
+  }
+  // Cloud Shell enable command — fill in PROJECT_ID
+  const enableApisCmd = document.getElementById('enableApisCmd');
+  if (enableApisCmd) {
+    enableApisCmd.textContent =
+      `gcloud services enable secretmanager.googleapis.com run.googleapis.com ` +
+      `storage.googleapis.com artifactregistry.googleapis.com ` +
+      `--project=${pid || '<PROJECT_ID>'}`;
+  }
+  // Billing link command — fill in PROJECT_ID
+  const linkBillingCmd = document.getElementById('linkBillingCmd');
+  if (linkBillingCmd) {
+    linkBillingCmd.textContent =
+      `gcloud beta billing projects link ${pid || '<PROJECT_ID>'} ` +
+      `--billing-account=<BILLING_ACCOUNT_ID>`;
+  }
+  // Budgets link — project-scoped if PID known
+  const budgetsLink = document.getElementById('openBudgetsLink');
+  const budgetsUrlSpan = document.getElementById('openBudgetsUrl');
+  if (budgetsLink) {
+    const url = pid
+      ? `https://console.cloud.google.com/billing/budgets?project=${encodeURIComponent(pid)}`
+      : 'https://console.cloud.google.com/billing/budgets';
+    budgetsLink.href = url;
+    if (budgetsUrlSpan) budgetsUrlSpan.textContent = url;
   }
   const secretsLink = document.getElementById('openSecretsLink');
   const secretsUrlSpan = document.getElementById('openSecretsUrl');
@@ -2643,6 +2830,16 @@ function copyCurl(ev) {
 }
 function copySchedulerSecret(ev) {
   const cmd = document.getElementById('schedulerSecretCmd').textContent;
+  navigator.clipboard.writeText(cmd);
+  flashCopy(ev?.target);
+}
+function copyEnableApisCmd(ev) {
+  const cmd = document.getElementById('enableApisCmd').textContent;
+  navigator.clipboard.writeText(cmd);
+  flashCopy(ev?.target);
+}
+function copyLinkBillingCmd(ev) {
+  const cmd = document.getElementById('linkBillingCmd').textContent;
   navigator.clipboard.writeText(cmd);
   flashCopy(ev?.target);
 }
