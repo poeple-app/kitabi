@@ -1,11 +1,19 @@
 # Kitabi — production image for Google Cloud Run
 FROM python:3.11-slim
 
-# Native deps for WeasyPrint (PDF rendering) + Turkish-capable fonts
+# Native deps for WeasyPrint (PDF rendering) + Turkish-capable fonts.
+# v1.0.3+: also bundle several Debian-packaged serif/sans faces so the
+# note-share PDF can offer the user a font picker. Faces not available as
+# Debian packages (Crimson Pro, Playfair Display) are loaded at render time
+# via WeasyPrint's URL fetcher from the Google Fonts CDN; a fallback chain
+# keeps text Turkish-readable if the CDN call fails.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libpango-1.0-0 libpangoft2-1.0-0 libgdk-pixbuf-2.0-0 \
         libcairo2 libffi-dev shared-mime-info \
         fonts-noto fonts-noto-cjk fonts-dejavu-core \
+        fonts-liberation fonts-lato fonts-lora fonts-ebgaramond \
+        fontconfig \
+    && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -3385,33 +3385,70 @@ async def _cb_help(update, context, args):
 
 
 async def _cb_note_share(update, context, args):
-    """Show size picker for a sharable note image (Madde 19)."""
+    """Step 1/2: pick the page size for the shareable note PDF (Madde 19).
+
+    Tapping a size leads to the font picker (_cb_note_share_font); the actual
+    render runs in _cb_note_share_do.
+    """
     if not args:
         return
     note_id = int(args[0])
     text = (
-        "📤 <b>Notu paylaş</b>\n\n"
-        "Hangi boyutta görsel istersin?"
+        "📤 <b>Notu paylaş — Adım 1/2</b>\n\n"
+        "Hangi boyutta görsel istersin?\n"
+        "Bir sonraki adımda yazı tipini seçeceksin."
     )
     kb = [
-        [BTN("◼️ Kare (1080×1080)",       _cb("note_share_do", note_id, "square"))],
-        [BTN("📸 Instagram Post (1080×1080)", _cb("note_share_do", note_id, "post"))],
-        [BTN("📱 Instagram Story (1080×1920)", _cb("note_share_do", note_id, "story"))],
-        [BTN("📄 A4 (PDF)",                _cb("note_share_do", note_id, "a4"))],
-        [BTN("📃 A5 (PDF)",                _cb("note_share_do", note_id, "a5"))],
+        [BTN("◼️ Kare (1080×1080)",         _cb("note_share_font", note_id, "square"))],
+        [BTN("📸 Instagram Post (1080×1080)", _cb("note_share_font", note_id, "post"))],
+        [BTN("📱 Instagram Story (1080×1920)", _cb("note_share_font", note_id, "story"))],
+        [BTN("📄 A4 (PDF)",                  _cb("note_share_font", note_id, "a4"))],
+        [BTN("📃 A5 (PDF)",                  _cb("note_share_font", note_id, "a5"))],
         _nav_row(),
     ]
     await _send_screen(update, context, text, KB(kb))
 
 
+async def _cb_note_share_font(update, context, args):
+    """Step 2/2: pick the font, then trigger the render.
+
+    Callback shape: note_share_font:<note_id>:<fmt>
+    """
+    if len(args) < 2:
+        await update.callback_query.answer("Eksik parametre.", show_alert=True)
+        return
+    note_id = int(args[0])
+    fmt = args[1]
+    text = (
+        "📤 <b>Notu paylaş — Adım 2/2</b>\n\n"
+        "Yazı tipini seç:"
+    )
+    # Build buttons from data.NOTE_SHARE_FONTS in a stable order
+    keys_in_order = ["crimson", "playfair", "cormorant", "ebgaramond", "lora", "merriweather"]
+    kb: list[list[InlineKeyboardButton]] = []
+    for k in keys_in_order:
+        font = data.NOTE_SHARE_FONTS.get(k)
+        if not font:
+            continue
+        kb.append([BTN(font["label"], _cb("note_share_do", note_id, fmt, k))])
+    kb.append([BTN("⬅️ Boyutu değiştir", _cb("note_share", note_id))])
+    kb.append(_nav_row())
+    await _send_screen(update, context, text, KB(kb))
+
+
 async def _cb_note_share_do(update, context, args):
-    """Actually render the shareable image/PDF and send it back."""
+    """Actually render and send the shareable PDF.
+
+    Callback shape: note_share_do:<note_id>:<fmt>:<font_key>
+    `font_key` defaults to 'crimson' for backward compatibility.
+    """
     query = update.callback_query
     if len(args) < 2:
         await query.answer("Eksik parametre.", show_alert=True)
         return
     note_id = int(args[0])
     fmt = args[1]
+    font_key = args[2] if len(args) > 2 else "crimson"
     note = await data.get_note(note_id)
     if not note:
         await query.answer("Not bulunamadı.", show_alert=True)
@@ -3420,13 +3457,18 @@ async def _cb_note_share_do(update, context, args):
     user_name = (update.effective_user.full_name if update.effective_user else "")
     await query.answer()
     try:
-        async with _Progress(query.message, f"🔄 {fmt.upper()} görseli üretiliyor…"):
+        font_label = data.NOTE_SHARE_FONTS.get(font_key, {}).get("label", font_key)
+        async with _Progress(
+            query.message,
+            f"🔄 {fmt.upper()} görseli üretiliyor… ({esc(font_label)})",
+        ):
             payload, filename, mime = await data.render_note_share(
                 note=note, book=book, fmt=fmt, user_name=user_name,
+                font_key=font_key,
             )
     except Exception as e:
         logger.error("bot.note_share.failed", note_id=note_id, fmt=fmt,
-                     error=str(e), exc_info=True)
+                     font_key=font_key, error=str(e), exc_info=True)
         await query.message.reply_text(
             f"❌ Paylaşım üretilirken hata: <code>{esc(type(e).__name__)}</code>",
             parse_mode=ParseMode.HTML,
@@ -3437,7 +3479,8 @@ async def _cb_note_share_do(update, context, args):
         chat_id=query.message.chat_id,
         document=InputFile(io.BytesIO(payload), filename=filename),
         caption=(
-            f"📤 <b>{esc(book.title if book else '')}</b> — paylaş ({fmt.upper()})\n"
+            f"📤 <b>{esc(book.title if book else '')}</b> — paylaş "
+            f"({fmt.upper()} · {esc(data.NOTE_SHARE_FONTS.get(font_key, {}).get('label', font_key))})\n"
             "PDF'in 1. sayfasının ekran görüntüsünü alıp paylaşabilirsin."
         ),
         parse_mode=ParseMode.HTML,
@@ -3460,6 +3503,7 @@ _CALLBACKS: dict[str, Callable[..., Awaitable[None]]] = {
     "note_page":             _cb_note_page,
     "note_del":              _cb_note_del,
     "note_share":            _cb_note_share,
+    "note_share_font":       _cb_note_share_font,
     "note_share_do":         _cb_note_share_do,
     "sessions":              _cb_sessions,
     "session_open":          _cb_session_open,

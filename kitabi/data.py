@@ -25,6 +25,7 @@ from __future__ import annotations
 import asyncio
 import csv
 import enum
+import html as _html
 import io
 import json
 import re
@@ -1497,20 +1498,92 @@ def _build_reading_calendar(sessions: list[Session]) -> list[dict[str, Any]]:
     return out
 
 
+# ─────────────────────────── Note share — Classic Twit ───────────────────────────
+#
+# v1.0.3 redesign: "Klasik Twit / Pull-quote" layout.
+# Layout is fixed:  brand bar (top) → big "  quote mark → body → meta block (bottom)
+# with the GitHub URL in a tiny footer. Body font auto-shrinks based on
+# transcript length so the OUTSIDE PADDING NEVER CHANGES — long quotes just
+# get smaller type. Available fonts mirror the Telegram font picker.
+
+KITABI_GITHUB_URL = "github.com/poeple-app/kitabi"
+
+
+# Each option: (display_label, css font-family stack, weight, optional @font-face URL)
+# The CSS stack falls back to system serifs so renders work even if WeasyPrint
+# can't fetch the Google Fonts CDN entry.
+NOTE_SHARE_FONTS: dict[str, dict[str, str]] = {
+    "crimson": {
+        "label":   "Crimson Pro (varsayılan)",
+        "family":  "'Crimson Pro', 'EB Garamond', Georgia, serif",
+        "google":  "https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,700;1,400&display=swap",
+    },
+    "playfair": {
+        "label":   "Playfair Display (cüretkar)",
+        "family":  "'Playfair Display', 'Bodoni 72', Georgia, serif",
+        "google":  "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap",
+    },
+    "cormorant": {
+        "label":   "Cormorant Garamond (klasik)",
+        "family":  "'Cormorant Garamond', 'EB Garamond', Garamond, serif",
+        "google":  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,700;1,400&display=swap",
+    },
+    "ebgaramond": {
+        "label":   "EB Garamond (kitap)",
+        "family":  "'EB Garamond', Garamond, Georgia, serif",
+        "google":  "",  # Debian'da fonts-ebgaramond olarak yüklü
+    },
+    "lora": {
+        "label":   "Lora (web-optimize)",
+        "family":  "'Lora', 'Source Serif Pro', Georgia, serif",
+        "google":  "",  # Debian'da fonts-lora olarak yüklü
+    },
+    "merriweather": {
+        "label":   "Merriweather (okunaklı)",
+        "family":  "'Merriweather', Georgia, serif",
+        "google":  "https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap",
+    },
+}
+
+
+def _pick_body_font_size_pt(transcript: str, fmt: str) -> tuple[int, int]:
+    """Choose body font-size + quote-mark size based on length, so the OUTER
+    boundaries of the card never change. Returns (body_pt, mark_pt).
+
+    Square/A5 are tighter than story/A4, so we use a slightly different curve.
+    """
+    n = len(transcript or "")
+    tall = fmt in ("story", "a4")
+    # Buckets, tuned by eye against the mockup's 27pt at ~150 chars
+    if n <= 120:
+        return (32 if tall else 28), 140
+    if n <= 220:
+        return (28 if tall else 24), 130
+    if n <= 380:
+        return (24 if tall else 20), 110
+    if n <= 600:
+        return (20 if tall else 17), 90
+    if n <= 900:
+        return (17 if tall else 14), 70
+    # Very long
+    return (14 if tall else 12), 56
+
+
 async def render_note_share(
     *, note: Note, book: Book | None, fmt: str, user_name: str,
+    font_key: str = "crimson",
 ) -> tuple[bytes, str, str]:
-    """Render a single note as a shareable image-like PDF.
+    """Render a single note as a shareable PDF in the "Klasik Twit" style.
 
-    `fmt` is one of: 'square', 'post', 'story', 'a4', 'a5'.
-    Returns (bytes, filename, mime_type). For all sizes we produce a PDF
-    (WeasyPrint can't output raster directly, and Pillow would be a new dep);
-    the PDF page is sized to the exact requested aspect ratio. Most social
-    apps accept the resulting "screenshot of page 1" workflow.
+    `fmt` ∈ {square, post, story, a4, a5}. `font_key` ∈ NOTE_SHARE_FONTS.
+
+    Returns (bytes, filename, mime_type). All formats produce a 1-page PDF; the
+    user takes a screenshot of page 1 to share. Body font auto-shrinks so the
+    fixed outer padding never gets violated — long quotes just get smaller type.
     """
     sizes_mm = {
-        # ~96dpi sized to match common pixel canvases (px ≈ mm * 3.78)
-        "square": ("285mm", "285mm"),   # 1080x1080 ≈ 285mm
+        # ~96 dpi pixel canvases — px ≈ mm * 3.78
+        "square": ("285mm", "285mm"),   # 1080x1080
         "post":   ("285mm", "285mm"),
         "story":  ("285mm", "508mm"),   # 1080x1920
         "a4":     ("210mm", "297mm"),
@@ -1523,90 +1596,159 @@ async def render_note_share(
         "square": "Kare", "post": "Instagram Post",
         "story": "Instagram Story", "a4": "A4", "a5": "A5",
     }[fmt]
-    safe_title = (book.title if book else "kitap")
-    safe_short = (book.short_code if book else "")
+
+    font = NOTE_SHARE_FONTS.get(font_key) or NOTE_SHARE_FONTS["crimson"]
+    body_pt, mark_pt = _pick_body_font_size_pt(note.transcript or "", fmt)
+
+    book_title = (book.title if book else "(kitap)")
+    book_author = book.author if book and book.author else None
+    short_code = book.short_code if book else ""
     page_s = note.page if note.page is not None else "—"
     created = to_local(note.created_at)
-    date_str = created.strftime("%d %B %Y · %H:%M") if created else ""
+    date_str = created.strftime("%d %B %Y") if created else ""
+
     transcript_html = (note.transcript or "").replace("\n", "<br/>")
-    is_quote = note.category == Category.QUOTE
+
+    # ── HTML escape only inside the rendered text spots ────────────
+    def _esc(x: object) -> str:
+        return _html.escape(str(x) if x is not None else "")
+
+    google_import = ""
+    if font.get("google"):
+        google_import = f"@import url('{font['google']}');\n"
+
+    # Padding scales with the format so tall pages don't look sparse
+    px = "22mm" if fmt in ("story", "a4") else "18mm"
+
     css = f"""
+    {google_import}
     @page {{ size: {w} {h}; margin: 0; }}
     body {{
       margin: 0; padding: 0;
       width: {w}; height: {h};
-      font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+      font-family: {font['family']};
       color: #2a2520;
       background: #fdfaf3;
       background-image:
-        radial-gradient(circle at 18% 22%, rgba(122,62,31,.07), transparent 50%),
-        radial-gradient(circle at 88% 78%, rgba(122,62,31,.06), transparent 50%);
+        radial-gradient(circle at 15% 18%, rgba(122,62,31,.04), transparent 50%),
+        radial-gradient(circle at 88% 82%, rgba(122,62,31,.06), transparent 50%);
     }}
     .wrap {{
       box-sizing: border-box;
-      padding: 18mm 16mm;
+      padding: {px};
       width: 100%; height: 100%;
       display: flex; flex-direction: column; justify-content: space-between;
     }}
-    .brand {{
-      font-family: -apple-system, "Segoe UI", sans-serif;
-      font-size: 10pt;
-      letter-spacing: 6px;
+    /* ─── Brand bar (top) ─── */
+    .brand-bar {{
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 9pt;
+      letter-spacing: 4px;
       text-transform: uppercase;
       color: #8a7e72;
     }}
-    .body {{
-      font-size: 26pt;
-      line-height: 1.45;
-      color: #2a2520;
-      font-weight: 600;
-      max-width: 100%;
-      text-align: center;
+    .brand-bar b {{
+      color: #7a3e1f;
+      font-weight: 700;
+      letter-spacing: 5px;
+    }}
+    /* ─── Quote block (middle) ─── */
+    .quote-section {{
+      flex: 1;
+      display: flex; flex-direction: column;
+      justify-content: center;
       padding: 4mm 0;
     }}
-    .body.quote {{
-      font-style: italic;
-      border-left: 1mm solid #7a3e1f;
-      padding-left: 6mm;
-      text-align: left;
+    .quote-mark {{
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: {mark_pt}pt;
+      color: #7a3e1f;
+      line-height: 0;
+      height: {int(mark_pt * 0.55)}pt;
+      margin-bottom: 2mm;
     }}
-    .meta {{
-      border-top: 1px solid #c8b99e;
-      padding-top: 4mm;
-      font-family: -apple-system, "Segoe UI", sans-serif;
+    .quote-body {{
+      font-size: {body_pt}pt;
+      line-height: 1.42;
+      font-weight: 500;
+      color: #2a2520;
+      letter-spacing: -0.2px;
+    }}
+    /* ─── Meta block (bottom) ─── */
+    .meta-block {{
+      font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    }}
+    .meta-block .book-title {{
+      font-family: {font['family']};
+      font-size: 14pt;
+      font-weight: 700;
+      color: #2a2520;
+      letter-spacing: -0.3px;
+    }}
+    .meta-block .book-author {{
       font-size: 11pt;
+      font-style: italic;
       color: #6e6358;
+      margin-top: 1mm;
     }}
-    .book-title {{ font-weight: 700; color: #2a2520; font-size: 13pt; }}
-    .who {{ margin-top: 2mm; font-style: italic; }}
-    .ornament {{
-      text-align: center; color: #7a3e1f;
-      letter-spacing: 8px; margin: 6mm 0 4mm; font-size: 12pt;
+    .meta-row {{
+      display: flex; justify-content: space-between;
+      align-items: center;
+      margin-top: 4mm;
+      padding-top: 3mm;
+      border-top: 1px solid #d8cdba;
+      font-size: 8.5pt;
+      color: #8a7e72;
+      letter-spacing: 0.5px;
+    }}
+    .gh {{
+      margin-top: 3mm;
+      text-align: center;
+      font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 1.5px;
+      color: #b5a896;
     }}
     """
+
+    author_html = (
+        f'<div class="book-author">{_esc(book_author)}</div>' if book_author else ""
+    )
+    who_html = f" — {_esc(user_name)}" if user_name else ""
     html_str = f"""<!doctype html>
-    <html><head><meta charset="utf-8"><style>{css}</style></head><body>
-    <div class="wrap">
-      <div class="brand">Kitabi · paylaşım</div>
-      <div class="body {'quote' if is_quote else ''}">
-        “{transcript_html}”
-      </div>
-      <div>
-        <div class="ornament">· · ·</div>
-        <div class="meta">
-          <div class="book-title">{safe_title}</div>
-          <div>{f'<i>{book.author}</i> · ' if book and book.author else ''}s.{page_s} · {safe_short}</div>
-          {f'<div class="who">— {user_name}</div>' if user_name else ''}
-          <div>{date_str} · {fmt_label}</div>
+    <html lang="tr"><head><meta charset="utf-8"><style>{css}</style></head>
+    <body>
+      <div class="wrap">
+        <div class="brand-bar">
+          <b>Kitabi</b>
+          <span>okuma günlüğü</span>
+        </div>
+
+        <div class="quote-section">
+          <div class="quote-mark">&ldquo;</div>
+          <div class="quote-body">{transcript_html}</div>
+        </div>
+
+        <div>
+          <div class="meta-block">
+            <div class="book-title">{_esc(book_title)}</div>
+            {author_html}
+            <div class="meta-row">
+              <span>s.{_esc(page_s)} · {_esc(note.code)}</span>
+              <span>{_esc(date_str)}{who_html}</span>
+            </div>
+          </div>
+          <div class="gh">{KITABI_GITHUB_URL}</div>
         </div>
       </div>
-    </div>
     </body></html>
     """
+
     def _impl() -> bytes:
         return HTML(string=html_str, base_url="templates").write_pdf()
     pdf_bytes = await asyncio.to_thread(_impl)
-    safe_fname = "".join(c if c.isalnum() else "_" for c in safe_title)[:40] or "not"
+    safe_fname = "".join(c if c.isalnum() else "_" for c in book_title)[:40] or "not"
     return pdf_bytes, f"{safe_fname}-{note.code}-{fmt}.pdf", "application/pdf"
 
 
