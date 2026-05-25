@@ -10,57 +10,72 @@ Kitabi sesli notlar, sayfa fotoğrafları ve sorularla okuma sürecini yakalar; 
 
 ## Hızlı kurulum
 
-**Tek tıklamayla kurulum sihirbazı**: [poeple-app.github.io/kitabi](https://poeple-app.github.io/kitabi) (GitHub Pages'te hosted)
+**Tek tıklamayla kurulum sihirbazı**: [poeple-app.github.io/kitabi/wizard.html](https://poeple-app.github.io/kitabi/wizard.html)
 
-Sihirbaz seni 7 adımda elinden tutarak götürür:
+Sihirbaz seni **9 adımda** elinden tutarak götürür:
+
 1. Telegram bot oluşturma
 2. Gemini API anahtarı alma
-3. GitHub fork
-4. Google Cloud Project açma
-5. Secret Manager'a anahtarları koyma
-6. Cloud Run'a tek-tık deploy
-7. Webhook bağlama
+3. GitHub fork (ya da ZIP yolu — fork gerek yok)
+4. Google Cloud Project + 4 API enable
+5. **Cloud Storage bucket** (SQLite kalıcılığı için)
+6. Secret Manager'a 4 anahtarı koyma
+7. Cloud Run'a tek-tık deploy
+8. `BOT_BASE_URL` set + redeploy → webhook
+9. (opsiyonel) Cloud Scheduler → proaktif hatırlatma
 
-Toplam süre: ~30 dakika. Toplam maliyet: **0 TL** (tüm servislerin ücretsiz katmanları yeter).
+Toplam süre: **~40-55 dakika**. Toplam maliyet: **0 TL** (tüm servislerin ücretsiz katmanları yeter).
+
+**Yazılım biliyorum, sihirbazı atlamak istiyorum** → wizard'ın welcome ekranındaki "🛠️ Manuel kurulum" link'ine bas, tek sayfada `gcloud` komutlarıyla bitir (~15-25 dk).
 
 ## Ne yapar?
 
 | Özellik | Detay |
 |---|---|
 | 🎤 **Sesli not** | Telegram'a ses gönder → Gemini transkript eder → kategori önerir → kaydeder |
-| 📷 **Sayfa fotoğrafı** | Foto gönder → Gemini OCR → metin çıkarır → not olarak ekler |
+| 📷 **Sayfa fotoğrafı** | Foto gönder → Gemini OCR + sayfa numarası otomatik bulunur → not olarak ekler |
 | 🏷️ **Otomatik kategorize** | Alıntı / Fikir / Yeni Bilgi / Kelime / Kavram / Özet — Gemini önerir, sen onaylarsın |
 | 📚 **Kelime + Kavram tanımı** | Bu kategorilerde Gemini otomatik tanım ekler |
 | 💡 **"Açıkla" özelliği** | Bir notu Gemini ile genişlet, eleştir, bağlam ekle |
 | ❓ **Soru-cevap modu** | "Bu kavram neydi?" gibi sor → Gemini kitap + notların context'iyle cevaplar |
+| 📑 **Çoklu oturum** | Aynı anda birden fazla kitap okuyabilirsin; bot doğru oturuma yönlendirir |
+| 🔤 **Kısa kod sistemi** | Her kitap/oturum/not human-readable kod alır: `SVC`, `SVC-S03`, `SVC001` |
 | 📋 **Oturum recap'i** | Yeni oturum başında geçen özetlerini geri okur |
-| 📕 **PDF günlüğü** | Kitap bitince güzel, tasarımlı PDF üretilir (kapak, künye, oturum kronolojisi, sözlük, istatistik) |
+| 🔍 **Tam-metin arama** | Tüm notlarında FTS5 ile anında arama |
+| 📖 **Sözlük** | Tüm Kelime + Kavram notları alfabetik tek listede |
+| 💬 **Alıntılar + favoriler** | Tüm Alıntı notların tek yerde; ⭐ ile favori işaretle |
+| 📊 **Detaylı istatistik** | Streak, en verimli zaman aralığı, oturum dağılımı, gerçek verilerle |
+| 🏁 **Bitirme ritüeli** | Kitap bitince ⭐ puan + tek cümlelik yorum + favori alıntı seçimi + öneri |
+| 📕 **PDF günlüğü** | Tasarımlı PDF: kapak (rating + review), oturum kronolojisi, sözlük, favori alıntılar, istatistik |
 | 📤 **Esnek export** | PDF, JSON, CSV, Markdown, ZIP — tüm veriler senin Cloud Storage'ında, hep dışa alınabilir |
+| 🔔 **Proaktif hatırlatma** | Bot "uzun süredir okumadın", "hâlâ okuyor musun?" gibi nudge'lar atar (opsiyonel) |
+| ⚙️ **Ayarlar** | Hatırlatma sıklığı, otomatik kategori, otomatik açıklama — hepsi tek menüde toggle |
 
 ## Mimari
 
-**Tek bir Google Cloud Project içinde 3 servis:**
+**Tek bir Google Cloud Project içinde 4 servis:**
 
 ```
    Telegram ──────► Cloud Run (kitabi/main.py)
                         │
-                        ├─► Cloud Storage  (SQLite veritabanı)
+                        ├─► Cloud Storage   (SQLite veritabanı snapshot)
+                        ├─► Secret Manager  (token + key)
+                        ├─► Gemini API      (AI: ASR, OCR, kategori, soru-cevap)
                         │
-                        ├─► Secret Manager (token + key)
-                        │
-                        └─► Gemini API     (AI)
+   Cloud Scheduler ─────┘   (günlük "hâlâ okuyor musun?" / "kitap bekliyor")
 ```
 
-**Tek bir SQLite veritabanı** → kişisel ölçekte fazlasıyla yeter, taşıma kolay, tüm veriler tek dosyada.
+**Persistence:** Cloud Run diski uçucu — bot SQLite'ı her 60 sn'de bir Cloud Storage bucket'a SQLite Online Backup API ile tutarlı snapshot olarak yedekliyor; container açılırken indiriyor.
 
-**Kod yapısı (4 Python dosyası):**
+**Kod yapısı (5 Python dosyası):**
 
 ```
 kitabi/
-├── main.py    — FastAPI uygulama, webhook, lifecycle
-├── bot.py     — Tüm Telegram UI (handlers, screens, dispatch)
-├── data.py    — SQLAlchemy modelleri + tüm export'lar (PDF, JSON, CSV, MD, ZIP)
-└── ai.py      — Gemini wrapper (retry + 3-model fallback)
+├── main.py    — FastAPI app, webhook, lifecycle, /cron/nudge endpoint
+├── bot.py     — Tüm Telegram UI (handlers, screens, dispatch dict)
+├── data.py    — SQLAlchemy + GCS backup + FTS5 + tüm export'lar
+├── ai.py      — Gemini wrapper (3-model fallback + retry)
+└── dev.py     — Lokal polling modu (webhook olmadan test için)
 ```
 
 ## Gemini güvenilirliği
@@ -70,35 +85,17 @@ Gemini'nin model isimleri ve rate limit'leri zaman zaman değişiyor. Kitabi bun
 - **Model fallback zinciri**: `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-1.5-flash`
 - **Per-model retry**: rate limit / 5xx / timeout durumunda 2 deneme exponential backoff ile
 - **Graceful degradation**: kategori önerisi başarısız olursa "Yeni Bilgi" varsayılan; tanım/açıklama başarısız olursa not yine kaydedilir
-- **Tüm hatalar kullanıcıya gösterilir**: kod bilmeyen kullanıcı bile hangi adımda nerede patladığını görür
+- **Tüm hatalar kullanıcıya gösterilir**: kod bilmeyen kullanıcı bile hangi adımda nerede patladığını görür ve doğrudan Cloud Logs deep-link'i alır
 
 ## Logları nerede görüyorum?
 
-Bot Google Cloud Run'da çalışıyor, log'lar **Cloud Logs Explorer**'a akıyor. Üç yolla erişebilirsin:
+Bot Google Cloud Run'da çalışıyor, log'lar **Cloud Logs Explorer**'a akıyor. Üç yol var:
 
-**1. Telegram hata mesajındaki link (en kolay)**
+**1. Telegram hata mesajındaki link (en kolay)** — bot hata atınca mesajdaki 📋 link doğrudan o hatanın filtrelenmiş log'una götürür.
 
-Bot bir şeye takılınca sana Telegram'da hata mesajı atar:
+**2. Cloud Run Console** — [console.cloud.google.com/run](https://console.cloud.google.com/run) → `kitabi` → **LOGS** sekmesi.
 
-```
-❌ Beklenmedik bir hata oluştu.
-
-İşlem: handle_voice
-Hata: GeminiCallFailed
-Detay: ...
-
-📋 [Bu hatanın detay loglarını aç] ← buraya tıkla
-```
-
-Tıkladığında doğrudan **o hatanın filtrelenmiş loglarına** gidersin — başka bir şey aramaya gerek yok.
-
-**2. Cloud Run Console (servisin ana sayfası)**
-
-[console.cloud.google.com/run](https://console.cloud.google.com/run) → `kitabi` servisini seç → üstte **"LOGS"** sekmesi. Son tüm loglar burada akıyor; severity (ERROR / WARNING / INFO) filtresi solda.
-
-**3. Cloud Logs Explorer (gelişmiş arama)**
-
-[console.cloud.google.com/logs](https://console.cloud.google.com/logs) → sorgu kutusuna:
+**3. Cloud Logs Explorer** (gelişmiş arama):
 
 ```
 resource.type="cloud_run_revision"
@@ -106,85 +103,76 @@ resource.labels.service_name="kitabi"
 jsonPayload.event="ai.transcribe_voice.failed"
 ```
 
-Bot içindeki her event'in stabil bir adı var (örnek: `bot.handler.handle_voice.failed`, `ai.transcribe_voice.success`, `data.add_note.start`). Telegram'daki hata mesajı sana hangi event'i aratacağını söylüyor.
+Bot içindeki her event'in stabil bir adı var (`bot.handler.handle_voice.failed`, `data.add_note.success`, `bot.nudge.still_reading_sent`, vb.). Telegram hata mesajı sana hangi event'i aratacağını söyler.
 
 ### Logların yapısı
 
 `structlog` ile JSON çıktı; her satır şunları içerir:
-- `timestamp` (ISO 8601)
-- `level` (info / warning / error)
+- `timestamp` (ISO 8601), `level` (info / warning / error)
 - `module`, `func_name`, `lineno` (kodun tam yeri)
-- `event` (olay etiketi)
-- Ek context (süre, boyut, kullanıcı ID, hata tipi)
+- `event` (olay etiketi) + ek context (süre, boyut, kullanıcı ID, hata tipi)
 - Hata varsa `exc_info` ile tam stack trace
 
-## Sorun giderme
-
-| Belirti | Nereye bak |
-|---|---|
-| Bot Telegram'da cevap vermiyor | Cloud Run Logs → severity=ERROR, son 1 saat |
-| "Beklenmedik hata" mesajı geldi | Mesajdaki 📋 link'e tıkla, doğrudan logu görürsün |
-| Webhook çalışmıyor | Cloud Run service URL'ine GET at — 200 dönmeli; `main.webhook.bad_secret` log'u varsa secret yanlış |
-| Gemini cevap vermiyor | `ai._call_gemini.exhausted` event'ini ara — tüm modeller başarısız olmuş demektir; quota / API key sorun |
-| Veri kayboldu | `data.gcs.upload_failed` veya `data.gcs.init_failed` aratabilirsin; service account'a Storage Object Admin yetkisi verildi mi kontrol et |
-| PDF üretilmiyor | `data.render_pdf.failed` aratabilirsin; WeasyPrint dependency'leri Docker image'da yüklü mü? |
+Detaylı sorun-giderme rehberi için [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## Güvenlik
 
-- ✅ Tüm secret'lar **Google Cloud Secret Manager**'da, yerel dosyada asla değil
-- ✅ Telegram webhook secret_token doğrulaması (sahte istekleri reddet)
-- ✅ Kullanıcı allowlist (`ALLOWED_TG_USER_IDS` — sadece sen yazabilirsin)
-- ✅ `pre-commit` + `detect-secrets` + `gitleaks` — yanlışlıkla secret commit'ini engeller
+- ✅ Tüm secret'lar **Google Cloud Secret Manager**'da; yerel dosyada / repo'da asla değil
+- ✅ Webhook `X-Telegram-Bot-Api-Secret-Token` header'ı `hmac.compare_digest` ile karşılaştırılır (sahte istekleri reddet)
+- ✅ Kullanıcı allowlist (`ALLOWED_TG_USER_IDS`) — sadece sen yazabilirsin
+- ✅ SQLite WAL mode + Online Backup API → torn-snapshot-safe yedekleme
+- ✅ Chat state SQLite'ta persist edilir → cold-start'ta yarım kalmış akışlar kaybolmaz
+- ✅ `pre-commit` + `detect-secrets` + `gitleaks` — yanlışlıkla secret commit'ini engeller (lokal dev için)
 - ✅ Container non-root olarak çalışır
 - ✅ Log redaction — kullanıcı içeriği (notlar, sorular) log'a düşmez, sadece event'ler
 
 ## Geliştirme
 
-```bash
-# Repo'yu fork'la, klonla
-git clone https://github.com/<senin-kullanici-adin>/kitabi.git
+### Lokal test — gerçek Telegram, polling modu (Cloud Run gerek yok)
+
+```powershell
+git clone https://github.com/poeple-app/kitabi.git
 cd kitabi
-
-# Python 3.11+ sanal ortam
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-
-# Bağımlılıkları kur
+.\.venv\Scripts\Activate.ps1   # Linux/macOS: source .venv/bin/activate
 pip install -e ".[dev]"
 
-# pre-commit hook'ları aktif et
-pre-commit install
+# Secret'ları env'e inject et (lokal dosyaya yazma! HARD RULE)
+$env:TELEGRAM_BOT_TOKEN  = "<BotFather_token>"
+$env:ALLOWED_TG_USER_IDS = "<senin_user_id>"
+$env:GEMINI_API_KEY      = "<gemini_api_key>"
 
-# Lokal çalıştırma (.env dosyası gerek)
-uvicorn kitabi.main:app --reload --port 8080
+python -m kitabi.dev
 ```
 
-`.env` dosyasını `.env.example`'dan kopyala ve doldur (lokal dev için; prod'da Secret Manager kullanılır).
+Bu polling modu webhook + GCS + FastAPI olmadan çalışır; gerçek Telegram istemcide test edebilirsin. SQLite `./kitabi-dev.db` olarak yerelde tutulur.
+
+### Testler
+
+```powershell
+pytest tests/
+```
 
 ## Mimari kararlar (FAQ)
 
-**Neden Notion değil?**
-Kullanıcıyı belirli bir araca bağlamak istemiyoruz. Veri SQLite'da yaşıyor, istediğin gibi export ediyorsun. Notion isteyenler için ileride opt-in connector eklenebilir.
+**Neden Notion değil?** Kullanıcıyı belirli bir araca bağlamak istemiyoruz. Veri SQLite'da yaşıyor, istediğin gibi export ediyorsun.
 
-**Neden Python?**
-WeasyPrint (PDF) Python'da en olgun, Gemini SDK'sı Python-first, async ekosistem stabil.
+**Neden Python?** WeasyPrint (PDF) Python'da en olgun, Gemini SDK'sı Python-first, async ekosistem stabil.
 
 **Neden Cloud Run + Cloud Storage + SQLite?**
 - Cloud Run: scale-to-zero, public HTTPS, container deploy
-- Cloud Storage: 5 GB free, SQLite dosyası buraya mount ediliyor → kalıcılık
+- Cloud Storage: 5 GB free, SQLite snapshot'ı buraya yedekleniyor → kalıcılık
 - SQLite: tek dosya, basit, kişisel ölçekte yeter
 
-**Tek instance limiti neden?**
-SQLite concurrent write'ı paralel container'lardan iyi yönetmiyor. Cloud Run `max-instances=1` ile garanti veriyoruz. Yüksek trafik istersek Turso (managed libSQL) veya Postgres'e geçmek tek dosya değiştirmek.
+**Tek instance limiti neden?** SQLite concurrent write'ı paralel container'lardan iyi yönetmiyor. Cloud Run `max-instances=1` ile garanti veriyoruz.
 
-**Birden fazla kullanıcı destekleniyor mu?**
-Bu sürüm **single-user-per-deployment**. Sen kendi botunu host ediyorsun, sadece sana cevap veriyor. Multi-tenant (başka kullanıcılara da hizmet) ayrı bir proje olur.
+**Birden fazla kullanıcı destekleniyor mu?** Hayır — bu sürüm **single-user-per-deployment**. Sen kendi botunu host ediyorsun, sadece sana cevap veriyor (`ALLOWED_TG_USER_IDS` allowlist). Multi-tenant ayrı bir proje olur.
 
 ## Katkı
 
 Pull request'ler hoş karşılanır.
 
-- Yeni bir özellik için önce issue aç, tartışalım
+- Yeni bir özellik için önce issue aç
 - Branch'i `feature/açıklama` formatında isimlendir
 - `pre-commit run --all-files` ve `ruff check` temiz olmalı
 - Kullanıcıya görünür her metin Türkçe; kod ve yorumlar İngilizce
