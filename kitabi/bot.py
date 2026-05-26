@@ -1,4 +1,4 @@
-"""Telegram bot logic for Kitabi (v1.0.5)."""
+"""Telegram bot logic for Kitabi (v1.0.6)."""
 
 from __future__ import annotations
 
@@ -123,14 +123,36 @@ def _quick_keyboard() -> ReplyKeyboardMarkup:
 _QUICK_LABELS = {_QUICK_OTURUMLAR, _QUICK_BITIR, _QUICK_KITAPLAR, _QUICK_YENI}
 
 
+# v1.0.6 — Tek aktif menü garantisini sıkılaştırmak için her menü mesajının
+# id'sini bir LİSTEYE topluyoruz (max 8 derinlik). Her yeni menü gelmeden
+# önce listedeki tüm eski menüleri silmeye çalışıyoruz (best-effort, 400
+# Bad Request olursa sessizce geçiyoruz — Telegram'da silinemez olan
+# mesajları zaten kullanıcı manuel temizleyebilir).
+#
+# Eski tek-id davranışı bazen "yetim" menü bırakıyordu: aynı session içinde
+# birden çok mesaj track edilmeden gönderildiğinde (örn. screen_note_confirm
+# fallback path'i) eskileri kaybediyorduk. Liste ile her menü kaydedilir.
+_MENU_TRACK_MAX = 8
+
+
 async def _track_last_menu(cid: int | None, message_id: int) -> None:
-    """Remember the most recent bot 'menu' message so future renders can delete
-    it — keeping exactly one active inline menu in the chat at a time (Madde 3).
-    """
+    """Append the bot's new menu message id to the tracking list."""
     if cid is None:
         return
     try:
-        await _set(cid, "last_menu_msg_id", message_id, ttl_s=24 * 3600)
+        ids = await _get(cid, "menu_msg_ids")
+        if not isinstance(ids, list):
+            ids = []
+        # Migration: previous single-id state — fold into list
+        legacy = await _get(cid, "last_menu_msg_id")
+        if isinstance(legacy, int) and legacy not in ids:
+            ids.append(legacy)
+            await _clear(cid, "last_menu_msg_id")
+        if message_id not in ids:
+            ids.append(message_id)
+        if len(ids) > _MENU_TRACK_MAX:
+            ids = ids[-_MENU_TRACK_MAX:]
+        await _set(cid, "menu_msg_ids", ids, ttl_s=24 * 3600)
     except Exception as e:
         logger.debug("bot.track_last_menu.failed", error=str(e))
 
@@ -139,19 +161,33 @@ async def _delete_previous_menu(
     cid: int | None, context: ContextTypes.DEFAULT_TYPE,
     *, except_id: int | None = None,
 ) -> None:
-    """If we have a tracked previous menu, try to delete it. Best-effort —
-    Telegram refuses to delete messages older than 48h or with no permissions;
-    we swallow those errors.
+    """Try to delete every tracked menu *except* the one we're about to edit
+    in-place (except_id). Best-effort — 400 Bad Request errors (message too
+    old, already deleted, etc.) are silently dropped from the tracked list.
     """
     if cid is None:
         return
-    prev = await _get(cid, "last_menu_msg_id")
-    if not isinstance(prev, int) or prev == except_id:
-        return
-    try:
-        await context.bot.delete_message(chat_id=cid, message_id=prev)
-    except Exception as e:
-        logger.debug("bot.delete_previous_menu.failed", error=str(e))
+    ids = await _get(cid, "menu_msg_ids")
+    if not isinstance(ids, list):
+        ids = []
+    # Legacy single-id state — also try to clean it
+    legacy = await _get(cid, "last_menu_msg_id")
+    if isinstance(legacy, int) and legacy not in ids:
+        ids.append(legacy)
+        await _clear(cid, "last_menu_msg_id")
+    remaining: list[int] = []
+    for mid in ids:
+        if mid == except_id:
+            remaining.append(mid)  # keep — caller will edit it
+            continue
+        try:
+            await context.bot.delete_message(chat_id=cid, message_id=mid)
+        except Exception as e:
+            # Common case: "message to delete not found" / "too old" — drop it
+            logger.debug("bot.delete_previous_menu.failed",
+                         msg_id=mid, error=str(e))
+    if remaining != ids:
+        await _set(cid, "menu_msg_ids", remaining, ttl_s=24 * 3600)
 
 
 async def _send_screen(
@@ -2671,6 +2707,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     except Exception as e:
         # Already answered or expired — fine.
         logger.debug("bot.callback.answer_failed", error=str(e))
+
+    # v1.0.6 — Push the current screen onto the nav stack so "geri" can
+    # really go back. Only "screen-change" callbacks are tracked.
+    if head in _NAV_HEADS and head != "back":
+        cid = _chat_id(update)
+        await _nav_push(cid, data_str)
+
     await handler(update, context, args)
 
 
@@ -2679,6 +2722,82 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def _cb_noop(update, context, args):
     # handle_callback already called query.answer() — nothing to do here.
     pass
+
+
+# ───────── Navigation stack (v1.0.6 — "geri" = bir önceki ekran) ─────────
+#
+# Ephemeral state'te `nav_stack: ["main", "books", "book:3", …]` listesi tutulur.
+# handle_callback yeni bir screen-callback gelince mevcut callback'i push eder
+# (en fazla 10 derinlik). `back` ise pop edip son ekrana yönlendirir.
+#
+# Hangi callback'lerin "screen" sayıldığı: dispatch tablodaki çoğunluğu
+# (book, books, notes, note, etc). Yardımcı/eylem callback'leri (note_fav,
+# voice:save, settings:toggle, …) stack'e itilmez — yoksa "geri" eylemi
+# anlamsız hâle gelir.
+
+# Hangi callback head'leri navigasyon (screen-change) sayılır:
+_NAV_HEADS = {
+    "main", "books", "books_all", "book", "notes", "note", "note_full",
+    "sessions", "session_open", "session_notes", "open_sessions",
+    "start_pick", "recap", "stats", "search", "glossary", "quotes",
+    "shelves", "shelf", "newbook", "book_edit", "book_del", "settings",
+    "export", "notes_hub", "notes_cat", "notes_custom", "help",
+}
+
+
+async def _nav_push(cid: int | None, callback_data: str) -> None:
+    """Push a screen-callback onto the navigation stack. Capped at 10."""
+    if cid is None:
+        return
+    stack = await _get(cid, "nav_stack")
+    if not isinstance(stack, list):
+        stack = []
+    # Avoid pushing duplicate of the topmost entry (prevents back-loops)
+    if stack and stack[-1] == callback_data:
+        return
+    stack.append(callback_data)
+    if len(stack) > 10:
+        stack = stack[-10:]
+    await _set(cid, "nav_stack", stack, ttl_s=24 * 3600)
+
+
+async def _nav_pop(cid: int | None) -> str | None:
+    """Pop the *previous* screen off the nav stack. Returns its callback_data
+    or None if there's nothing to go back to.
+
+    The topmost entry is the *current* screen; we want the one before it.
+    """
+    if cid is None:
+        return None
+    stack = await _get(cid, "nav_stack")
+    if not isinstance(stack, list) or len(stack) < 2:
+        return None
+    # Drop current
+    stack.pop()
+    prev = stack[-1] if stack else None
+    await _set(cid, "nav_stack", stack, ttl_s=24 * 3600)
+    return prev
+
+
+async def _cb_back(update, context, args):
+    """v1.0.6 — "geri" gerçek "önceki ekran"a gider, ana menüye değil.
+
+    Nav stack'te bir önceki screen-callback varsa onu re-execute eder. Yoksa
+    (yeni başlangıç, state expired vb.) ana menüye düşer.
+    """
+    cid = _chat_id(update)
+    prev = await _nav_pop(cid) if cid else None
+    if prev:
+        # Re-dispatch the previous screen via handle_callback_proxy semantics.
+        parts = prev.split(":")
+        head, prev_args = parts[0], parts[1:]
+        handler = _CALLBACKS.get(head)
+        if handler:
+            await handler(update, context, prev_args)
+            return
+    # Fallback — no history or unknown handler
+    text, kb = await screen_main()
+    await _send_screen(update, context, text, kb)
 
 
 async def _cb_main(update, context, args):
@@ -3855,7 +3974,7 @@ async def _cb_note_share_do(update, context, args):
 _CALLBACKS: dict[str, Callable[..., Awaitable[None]]] = {
     "noop":                  _cb_noop,
     "main":                  _cb_main,
-    "back":                  _cb_main,
+    "back":                  _cb_back,
     "books":                 _cb_books,
     "books_all":             _cb_books_all,
     "book":                  _cb_book,

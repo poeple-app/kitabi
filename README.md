@@ -208,6 +208,28 @@ Telegram'ın `/` menüsünde her özelliğe kestirme komut var:
 - `/ayarlar` — Bot ayarları
 - `/yardim` — Kısa kullanım rehberi
 
+## Cold start'tan kaçınma (opsiyonel — botu hep sıcak tut)
+
+Cloud Run **scale-to-zero**: 15 dakika kullanılmazsa container'ı kapatıyor. Sonraki ilk tıklamada container ~10-15 saniyede yeniden başlıyor — kullanıcı tarafında "tıkladım, hiçbir şey olmadı" hissi.
+
+**Çözüm:** Cloud Scheduler 10 dakikada bir `/healthz` endpoint'ini çağırırsa container hep sıcak kalır.
+
+Cloud Shell'de bir kerelik komut:
+
+```bash
+gcloud scheduler jobs create http kitabi-keep-warm \
+  --location=europe-west1 \
+  --schedule="*/10 * * * *" \
+  --uri="$(gcloud run services describe kitabi --region=europe-west1 --format='value(status.url)')/healthz" \
+  --http-method=GET
+```
+
+**Maliyet:** 8640 istek/ay × ~1 sn vCPU = 144 dakika. Cloud Run free tier'ı 180,000 sn (~50 saat) → sınırın **çok altında**.
+
+**Etki:** İlk tıklama gecikmesi 10-15 sn → 100-400 ms.
+
+İstemiyorsan atla; bot yine çalışır, sadece uzun aradan sonraki ilk tıklama yavaş olur.
+
 ## Sürüm geçmişi — neler değişti
 
 ### v1.0.5 (en son)
