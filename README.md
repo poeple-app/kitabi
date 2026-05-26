@@ -40,7 +40,7 @@ curl -sL https://raw.githubusercontent.com/poeple-app/kitabi/main/update.sh | ba
 
 ### 🛠️ Tek sayfa manuel (~15 dk)
 
-Wizard'ın welcome ekranında "🛠️ Manuel kurulum" — `gcloud` komutlarıyla tek sayfa referans dokümantasyonu.
+Kurulum sayfasının karşılama ekranında "🛠️ Manuel kurulum" — `gcloud` komutlarıyla tek sayfa referans dokümantasyonu.
 
 ---
 
@@ -88,6 +88,109 @@ Wizard'ın welcome ekranında "🛠️ Manuel kurulum" — `gcloud` komutlarıyl
 | 🔄 **Şeffaf işlem mesajları** | Uzun süren AI çağrılarında (ASR, OCR, soru-cevap, PDF, export) "🔄 İşleniyor…" placeholder mesajı, bitince silinir |
 | ⚡ **Hızlı butonlar** | Chat input kutusunun altında her zaman görünen 4 kalıcı buton: 🟢 Oturumlar / ⏹️ Bitir / 📖 Kitaplar / ➕ Yeni |
 | 🪟 **Tek aktif menü** | Önceki menü mesajı her yeni ekrandan önce otomatik silinir — sohbet kalabalıklaşmıyor |
+
+## Örnek çıktılar (Yeraltından Notlar — Dostoyevski)
+
+Botun ne ürettiğini somut görmek için örnek bir okumadan derlenmiş kısa bir kesit. Aşağıdaki içerikler bir gerçek okuma oturumundan değil, **göstermelik mockup** — kendi okumanda yapı aynı olur, doldurma sen olursun.
+
+### 📕 Kitap detay ekranı (Telegram)
+
+```
+🏠 Ana › 📚 Kitaplarım › Yeraltından Notlar
+
+📖 Yeraltından Notlar  ·  YAN
+✍️ Fyodor Dostoyevski
+🏢 İletişim Yayınları · 2017
+🏷️ Roman › Felsefi Roman
+🌐 ISBN: 9789750507380
+📚 Raf: 📚 Felsefi roman
+
+📊 142 / 188 sayfa (%75)
+📅 6 oturum
+📝 23 not
+🔖 Durum: Okuyor
+
+🛒 İdefix · 67 TL
+   12 Mart 2026
+
+🏷️ #klasik #19yy #rus #varoluş
+
+[ Kişisel alanlar: ]
+  • Önerildi mi: Bir arkadaş (Defne)
+  • İlk okuma: Hayır
+```
+
+### 💬 Birkaç örnek not
+
+| Kod | Kategori | Sayfa | İçerik |
+|---|---|---|---|
+| `YAN003` | Alıntı | s.12 | *"Ben hasta bir adamım… Kötü bir adamım. Sevimsiz bir adamım."* |
+| `YAN007` | Kavram | s.34 | **Bilinç** — Yeraltı adamı için aşırı bilinç hastalıktır; çünkü eylem yapacak yerde sonsuza dek kendini izler. |
+| `YAN011` | Fikir | s.58 | Anlatıcının "iki kere ikinin dört etmesi" karşı çıkışı modern aklın sınırlarına dair en güçlü itirazlardan biri. |
+| `YAN014` | Yeni Bilgi | s.81 | 1864'te yazılan kitap, varoluşçuluğun "habercisi" sayılıyor — Sartre ve Camus'tan yarım yüzyıl önce. |
+| `YAN018` | 📷 Sahne | s.110 | *(fotoğraf eklenmiş)* "Kahvaltıda kahvemin yanında okurken çarpılarak işaretlediğim sayfa." |
+| `YAN021` | 🏷️ Refleksiyon | s.134 | (Kullanıcı tanımlı kategori) Bu adamın özgürlük diye sunduğu şey aslında kendi içine hapsolma. Belki bir tür Stockholm. |
+
+### 📤 Paylaşılabilir alıntı kartı (Klasik Twit — Crimson Pro)
+
+```
+┌──────────────────────────────────────────────┐
+│  K I T A B I              okuma günlüğü      │
+│                                              │
+│  "                                           │
+│                                              │
+│  İki kere iki dört eder, gene de iki         │
+│  kere iki beş eder bazen, hoş bir            │
+│  şeycik olabilir.                            │
+│                                              │
+│                                              │
+│  Yeraltından Notlar                          │
+│  Fyodor Dostoyevski                          │
+│  ──────────────────────────────────          │
+│  s.62 · YAN012          Faruk · 25.05.2026   │
+│                                              │
+│           github.com/poeple-app/kitabi       │
+└──────────────────────────────────────────────┘
+```
+
+### 📕 PDF okuma günlüğü — içindekiler özeti
+
+Kitap bittiğinde üretilen PDF'in iskeleti:
+
+1. **Kapak sayfası** — Yeraltından Notlar / Fyodor Dostoyevski / ⭐⭐⭐⭐⭐ / *"Modernliğin temellerini sarsan kısa bir başyapıt."* / 12 Mart - 28 Mayıs 2026
+2. **Künye** — yayınevi, ISBN, sayfa sayısı, satın alma bilgisi, etiketler, **Dostoyevski'nin diğer önemli eserleri** *(Suç ve Ceza, Karamazov Kardeşler, Budala — Gemini'den)*, kişisel alanlar
+3. **Okuma istatistikleri** —
+   - 6 oturum · 11 saat 23 dakika · 188 sayfa
+   - **Okuma takvimi** (Mart-Mayıs ay grid'i, yoğun günler koyu)
+   - Kategori dağılımı: 8 Alıntı, 5 Fikir, 4 Yeni Bilgi, 3 Kavram, 2 Kelime, 1 Özet
+4. **Okuma günlüğü** — 6 oturum kronolojik sırada, her oturumda alınan notlar (fotoğraflar sola float'lanmış olarak)
+5. **Favori Alıntılar** — bitirme ritüelinde seçtiğin 3 favori
+6. **Kelime ve Kavram Sözlüğü** — Notion-style etiket bulutu (Bilinç, Yeraltı, İrade, Aşırı bilinç, Determinizm…) + alfabetik liste + tanımlar
+7. **Kapanış** — bir bakışta tüm sayılar, oturum özetleri (kronolojik), tarih + imza
+
+### Örnek bir "foto + caption = soru" akışı
+
+Kullanıcı bir sayfayı çekti, yeşil fosforla **"İki kere iki dört eder"** cümlesinin altını çizdi. Caption olarak yazdı:
+> *"alıntıyı al + bu cümlenin felsefi anlamını da ekle"*
+
+Bot şunu üretti:
+
+```
+📷 Fotoğraf + talimat  ·  YAN  Yeraltından Notlar
+
+❓ alıntıyı al + bu cümlenin felsefi anlamını da ekle
+
+🤖 "İki kere iki dört eder, gene de iki kere iki beş eder
+   bazen, hoş bir şeycik olabilir."
+
+   AÇIKLAMA: Bu cümle, anlatıcının aklın mutlak otoritesine
+   karşı çıkışıdır. "İki kere iki" rasyonel sertlik, "beş"
+   ise iradenin keyfi seçimi — özgürlük matematik dışıdır.
+
+   Not olarak kaydedildi.
+```
+
+---
 
 ## Slash komutları
 
