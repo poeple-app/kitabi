@@ -8,25 +8,43 @@ Kitabi sesli notlar, sayfa fotoğrafları ve sorularla okuma sürecini yakalar; 
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org)
 [![Deploy](https://img.shields.io/badge/Deploy-Cloud%20Run-4285F4.svg)](https://cloud.google.com/run)
 
-## Hızlı kurulum
+## Kurulum — 3 yol
 
-**Tek tıklamayla kurulum sihirbazı**: [poeple-app.github.io/kitabi/wizard.html](https://poeple-app.github.io/kitabi/wizard.html)
+### ⚡ Hızlı kurulum (10-15 dk) — ÖNERİLEN
 
-Sihirbaz seni **9 adımda** elinden tutarak götürür:
+GitHub hesabı gerekmez. Cloud Shell'de tek komut + 3 değer yapıştırma.
 
-1. Telegram bot oluşturma
-2. Gemini API anahtarı alma
-3. GitHub fork (ya da ZIP yolu — fork gerek yok)
-4. Google Cloud Project + 4 API enable
-5. **Cloud Storage bucket** (SQLite kalıcılığı için)
-6. Secret Manager'a 4 anahtarı koyma
-7. Cloud Run'a tek-tık deploy
-8. `BOT_BASE_URL` set + redeploy → webhook
-9. (opsiyonel) Cloud Scheduler → proaktif hatırlatma
+```bash
+curl -sL https://raw.githubusercontent.com/poeple-app/kitabi/main/install.sh | bash
+```
 
-Toplam süre: **~40-55 dakika**. Toplam maliyet: **0 TL** (tüm servislerin ücretsiz katmanları yeter).
+**Adımlar:**
+1. [shell.cloud.google.com](https://shell.cloud.google.com) aç (Google ile giriş yap)
+2. Yukarıdaki komutu yapıştır, Enter
+3. Script senden 3 şey isteyecek:
+   - Telegram bot token (BotFather'dan, ~2 dk)
+   - Telegram user ID (@userinfobot'tan, ~1 dk)
+   - Gemini API key ([aistudio.google.com](https://aistudio.google.com/app/apikey), ~1 dk)
+4. ~4 dakika Cloud Run build → bot çalışıyor
 
-**Yazılım biliyorum, sihirbazı atlamak istiyorum** → wizard'ın welcome ekranındaki "🛠️ Manuel kurulum" link'ine bas, tek sayfada `gcloud` komutlarıyla bitir (~15-25 dk).
+**Önkoşullar:** Gmail hesabı + Google Cloud için bir kart (çekim yok, free tier).
+
+**Güncelleme zamanı geldiğinde:**
+```bash
+curl -sL https://raw.githubusercontent.com/poeple-app/kitabi/main/update.sh | bash
+```
+
+### 📋 Görsel sihirbaz (~45 dk)
+
+[poeple-app.github.io/kitabi/wizard.html](https://poeple-app.github.io/kitabi/wizard.html) — 9 adımı tarayıcıdan görsel olarak ilerlemek istersen. GitHub fork ile otomatik güncelleme dahil.
+
+### 🛠️ Tek sayfa manuel (~15 dk)
+
+Wizard'ın welcome ekranında "🛠️ Manuel kurulum" — `gcloud` komutlarıyla tek sayfa referans dokümantasyonu.
+
+---
+
+**Toplam maliyet (her 3 yol için):** 0 TL — tüm servislerin ücretsiz katmanlarında kalıyorsun.
 
 ## Ne yapar?
 

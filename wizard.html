@@ -558,7 +558,183 @@
     border: 1px solid var(--line);
   }
 
-  /* ───── Tools grid ───── */
+  /* ───── Path grid (v1.0.5 — 3 yol karşılaştırma) ───── */
+  .path-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin: 18px 0 26px;
+  }
+  .path-card {
+    position: relative;
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    background: var(--card);
+    padding: 22px 18px 18px;
+    display: flex; flex-direction: column;
+    transition: border-color .15s, transform .12s;
+  }
+  .path-card:hover { transform: translateY(-2px); }
+  .path-card.path-quick {
+    border-color: var(--accent);
+    box-shadow: 0 4px 16px rgba(122, 62, 31, 0.12);
+    background: linear-gradient(135deg, var(--card) 0%, #faf2e6 100%);
+  }
+  .path-badge {
+    position: absolute; top: -10px; right: 14px;
+    background: var(--accent); color: white;
+    padding: 4px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.4px;
+  }
+  .path-icon { font-size: 32px; margin-bottom: 6px; }
+  .path-title {
+    font-size: 17px; font-weight: 700; color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .path-time {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--accent); font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .path-features {
+    list-style: none; padding: 0; margin: 0 0 14px;
+    font-size: 13px; line-height: 1.6;
+  }
+  .path-features li {
+    padding: 2px 0;
+    color: var(--ink);
+  }
+  .path-features li code {
+    background: white; padding: 1px 5px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11.5px;
+    border: 1px solid var(--line);
+  }
+  .path-best-for {
+    font-size: 12px; line-height: 1.5;
+    color: var(--ink-soft);
+    padding: 10px 0 14px;
+    margin-top: auto;
+    border-top: 1px dashed var(--line);
+  }
+  .path-best-for strong { color: var(--ink); }
+
+  /* ───── Quick install screen ───── */
+  .pre-check {
+    display: flex; flex-direction: column; gap: 10px;
+    margin: 14px 0 24px;
+  }
+  .pre-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 14px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .pre-item:hover { border-color: var(--accent-soft); background: #fdfaf3; }
+  .pre-cb {
+    margin-top: 4px;
+    width: 18px; height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .pre-content { flex: 1; }
+  .pre-head {
+    font-size: 14px; line-height: 1.5; color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .pre-detail {
+    font-size: 12.5px; line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .pre-detail a { color: var(--accent); }
+
+  .big-cmd-block {
+    background: #1f1d1a; color: #f4ede1;
+    padding: 16px 18px; border-radius: 10px;
+    margin: 12px 0;
+    text-align: center;
+  }
+  .big-cmd-code {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    padding: 12px 14px;
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    text-align: left;
+  }
+  .big-cmd-text { color: #f4ede1; }
+
+  .timeline {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 14px 0 22px;
+  }
+  .tl-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 13px;
+  }
+  .tl-item:last-child { border-bottom: 0; }
+  .tl-item.highlight {
+    background: rgba(122, 62, 31, 0.05);
+    margin: 0 -10px; padding: 9px 10px;
+    border-radius: 6px;
+  }
+  .tl-step {
+    width: 32px; height: 28px;
+    background: var(--accent);
+    color: white;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 11.5px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .tl-item.highlight .tl-step { background: #c4651e; }
+  .tl-label { flex: 1; color: var(--ink); }
+  .tl-time {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-dim);
+    background: white; padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+  }
+
+  .step-link-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin: 14px 0 22px;
+  }
+  .step-link-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 14px;
+  }
+  .slc-icon { font-size: 24px; margin-bottom: 4px; }
+  .slc-title {
+    font-size: 14px; font-weight: 700; color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .slc-steps ol {
+    padding-left: 20px;
+    margin: 0;
+    font-size: 12.5px; line-height: 1.65;
+    color: var(--ink-soft);
+  }
+  .slc-steps a { color: var(--accent); }
+  .slc-steps code {
+    background: white; padding: 1px 5px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11.5px;
+    border: 1px solid var(--line);
+  }
+
+  /* ───── Tools grid (mevcut) ───── */
   .tools-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
     margin: 16px 0 22px;
@@ -719,8 +895,14 @@
     .nav-row { flex-direction: column; align-items: stretch; }
     .nav-row .troubleshoot-btn { text-align: center; justify-content: center; }
   }
+  @media (max-width: 760px) {
+    .path-grid { grid-template-columns: 1fr; }
+    .step-link-grid { grid-template-columns: 1fr; }
+  }
   @media (max-width: 520px) {
     .tools-grid { grid-template-columns: 1fr; }
+    .big-cmd-code { font-size: 11px; padding: 10px; }
+    .tl-item { flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -1244,11 +1426,247 @@
         <strong>🔒 Güvenlik:</strong> Aldığın token ve API key'leri bu sihirbaza yapıştırman <em>gerekmiyor</em>. Hepsi doğrudan senin Google Cloud Secret Manager'ına gidiyor. Sihirbaz onları okumuyor.
       </div>
 
-      <div class="nav-row" style="justify-content: center; flex-direction: column; gap: 10px; align-items: center;">
-        <button class="btn btn-primary btn-big" onclick="goTo('telegram')">Hadi başlayalım →</button>
-        <button class="btn-link" onclick="goTo('manual')">
-          🛠️ Yazılım biliyorum, tek sayfalık manuel kurulum özetine git →
-        </button>
+      <!-- ─── 3 YOL KARŞILAŞTIRMA (v1.0.5) ─── -->
+      <h2 class="section-h">Kurulum için 3 yol</h2>
+      <p class="input-help">Hangi yolu seçeceğin teknik konfora bağlı. Sonradan istediğin yola geçebilirsin — hiçbir karar geri dönülmez değil.</p>
+      <div class="path-grid">
+
+        <div class="path-card path-quick">
+          <div class="path-badge">⚡ Önerilen</div>
+          <div class="path-icon">⚡</div>
+          <div class="path-title">Hızlı Kurulum</div>
+          <div class="path-time">~10-15 dakika</div>
+          <ul class="path-features">
+            <li>✅ Bir komut yapıştır, gerisini bot halleder</li>
+            <li>✅ Cloud Shell'de otomatik çalışır</li>
+            <li>✅ GitHub hesabı <strong>gerekmez</strong></li>
+            <li>✅ IAM hatalarını otomatik çözer</li>
+            <li>✅ Telegram + Gemini key'i sadece soruda yapıştırırsın</li>
+          </ul>
+          <div class="path-best-for">
+            <strong>Kim için:</strong> Hiç teknik bilgisi olmayan,<br/>uğraşmak istemeyen herkes.
+          </div>
+          <button class="btn btn-primary btn-big" onclick="goTo('quick')" style="width:100%;margin-top:8px;">
+            ⚡ Hızlı Kuruluma Başla →
+          </button>
+        </div>
+
+        <div class="path-card">
+          <div class="path-icon">📋</div>
+          <div class="path-title">Normal Wizard</div>
+          <div class="path-time">~45-55 dakika</div>
+          <ul class="path-features">
+            <li>📖 Her adımı görsel olarak görürsün</li>
+            <li>🧠 Cloud'un nasıl çalıştığını öğrenirsin</li>
+            <li>✅ GitHub fork → otomatik güncelleme</li>
+            <li>⚠️ 9 adım, IAM ekleme manuel</li>
+            <li>🛠️ Tarayıcıda ekran-ekran ilerleme</li>
+          </ul>
+          <div class="path-best-for">
+            <strong>Kim için:</strong> Adımları görüp<br/>öğrenmek isteyen.
+          </div>
+          <button class="btn btn-secondary" onclick="goTo('telegram')" style="width:100%;margin-top:8px;">
+            📋 Wizard'a Başla →
+          </button>
+        </div>
+
+        <div class="path-card">
+          <div class="path-icon">🛠️</div>
+          <div class="path-title">Tek Sayfa (Manuel)</div>
+          <div class="path-time">~15-25 dakika</div>
+          <ul class="path-features">
+            <li>💻 <code>gcloud</code> komutlarını teker teker</li>
+            <li>⚙️ Kendi region/config tercihlerin</li>
+            <li>📝 Referans dokümantasyon tarzı</li>
+            <li>⚠️ Linux/terminal bilgisi gerek</li>
+          </ul>
+          <div class="path-best-for">
+            <strong>Kim için:</strong> Yazılımcı, custom kurulum<br/>yapmak isteyen.
+          </div>
+          <button class="btn btn-secondary" onclick="goTo('manual')" style="width:100%;margin-top:8px;">
+            🛠️ Manuel Sayfaya Git →
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ QUICK INSTALL (v1.0.5) ═══════════════════════ -->
+    <div class="card screen" data-step="quick">
+      <div class="step-eyebrow">⚡ Hızlı Kurulum</div>
+      <h1 class="step-title">10 dakikada Kitabi</h1>
+      <p class="lede" style="max-width: none;">
+        Bu yol, Google'ın size sunduğu hazır komut penceresinde ("Cloud Shell") tek bir komut çalıştırmaktan ibaret. Komut çalışırken size 3 yerde soru soracak — onları yapıştırırsanız gerisini script halleder. <strong>GitHub hesabı gerekmiyor.</strong>
+      </p>
+
+      <!-- ─── A) Önkoşullar ─── -->
+      <h2 class="section-h">A) Başlamadan önce hazırlıkların</h2>
+      <p class="input-help">Bu 5 maddeyi tek tek kontrol et. Hepsi tamamsa devam edebilirsin.</p>
+
+      <div class="pre-check">
+        <label class="pre-item">
+          <input type="checkbox" class="pre-cb" />
+          <div class="pre-content">
+            <div class="pre-head">📧 <strong>Gmail hesabım var ve giriş yapmışım</strong></div>
+            <div class="pre-detail">
+              Hesabın yoksa: <a href="https://accounts.google.com/signup" target="_blank">accounts.google.com/signup</a> — telefon doğrulamayla 3 dakika.
+              Zaten varsa <a href="https://myaccount.google.com" target="_blank">myaccount.google.com</a>'a giderek "şu hesapla giriş yaptım" diye emin ol.
+            </div>
+          </div>
+        </label>
+
+        <label class="pre-item">
+          <input type="checkbox" class="pre-cb" />
+          <div class="pre-content">
+            <div class="pre-head">💳 <strong>Kredi/banka kartım yanımda</strong></div>
+            <div class="pre-detail">
+              Google "ücretsiz kullanım" için kart bilgisi istiyor (fraud önleme). <strong>Senden para çekilmeyecek</strong> — Kitabi'nin kullandığı servisler tamamen ücretsiz katmanda. Prepaid (önödemeli) kart da olur, sanal kart da.
+            </div>
+          </div>
+        </label>
+
+        <label class="pre-item">
+          <input type="checkbox" class="pre-cb" />
+          <div class="pre-content">
+            <div class="pre-head">📱 <strong>Telefonumda Telegram kurulu ve giriş yapmışım</strong></div>
+            <div class="pre-detail">
+              Yoksa: <a href="https://telegram.org" target="_blank">telegram.org</a>'dan indirip telefon numarasıyla 2 dakikada giriş yap. Sonra Telegram'ı bilgisayar tarayıcısında da açabilirsin (<a href="https://web.telegram.org" target="_blank">web.telegram.org</a>) — kopyala-yapıştır kolay olur.
+            </div>
+          </div>
+        </label>
+
+        <label class="pre-item">
+          <input type="checkbox" class="pre-cb" />
+          <div class="pre-content">
+            <div class="pre-head">💻 <strong>Bilgisayar başındayım (telefon da yanımda olsun)</strong></div>
+            <div class="pre-detail">
+              Mobilde de çalışır ama Cloud Shell penceresi küçük gözükür. Telefon Telegram için kullanılacak.
+            </div>
+          </div>
+        </label>
+
+        <label class="pre-item">
+          <input type="checkbox" class="pre-cb" />
+          <div class="pre-content">
+            <div class="pre-head">⏱️ <strong>15 dakika boş zamanım var</strong></div>
+            <div class="pre-detail">
+              Yarıda kesilirse sorun değil, script kaldığı yerden devam eder. Ama bir oturuşta bitirmek daha rahat.
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- ─── B) Cloud Shell nedir ─── -->
+      <h2 class="section-h">B) Cloud Shell nedir?</h2>
+      <p class="lede" style="max-width: none;">
+        Cloud Shell, <strong>tarayıcının içinde açılan, Google'ın size hazır verdiği bir komut yazma penceresi</strong>. Hiçbir program indirmeden, bilgisayara hiçbir şey kurmadan kullanılır. Bizim scriptimiz bu pencerede çalışacak.
+      </p>
+      <div class="success-box">
+        <strong>📌 Önemli:</strong> Cloud Shell tamamen ücretsiz, otomatik kapanır, ekran görüntülerinden gizli şeyler sızmaz. Yine de dikkat: yapıştırdığın token'ları başkasına göstermemen iyi olur.
+      </div>
+
+      <!-- ─── C) Tek komut ─── -->
+      <h2 class="section-h">C) Yapacağın tek komut</h2>
+      <p class="input-help">Aşağıdaki kutuyu kopyala, Cloud Shell'i aç, oraya yapıştır ve Enter'a bas.</p>
+
+      <div class="big-cmd-block">
+        <div class="big-cmd-code" id="quickCmd"><span class="big-cmd-text">curl -sL https://raw.githubusercontent.com/poeple-app/kitabi/main/install.sh | bash</span></div>
+        <button class="btn btn-primary" onclick="copyQuickCmd(event)" style="margin-top:8px;">📋 Komutu Kopyala</button>
+      </div>
+
+      <div class="nav-row" style="justify-content: center; margin: 20px 0;">
+        <a href="https://shell.cloud.google.com" target="_blank" class="btn btn-primary btn-big">
+          🚀 Cloud Shell'i Aç →
+        </a>
+      </div>
+      <p class="sub-caption">Cloud Shell ilk açılışta "Authorize" diye sorar, kabul et. Sonra siyah ekranlı bir terminal açılacak. Kopyaladığın komutu oraya sağ tık + yapıştır ya da Ctrl+Shift+V ile yapıştır.</p>
+
+      <!-- ─── D) Script ne yapacak (timeline) ─── -->
+      <h2 class="section-h">D) Script çalışırken ne olacak</h2>
+      <p class="input-help">Komutu yapıştırıp Enter'a basınca sırasıyla şunlar yapılacak. Sen sadece <strong>3 yerde</strong> bir şey yapıştıracaksın (D adımları).</p>
+
+      <div class="timeline">
+        <div class="tl-item"><span class="tl-step">1</span> <span class="tl-label">Billing hesabı seç</span> <span class="tl-time">~5 sn</span></div>
+        <div class="tl-item"><span class="tl-step">2</span> <span class="tl-label">GCP proje yarat</span> <span class="tl-time">~20 sn</span></div>
+        <div class="tl-item"><span class="tl-step">3</span> <span class="tl-label">4 API enable et</span> <span class="tl-time">~60 sn</span></div>
+        <div class="tl-item highlight"><span class="tl-step">4a</span> <span class="tl-label">📱 Telegram bot token (sen yapıştırırsın)</span> <span class="tl-time">~2 dk</span></div>
+        <div class="tl-item highlight"><span class="tl-step">4b</span> <span class="tl-label">📱 Telegram user ID (sen yapıştırırsın)</span> <span class="tl-time">~1 dk</span></div>
+        <div class="tl-item highlight"><span class="tl-step">4c</span> <span class="tl-label">🔑 Gemini API key (sen yapıştırırsın)</span> <span class="tl-time">~1 dk</span></div>
+        <div class="tl-item"><span class="tl-step">5</span> <span class="tl-label">Cloud Storage bucket yarat</span> <span class="tl-time">~5 sn</span></div>
+        <div class="tl-item"><span class="tl-step">6</span> <span class="tl-label">4 secret yaz</span> <span class="tl-time">~5 sn</span></div>
+        <div class="tl-item"><span class="tl-step">7</span> <span class="tl-label">IAM yetkileri</span> <span class="tl-time">~5 sn</span></div>
+        <div class="tl-item"><span class="tl-step">8</span> <span class="tl-label">Cloud Run'a deploy</span> <span class="tl-time">~4 dk</span></div>
+        <div class="tl-item"><span class="tl-step">9</span> <span class="tl-label">Webhook'u Telegram'a tanıt</span> <span class="tl-time">~5 sn</span></div>
+      </div>
+
+      <!-- ─── E) 3 manuel link ─── -->
+      <h2 class="section-h">E) Script seni durdurduğunda gideceğin 3 yer</h2>
+      <p class="input-help">Script Adım 4'te 3 değer isteyecek. Bunları aşağıdaki 3 yerden alacaksın. Sırası geldiğinde script "şuraya git, şunu yap" diye yönlendirecek — şimdi sadece bir göz at.</p>
+
+      <div class="step-link-grid">
+
+        <div class="step-link-card">
+          <div class="slc-icon">📱</div>
+          <div class="slc-title">A — Telegram bot token</div>
+          <div class="slc-steps">
+            <ol>
+              <li><a href="https://t.me/BotFather" target="_blank">t.me/BotFather</a></li>
+              <li><code>/newbot</code> yaz</li>
+              <li>Bot'a iki ad ver (görünür ad + username)</li>
+              <li>Verdiği <code>123456:ABCdef...</code> token'ı kopyala</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="step-link-card">
+          <div class="slc-icon">📱</div>
+          <div class="slc-title">B — Telegram user ID</div>
+          <div class="slc-steps">
+            <ol>
+              <li><a href="https://t.me/userinfobot" target="_blank">t.me/userinfobot</a></li>
+              <li><code>/start</code> yaz</li>
+              <li>"Id: 123456789" diye dönecek</li>
+              <li>Sadece sayıyı kopyala</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="step-link-card">
+          <div class="slc-icon">🔑</div>
+          <div class="slc-title">C — Gemini API key</div>
+          <div class="slc-steps">
+            <ol>
+              <li><a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a></li>
+              <li>"Create API key" tıkla</li>
+              <li>Çıkan <code>AIza...</code> ile başlayan key'i kopyala</li>
+              <li>Aynı sekmede sakla — gerekirse tekrar bakarsın</li>
+            </ol>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ─── F) Sorun olursa ─── -->
+      <h2 class="section-h">F) Bir şey ters giderse</h2>
+      <div class="info">
+        <strong>Script bir hatada durursa:</strong> hata mesajını oku, çoğu hatada "şu URL'i aç, şunu yap, geri dön" diye yönlendiriyor. Yine takılırsan:
+        <ul style="margin-top:8px;">
+          <li>Bu sihirbazın <strong>📋 Normal Wizard</strong> yoluna geç — adımlar görsel olarak anlatılıyor.</li>
+          <li><strong>Cloud Shell'i kapatma!</strong> Açık kalsın, <code>cat ~/.kitabi-install-state</code> ile script'in nerede kaldığını görebilirsin.</li>
+          <li>TROUBLESHOOTING.md'de yaygın hatalar listeli.</li>
+        </ul>
+      </div>
+
+      <div class="nav-row" style="justify-content: space-between; margin-top: 24px;">
+        <button class="btn btn-secondary" onclick="goTo('welcome')">← Geri</button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" onclick="goTo('telegram')">
+            Normal wizard'a geç →
+          </button>
+          <a href="https://shell.cloud.google.com" target="_blank" class="btn btn-primary">
+            🚀 Cloud Shell'i Aç
+          </a>
+        </div>
       </div>
     </div>
 
@@ -3273,6 +3691,11 @@ function copyText(text, ev) {
 }
 function copyUpdateMaxInstancesCmd(ev) {
   const cmd = document.getElementById('updateMaxInstancesCmd').textContent;
+  navigator.clipboard.writeText(cmd);
+  flashCopy(ev?.target);
+}
+function copyQuickCmd(ev) {
+  const cmd = document.getElementById('quickCmd').textContent;
   navigator.clipboard.writeText(cmd);
   flashCopy(ev?.target);
 }
