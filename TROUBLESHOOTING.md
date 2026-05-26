@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="kitabilogo.png" alt="Kitabi" width="220" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="kitabilogo-white.png">
+    <img src="kitabilogo.png" alt="Kitabi" width="220" />
+  </picture>
 </p>
 
 # Kitabi Kurulum — Sorun Giderme Rehberi

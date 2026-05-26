@@ -4,6 +4,24 @@
 <meta charset="utf-8" />
 <title>{{ book.title }} — Kitabi Okuma Günlüğü</title>
 <link rel="stylesheet" href="journal.css" />
+{# v1.0.6 — Logo'yu CSS'e data URI olarak enjekte et; her sayfa footer'ı
+   .brand::before üzerinden bunu kullanır. Logo eksikse rule sessizce
+   çalışmaz (boş URL). Künye sayfasındaki büyük ikon da aynı URI'yi kullanır. #}
+{% if kitabi_logo_uri %}
+<style>
+  .page-footer .brand::before {
+    content: "";
+    display: inline-block;
+    width: 4mm; height: 4mm;
+    margin-right: 2mm;
+    vertical-align: -0.7mm;
+    background: url("{{ kitabi_logo_uri }}") no-repeat center / contain;
+  }
+  .section-logo {
+    background: url("{{ kitabi_logo_uri }}") no-repeat center / contain;
+  }
+</style>
+{% endif %}
 </head>
 <body>
 
@@ -11,7 +29,11 @@
 <div class="page cover">
   <div class="page-inner">
     <div class="cover-top">
+      {% if kitabi_logo_white_uri %}
+      <img class="cover-logo" src="{{ kitabi_logo_white_uri }}" alt="Kitabi" />
+      {% else %}
       <div class="cover-brand">Kitabi</div>
+      {% endif %}
       <div class="cover-subbrand">— okuma günlüğü —</div>
     </div>
 
@@ -51,6 +73,9 @@
 {# ───────────────────────── PAGE 2 — KÜNYE (rich metadata) ───────────────────────── #}
 <div class="page">
   <div class="page-inner">
+    {% if kitabi_logo_uri %}
+    <div class="section-logo" aria-label="Kitabi"></div>
+    {% endif %}
     <h1 class="page-title">Künye</h1>
 
     <div class="meta-grid">

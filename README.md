@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="kitabilogo.png" alt="Kitabi" width="320" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="kitabilogo-white.png">
+    <img src="kitabilogo.png" alt="Kitabi" width="220" />
+  </picture>
 </p>
 
 # Kitabi
@@ -96,6 +99,23 @@ Kurulum sayfasının karşılama ekranında "🛠️ Manuel kurulum" — `gcloud
 ## Örnek çıktılar (Yeraltından Notlar — Dostoyevski)
 
 Botun ne ürettiğini somut görmek için örnek bir okumadan derlenmiş kısa bir kesit. Aşağıdaki içerikler bir gerçek okuma oturumundan değil, **göstermelik mockup** — kendi okumanda yapı aynı olur, doldurma sen olursun.
+
+<table>
+  <tr>
+    <td align="center" width="180">
+      <a href="mockups/yeralt-notlar.html">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/PDF_file_icon.svg/120px-PDF_file_icon.svg.png" width="64" alt="PDF" /><br/>
+        <strong>📕 Örnek günlük</strong><br/>
+        <sub>Tarayıcıda aç → tüm sayfaları gör → istersen Ctrl+P ile PDF olarak indir</sub>
+      </a>
+    </td>
+    <td>
+      <b>Yeraltından Notlar</b> — Dostoyevski<br/>
+      <i>İletişim Yayınları, 2017 · 188 sayfa · 6 oturum · 23 not</i><br/><br/>
+      Bot bittiğinde böyle bir PDF üretiyor: <b>kapak</b> (rating + tek-cümlelik review) → <b>künye</b> (yayınevi + yazarın diğer 3 kitabı + senin özel alanların) → <b>istatistik</b> (okuma takvimi + kategori dağılımı + kelime/kavram sayısı) → <b>oturum kronolojisi</b> (alıntılar / fikirler / kavramlar zaman sırasıyla) → <b>favori alıntılar</b> → <b>kelime + kavram sözlüğü</b> (Notion-style etiket bulutu + tanımlar) → <b>kapanış sayfası</b>.
+    </td>
+  </tr>
+</table>
 
 ### 📕 Kitap detay ekranı (Telegram)
 

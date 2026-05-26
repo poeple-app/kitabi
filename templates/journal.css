@@ -96,6 +96,25 @@ html, body {
   color: rgba(245, 233, 212, .7);
   margin-bottom: 4mm;
 }
+/* v1.0.6 — Logo on the dark cover (white variant). Falls back to .cover-brand
+   text if the inline data-uri couldn't be loaded. */
+.cover-logo {
+  display: block;
+  width: 38mm;
+  height: auto;
+  margin: 0 auto 4mm;
+  opacity: 0.92;
+}
+/* Small logo above the Künye page title — gives every interior section a
+   subtle brand touch without crowding the layout. */
+.section-logo {
+  width: 10mm; height: 10mm;
+  margin: 0 0 2mm;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: left center;
+  opacity: 0.75;
+}
 .cover-subbrand {
   font-size: 11pt;
   font-style: italic;

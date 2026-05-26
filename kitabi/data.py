@@ -1573,6 +1573,55 @@ _jinja_env = Environment(
 )
 
 
+# v1.0.6 — Kitabi logosu PDF render'ında inline (base64 data URI) olarak
+# template'e geçer. Container'da /app/kitabilogo.png olarak; lokal dev'de
+# paket kökünün bir üstünde. İlk okumada cache'lenir.
+_LOGO_BASE_PATHS = [
+    Path("/app/kitabilogo.png"),
+    Path(__file__).resolve().parent.parent / "kitabilogo.png",
+]
+_LOGO_BASE_WHITE_PATHS = [
+    Path("/app/kitabilogo-white.png"),
+    Path(__file__).resolve().parent.parent / "kitabilogo-white.png",
+]
+_kitabi_logo_uri_cache: str | None = None
+_kitabi_logo_white_uri_cache: str | None = None
+
+
+def _file_to_data_uri(paths: list[Path]) -> str | None:
+    """Read the first existing file from `paths` and return a data: URI."""
+    import base64
+    for p in paths:
+        if p.exists():
+            try:
+                blob = p.read_bytes()
+                b64 = base64.b64encode(blob).decode("ascii")
+                return f"data:image/png;base64,{b64}"
+            except Exception as e:
+                logger.warning("data.logo.read_failed", path=str(p), error=str(e))
+    return None
+
+
+def _load_kitabi_logo_uri() -> str | None:
+    """Cache-on-first-call: load kitabilogo.png as a data URI."""
+    global _kitabi_logo_uri_cache
+    if _kitabi_logo_uri_cache is None:
+        _kitabi_logo_uri_cache = _file_to_data_uri(_LOGO_BASE_PATHS)
+    return _kitabi_logo_uri_cache
+
+
+def _load_kitabi_logo_white_uri() -> str | None:
+    """Cache-on-first-call: load kitabilogo-white.png as a data URI.
+
+    The white variant is used on the dark cover page where the black logo
+    wouldn't be readable.
+    """
+    global _kitabi_logo_white_uri_cache
+    if _kitabi_logo_white_uri_cache is None:
+        _kitabi_logo_white_uri_cache = _file_to_data_uri(_LOGO_BASE_WHITE_PATHS)
+    return _kitabi_logo_white_uri_cache
+
+
 def _compute_book_stats(
     book: Book, sessions: list[Session], notes: list[Note]
 ) -> dict[str, Any]:
@@ -2007,6 +2056,8 @@ async def render_pdf(book_id: int) -> bytes:
                 author_other_books=list(getattr(book, "author_other_books", None) or []),
                 extra_fields=dict(getattr(book, "extra_fields", None) or {}),
                 photo_data_uris=photo_data_uris,
+                kitabi_logo_uri=_load_kitabi_logo_uri(),
+                kitabi_logo_white_uri=_load_kitabi_logo_white_uri(),
                 generated_at=to_local(utcnow()),
                 to_local=to_local,
             )

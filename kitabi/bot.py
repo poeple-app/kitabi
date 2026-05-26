@@ -1,4 +1,4 @@
-"""Telegram bot logic for Kitabi (v1.0.6)."""
+"""Telegram bot logic for Kitabi (v1.0.7)."""
 
 from __future__ import annotations
 
