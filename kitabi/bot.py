@@ -1,4 +1,4 @@
-"""Telegram bot logic for Kitabi (v1.0.7)."""
+"""Telegram bot logic for Kitabi (v1.0.8)."""
 
 from __future__ import annotations
 
@@ -3450,6 +3450,7 @@ async def _cb_voice(update, context, args):
         session = await data.get_session(sess_id) if sess_id else None
         if session and session.ended_at is None:
             text, kb = await screen_active_session(session)
+            await _send_screen(update, context, text, kb)
         else:
             await _send_main_menu(update, context)
 

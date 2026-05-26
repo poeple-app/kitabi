@@ -246,7 +246,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(
     title="Kitabi",
     description="Personal reading-tracker Telegram bot",
-    version="1.0.7",
+    version="1.0.8",
     lifespan=lifespan,
 )
 
@@ -257,7 +257,7 @@ app = FastAPI(
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     """Liveness probe for Cloud Run / monitors."""
-    return {"status": "ok", "version": "1.0.7"}
+    return {"status": "ok", "version": "1.0.8"}
 
 
 def _verify_webhook_secret(request: Request) -> None:
