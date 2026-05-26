@@ -1149,12 +1149,17 @@ async def search_notes(query: str, limit: int = 30) -> list[tuple[Note, Book]]:
 
 
 async def list_glossary() -> list[tuple[Note, Book]]:
-    """All WORD + CONCEPT notes, alphabetical by transcript."""
+    """All WORD-category notes (sözlük), alphabetical by transcript.
+
+    v1.0.6: Previously included CONCEPT too. Now strict — sözlük sadece
+    "Kelime" demek. Kavram için Notlarım hub'ında "🧠 Kavram" butonu var.
+    PDF render'ı `glossary_notes` listesini ayrıca türetir (WORD + CONCEPT).
+    """
     def _impl() -> list[tuple[Note, Book]]:
         with db_session() as s:
             q = (
                 select(Note)
-                .where(Note.category.in_([Category.WORD, Category.CONCEPT]))
+                .where(Note.category == Category.WORD)
                 .order_by(func.lower(Note.transcript))
             )
             notes = list(s.scalars(q).all())
@@ -1239,6 +1244,41 @@ async def notes_by_category(category: Category) -> list[tuple[Note, Book]]:
                 if b:
                     results.append((n, b))
             return results
+    return await asyncio.to_thread(_impl)
+
+
+async def list_all_favorites() -> list[tuple[Note, Book]]:
+    """All favorited notes across EVERY category. Newest first.
+
+    v1.0.6: Previously `list_quotes(favorites_only=True)` only returned
+    QUOTE-category favorites — meaning a user who starred a Kavram or Fikir
+    note wouldn't see it in the Telegram "Favoriler" menu. Now this function
+    returns all is_favorite=True notes regardless of category.
+    """
+    def _impl() -> list[tuple[Note, Book]]:
+        with db_session() as s:
+            q = (
+                select(Note)
+                .where(Note.is_favorite.is_(True))
+                .order_by(Note.created_at.desc())
+            )
+            notes = list(s.scalars(q).all())
+            results: list[tuple[Note, Book]] = []
+            for n in notes:
+                b = s.get(Book, n.book_id)
+                if b:
+                    results.append((n, b))
+            return results
+    return await asyncio.to_thread(_impl)
+
+
+async def count_all_favorites() -> int:
+    """Quick count of is_favorite=True notes (any category)."""
+    def _impl() -> int:
+        with db_session() as s:
+            return int(s.scalar(
+                select(func.count(Note.id)).where(Note.is_favorite.is_(True))
+            ) or 0)
     return await asyncio.to_thread(_impl)
 
 

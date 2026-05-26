@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="kitabilogo.png" alt="Kitabi" width="320" />
+</p>
+
 # Kitabi
 
 > Telegram'da yaşayan, kişisel okuma günlüğü botun.

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="kitabilogo.png" alt="Kitabi" width="220" />
+</p>
+
 # Kitabi Kurulum — Sorun Giderme Rehberi
 
 Bu rehber kurulumun her adımında karşılaşabileceğin sorunlar için. Baştan sona okumana gerek yok — kurulumda hangi adımda takıldıysan sadece o bölüme bak.

@@ -24,6 +24,7 @@ WORKDIR /app
 # `kitabi/` package directory at build time, so all of them must be present
 # before the install step.
 COPY pyproject.toml README.md ./
+COPY kitabilogo.png ./
 COPY kitabi/ ./kitabi/
 COPY templates/ ./templates/
 

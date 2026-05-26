@@ -6,6 +6,7 @@ import functools
 import html
 import io
 import os
+import pathlib
 import urllib.parse
 import zipfile
 from datetime import datetime, timezone, timedelta
@@ -188,6 +189,29 @@ async def _delete_previous_menu(
                          msg_id=mid, error=str(e))
     if remaining != ids:
         await _set(cid, "menu_msg_ids", remaining, ttl_s=24 * 3600)
+
+
+# v1.0.6 — Kitabi logosu. Dockerfile container'a /app/kitabilogo.png olarak
+# kopyalıyor. Lokal dev'de bot.py'nin paketinin bir üstünde (repo root'unda).
+# İlk send_photo upload'undan sonra Telegram'ın verdiği file_id'yi modül
+# state'inde cache'liyoruz; sonraki ana-menü çağrılarında upload tekrarlanmaz.
+_LOGO_PATHS = [
+    pathlib.Path("/app/kitabilogo.png"),
+    pathlib.Path(__file__).resolve().parent.parent / "kitabilogo.png",
+]
+_LOGO_FILE_ID: str | None = None
+
+
+def _logo_send_arg():
+    """Return whatever `send_photo(photo=...)` will accept:
+    cached file_id string, or an open file handle, or None if missing.
+    """
+    if _LOGO_FILE_ID:
+        return _LOGO_FILE_ID
+    for p in _LOGO_PATHS:
+        if p.exists():
+            return p.open("rb")
+    return None
 
 
 async def _send_screen(
@@ -570,36 +594,35 @@ async def screen_notes_hub() -> ScreenResult:
     settings = await data.get_settings()
     custom_cats = list(getattr(settings, "custom_categories", None) or [])
     all_quotes_n = counts.get("QUOTE", 0)
-    fav_quotes_n = 0
-    if all_quotes_n:
-        favs = [q for q, _ in await data.list_quotes(favorites_only=True)]
-        fav_quotes_n = len(favs)
+    # v1.0.6: favori sayısı artık tüm kategorilerden — sadece QUOTE değil
+    fav_all_n = await data.count_all_favorites()
 
     text = (
         "🏠 Ana › 📝 <b>Notlarım</b>\n\n"
-        f"💬 Alıntı: <b>{all_quotes_n}</b>  ·  ⭐ {fav_quotes_n} favori\n"
+        f"💬 Alıntı: <b>{all_quotes_n}</b>\n"
         f"💡 Fikir: <b>{counts.get('IDEA', 0)}</b>\n"
         f"📚 Yeni Bilgi: <b>{counts.get('NEW_INFO', 0)}</b>\n"
         f"🧠 Kavram: <b>{counts.get('CONCEPT', 0)}</b>\n"
         f"🔤 Kelime: <b>{counts.get('WORD', 0)}</b>\n"
-        f"📋 Özet: <b>{counts.get('SUMMARY', 0)}</b>"
+        f"📋 Özet: <b>{counts.get('SUMMARY', 0)}</b>\n"
+        f"⭐ Favori (tüm kategoriler): <b>{fav_all_n}</b>"
     )
     if custom_cats:
         text += "\n\n<i>Kendi kategorilerin:</i>"
         for cc in custom_cats:
             n = custom_counts.get(cc, 0)
             text += f"\n  • {esc(cc)}: <b>{n}</b>"
-    text += "\n\n<i>Kelime + Kavram için ayrıca ana menüde 📖 Sözlük var.</i>"
+    text += "\n\n<i>Sözlük sadece Kelime kategorisini gösterir; Kavram için 🧠 Kavram butonu.</i>"
 
     kb: list[list[InlineKeyboardButton]] = [
         [BTN(f"💬 Alıntılar ({all_quotes_n})", "quotes:all"),
-         BTN(f"⭐ Favori ({fav_quotes_n})",     "quotes:fav")],
+         BTN(f"⭐ Favoriler ({fav_all_n})",     "quotes:fav")],
         [BTN(f"💡 Fikir ({counts.get('IDEA', 0)})",         _cb("notes_cat", "IDEA")),
          BTN(f"📚 Yeni Bilgi ({counts.get('NEW_INFO', 0)})", _cb("notes_cat", "NEW_INFO"))],
         [BTN(f"🧠 Kavram ({counts.get('CONCEPT', 0)})",     _cb("notes_cat", "CONCEPT")),
          BTN(f"📋 Özet ({counts.get('SUMMARY', 0)})",       _cb("notes_cat", "SUMMARY"))],
         [BTN(f"🔤 Kelime ({counts.get('WORD', 0)})",        _cb("notes_cat", "WORD")),
-         BTN("📖 Sözlük (Kel.+Kav.)", "glossary")],
+         BTN("📖 Sözlük (sadece Kelime)", "glossary")],
     ]
     # User-defined custom categories
     if custom_cats:
@@ -1429,27 +1452,37 @@ async def screen_search_results(query: str, limit: int = _LIST_PAGE_SIZE) -> Scr
 
 
 async def screen_glossary(limit: int = _LIST_PAGE_SIZE) -> ScreenResult:
+    """v1.0.6: sözlük artık sadece Kelime kategorisini gösterir.
+    Kavram için Notlarım > 🧠 Kavram butonu var.
+    """
     entries = await data.list_glossary()
     total = len(entries)
-    lines = [f"🏠 Ana › 📖 <b>Sözlük</b>  ({total} terim)", ""]
+    lines = [
+        f"🏠 Ana › 📖 <b>Sözlük</b>  ({total} kelime)", "",
+        "<i>Sadece Kelime kategorisi. Kavram için Notlarım > 🧠 Kavram.</i>",
+        "",
+    ]
     if total == 0:
-        lines.append("<i>(Henüz Kelime/Kavram notun yok.)</i>")
-        return "\n".join(lines), KB([_nav_row()])
+        lines.append("<i>(Henüz Kelime notun yok.)</i>")
+        return "\n".join(lines), KB([
+            [BTN("🧠 Kavram listesine git", _cb("notes_cat", "CONCEPT"))],
+            _nav_row(),
+        ])
     showing = min(limit, total)
     lines.append(f"{showing}/{total} gösteriliyor\n")
     kb = []
     for note, book in entries[:limit]:
-        marker = "🔤" if note.category == Category.WORD else "🧠"
         term = note.transcript[:40]
-        lines.append(f"{marker} <b>{esc(term)}</b>  ·  <i>{esc(book.short_code)}</i>")
+        lines.append(f"🔤 <b>{esc(term)}</b>  ·  <i>{esc(book.short_code)}</i>")
         if note.definition:
             lines.append(f"   {esc(note.definition[:120])}")
-        kb.append([BTN(f"{marker} {term[:30]}", _cb("note", note.id))])
+        kb.append([BTN(f"🔤 {term[:30]}", _cb("note", note.id))])
     if showing < total:
         kb.append([BTN(
-            f"⬇️ {min(_LIST_PAGE_SIZE, total - showing)} terim daha göster",
+            f"⬇️ {min(_LIST_PAGE_SIZE, total - showing)} kelime daha göster",
             _cb("glossary", "more", limit + _LIST_PAGE_SIZE),
         )])
+    kb.append([BTN("🧠 Kavram listesine git", _cb("notes_cat", "CONCEPT"))])
     kb.append(_nav_row())
     return "\n".join(lines), KB(kb)
 
@@ -1457,33 +1490,52 @@ async def screen_glossary(limit: int = _LIST_PAGE_SIZE) -> ScreenResult:
 async def screen_quotes(
     favorites_only: bool = False, limit: int = _LIST_PAGE_SIZE,
 ) -> ScreenResult:
-    entries = await data.list_quotes(favorites_only=favorites_only)
+    """Quotes (Alıntı) listesi VEYA tüm favoriler.
+
+    v1.0.6: `favorites_only=True` artık SADECE QUOTE değil, TÜM kategorilerden
+    is_favorite=True olan notları döndürür. "Favoriler" başlığıyla gösterilir.
+    `favorites_only=False` davranışı korunur (yalnız QUOTE'lar).
+    """
+    if favorites_only:
+        entries = await data.list_all_favorites()
+        title = "⭐ Favoriler"
+        empty_msg = "<i>(Henüz favori notun yok. Bir notu açıp ⭐ butonuna basabilirsin.)</i>"
+        empty_quotes_hint = "alıntı"  # not used in fav mode
+    else:
+        entries = await data.list_quotes(favorites_only=False)
+        title = "💬 Tüm Alıntılar"
+        empty_msg = "<i>(Henüz alıntı yok.)</i>"
+        empty_quotes_hint = "alıntı"
     total = len(entries)
-    title = "💬 Favori Alıntılar" if favorites_only else "💬 Tüm Alıntılar"
     lines = [f"🏠 Ana › <b>{title}</b>  ({total})", ""]
     if total == 0:
-        lines.append("<i>(Henüz alıntı yok.)</i>")
+        lines.append(empty_msg)
         return "\n".join(lines), KB([_nav_row()])
     showing = min(limit, total)
     lines.append(f"{showing}/{total} gösteriliyor\n")
     kb = []
     for note, book in entries[:limit]:
         star = "⭐ " if note.is_favorite else ""
+        # Show category prefix in fav mode (since notes come from any category)
+        cat_pref = f"[{note.category.value}] " if favorites_only else ""
         lines.append(
-            f"{star}<code>{esc(note.code)}</code> · {esc(book.title)}\n"
+            f"{star}<code>{esc(note.code)}</code> · {esc(cat_pref)}{esc(book.title)}\n"
             f"  <i>“{esc(note.transcript[:140])}”</i>"
         )
-        kb.append([BTN(f"{star}{note.code} · {book.short_code}", _cb("note", note.id))])
+        kb.append([BTN(
+            f"{star}{note.code} · {book.short_code}", _cb("note", note.id),
+        )])
     if showing < total:
         scope = "fav" if favorites_only else "all"
+        unit = "not" if favorites_only else "alıntı"
         kb.append([BTN(
-            f"⬇️ {min(_LIST_PAGE_SIZE, total - showing)} alıntı daha göster",
+            f"⬇️ {min(_LIST_PAGE_SIZE, total - showing)} {unit} daha göster",
             _cb("quotes", scope, "more", limit + _LIST_PAGE_SIZE),
         )])
-    kb.append([BTN(
-        "🌟 Sadece favoriler" if not favorites_only else "📜 Tümü",
-        "quotes:fav" if not favorites_only else "quotes:all",
-    )])
+    if favorites_only:
+        kb.append([BTN("📜 Tüm alıntılara dön", "quotes:all")])
+    else:
+        kb.append([BTN("⭐ Sadece favoriler", "quotes:fav")])
     kb.append(_nav_row())
     return "\n".join(lines), KB(kb)
 
@@ -1640,13 +1692,9 @@ async def handle_start_command(update: Update, context: ContextTypes.DEFAULT_TYP
         )
     except Exception as e:
         logger.debug("bot.start.quick_kb_failed", error=str(e))
-    # 2) Inline main menu
-    text, kb = await screen_main()
-    sent = await update.message.reply_text(
-        text, reply_markup=kb, parse_mode=ParseMode.HTML, disable_web_page_preview=True,
-    )
-    if cid is not None and sent is not None:
-        await _track_last_menu(cid, sent.message_id)
+    # 2) Inline main menu (with logo — _send_main_menu helper handles photo
+    #    upload, file_id cache and active-menu tracking).
+    await _send_main_menu(update, context)
 
 
 # ────────────────────────── input routing ──────────────────────────
@@ -2201,8 +2249,7 @@ async def _handle_end_summary_input(
     if cid is not None:
         await _clear(cid, "awaiting")
     await msg.reply_text("✅ Özet kaydedildi, oturum kapandı. İyi okumalar!")
-    text, kb = await screen_main()
-    await msg.reply_text(text, reply_markup=kb, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+    await _send_main_menu(update, context)
 
 
 async def _handle_finish_review_input(
@@ -2268,8 +2315,7 @@ async def _await_end_page(update, context, text, awaiting):
         await data.end_session(awaiting["session_id"], page)
         await _clear(cid, "awaiting")
         await msg.reply_text("✅ Oturum kapatıldı.")
-        m_text, m_kb = await screen_main()
-        await msg.reply_text(m_text, reply_markup=m_kb, parse_mode=ParseMode.HTML)
+        await _send_main_menu(update, context)
         return
     await _set(cid, "awaiting", {
         "type": "end_summary", "session_id": awaiting["session_id"],
@@ -2616,8 +2662,7 @@ async def _await_orphan_photo_note(update, context, text, awaiting):
         s_text, kb = await screen_active_session(sess)
         await msg.reply_text(s_text, reply_markup=kb, parse_mode=ParseMode.HTML)
     else:
-        m_text, m_kb = await screen_main()
-        await msg.reply_text(m_text, reply_markup=m_kb, parse_mode=ParseMode.HTML)
+        await _send_main_menu(update, context)
 
 
 _AWAITING_HANDLERS = {
@@ -2796,13 +2841,70 @@ async def _cb_back(update, context, args):
             await handler(update, context, prev_args)
             return
     # Fallback — no history or unknown handler
+    await _send_main_menu(update, context)
+
+
+async def _send_main_menu(
+    update: Update, context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    """Send/refresh the main menu — always rendered as logo photo + caption.
+
+    First call uploads kitabilogo.png from disk; the returned file_id is
+    cached at module level so subsequent calls reuse Telegram's CDN copy
+    (no re-upload, no egress). Caption holds the live stats + inline KB.
+    """
+    global _LOGO_FILE_ID
+    cid = _chat_id(update)
     text, kb = await screen_main()
-    await _send_screen(update, context, text, kb)
+    photo_arg = _logo_send_arg()
+    # Captions are limited to 1024 chars — keep it safely below.
+    caption = text if len(text) <= 1020 else (text[:1015] + "…")
+
+    # Delete any tracked previous menu first (clean chat)
+    await _delete_previous_menu(cid, context)
+
+    sent = None
+    try:
+        if photo_arg is not None and cid is not None:
+            sent = await context.bot.send_photo(
+                chat_id=cid, photo=photo_arg,
+                caption=caption, reply_markup=kb,
+                parse_mode=ParseMode.HTML,
+            )
+            # Cache the file_id once we've uploaded successfully
+            if _LOGO_FILE_ID is None and sent and sent.photo:
+                _LOGO_FILE_ID = sent.photo[-1].file_id
+                logger.info("bot.main_menu.logo_cached",
+                            file_id=_LOGO_FILE_ID[:24] + "…")
+        else:
+            # Logo missing — fall back to text-only main menu
+            if update.callback_query:
+                sent = await update.callback_query.message.reply_text(
+                    text, reply_markup=kb, parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                )
+            elif update.message:
+                sent = await update.message.reply_text(
+                    text, reply_markup=kb, parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                )
+    except Exception as e:
+        logger.warning("bot.main_menu.send_failed", error=str(e))
+        # Last resort: text-only
+        target = (update.callback_query.message if update.callback_query
+                  else update.message)
+        if target:
+            sent = await target.reply_text(
+                text, reply_markup=kb, parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+            )
+
+    if sent is not None and hasattr(sent, "message_id"):
+        await _track_last_menu(cid, sent.message_id)
 
 
 async def _cb_main(update, context, args):
-    text, kb = await screen_main()
-    await _send_screen(update, context, text, kb)
+    await _send_main_menu(update, context)
 
 
 async def _cb_books(update, context, args):
@@ -3024,8 +3126,7 @@ async def _cb_session_del(update, context, args):
         if remaining:
             text, kb = await screen_open_sessions()
         else:
-            text, kb = await screen_main()
-        await _send_screen(update, context, text, kb)
+            await _send_main_menu(update, context)
 
 
 def _delete_session_sync(sess_id: int) -> None:
@@ -3082,8 +3183,7 @@ async def _cb_pause(update, context, args):
     await query.answer("⏸️ Duraklatıldı")
     if cid is not None:
         await _clear(cid, "default_session")
-    text, kb = await screen_main()
-    await _send_screen(update, context, text, kb)
+    await _send_main_menu(update, context)
 
 
 async def _cb_end(update, context, args):
@@ -3114,8 +3214,7 @@ async def _cb_end_done(update, context, args):
     if cid is not None:
         await _clear(cid, "awaiting", "default_session")
     await query.answer("✅ Oturum kapatıldı")
-    text, kb = await screen_main()
-    await _send_screen(update, context, text, kb)
+    await _send_main_menu(update, context)
 
 
 async def _cb_stats(update, context, args):
@@ -3352,8 +3451,7 @@ async def _cb_voice(update, context, args):
         if session and session.ended_at is None:
             text, kb = await screen_active_session(session)
         else:
-            text, kb = await screen_main()
-        await _send_screen(update, context, text, kb)
+            await _send_main_menu(update, context)
 
     elif sub == "cancel":
         if cid is not None:
@@ -3365,8 +3463,7 @@ async def _cb_voice(update, context, args):
             text, kb = await screen_active_session(session)
             await _send_screen(update, context, text, kb)
             return
-        text, kb = await screen_main()
-        await _send_screen(update, context, text, kb)
+        await _send_main_menu(update, context)
 
     else:
         await query.answer(f"Bilinmeyen voice eylemi: {sub}", show_alert=True)
@@ -4296,7 +4393,10 @@ async def handle_callback_proxy(update, context, callback_data: str) -> None:
     elif head == "help":
         text, kb = screen_help()
     else:
-        text, kb = await screen_main()
+        # Default → main menu (with logo). _send_main_menu handles the photo
+        # upload, file_id cache and active-menu tracking itself.
+        await _send_main_menu(update, context)
+        return
     await update.message.reply_text(
         text, reply_markup=kb, parse_mode=ParseMode.HTML, disable_web_page_preview=True,
     )
