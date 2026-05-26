@@ -176,6 +176,15 @@
   .verify-mode .vi { font-size: 12px; }
 
   /* ───── Intro cards (welcome screen) ───── */
+  /* v1.0.5 — Tüm metinler seçilebilir olsun. Sadece buton/checklist gibi
+     etkileşim alanlarında istisna (kendi yerlerinde user-select: none var). */
+  body, .card, .intro-card, .path-card, .pre-item .pre-content,
+  .step-link-card, .tl-label, .manual-section, .toc, p, li, td, code,
+  pre, blockquote {
+    -webkit-user-select: text;
+            user-select: text;
+  }
+
   .intro-cards-container {
     margin: 12px 0 4px;
     padding: 6px 0 18px;
@@ -557,6 +566,52 @@
     font-family: var(--mono); font-size: 11.5px;
     border: 1px solid var(--line);
   }
+
+  /* ───── Lede block (welcome sadeleştirme) ───── */
+  .lede-block {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 14px 0 24px;
+  }
+  .lede-block .lede {
+    margin: 0 0 12px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .lede-list {
+    margin: 0; padding-left: 0;
+    list-style: none;
+  }
+  .lede-list li {
+    padding: 7px 0 7px 22px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink);
+    position: relative;
+    border-bottom: 1px dashed var(--line);
+  }
+  .lede-list li:last-child { border-bottom: 0; }
+  .lede-list li::before {
+    content: "›";
+    position: absolute; left: 4px; top: 7px;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .lede-list li strong { color: var(--ink); }
+
+  /* ───── Screen reset link (v1.0.5 — her sayfada başa dön) ───── */
+  .screen-reset-link {
+    margin-top: 28px; padding-top: 16px;
+    border-top: 1px dashed var(--line);
+    text-align: center;
+  }
+  .screen-reset-link .btn-link {
+    font-size: 12.5px; color: var(--ink-soft);
+  }
+  .screen-reset-link .btn-link:hover { color: var(--accent); }
 
   /* ───── Path grid (v1.0.5 — 3 yol karşılaştırma) ───── */
   .path-grid {
@@ -1015,9 +1070,22 @@
 
       <!-- ─── INTRO CARDS (NEW) ─── -->
       <h2 class="section-h">Kitabi ne yapıyor?</h2>
-      <p class="lede" style="max-width: none;">
-        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: kitabını ISBN'i yazarak, kapağının fotoğrafını çekerek ya da elle ekleyebilirsin (ISBN bulunmazsa Google Books → Open Library otomatik fallback'i devreye girer). Okurken sesli mesaj gönderir, sayfanın altını çizdiğin yerleri fotoğraflar (bot temperature=0 + chain-of-thought ile sadece vurguladığın metni alır, tam sayfayı kopyalamaz, satır sonu kelime kırılmalarını da temizler) ya da yazarsın; istersen fotoğrafa caption ekleyip "şu cümleyi al + idealist'in tanımını ekle" gibi karmaşık talimat verirsin, bot Gemini AI ile metne döker ve tırnaklı italik OCR + TANIM/CEVAP etiketleriyle yapılandırılmış cevap döner. Soru sorduğunda cevabın altına otomatik "Kaynak: KOD1, KOD2" dipnotu konur — hangi notlardan yararlanıldığı şeffaf. Notlar 6 hazır + kendi eklediğin sınırsız kategoride saklanır. Kütüphanen 10 kitabı geçince raf sistemi devreye girer; her kitaba kendi ikonunu ve özel alanlarını ekleyebilirsin. Chat input kutusu altında 4 kalıcı hızlı buton (Oturumlar / Bitir / Kitaplar / Yeni) hep elinin altında, her tıklama anında toast feedback'i ile karşılanır, sohbette her zaman tek aktif menü kalır. Alıntıları "Klasik Twit" pull-quote tarzında 6 farklı yazı tipiyle paylaşır, kitap bittiğinde istatistikleri (okuma takvimi, Notion-style multi-select etiket bulutu, yayınevi + yazarın diğer kitapları + notlara eklediğin fotoğraflar sola float'lanmış olarak dahil) zengin bir PDF okuma günlüğüne dönüştürür.
-      </p>
+      <div class="lede-block">
+        <p class="lede" style="max-width: none;">
+          <strong>Kitabi</strong>, Telegram üzerinden çalışan kişisel bir <strong>okuma günlüğü botu</strong>.
+        </p>
+        <ul class="lede-list">
+          <li><strong>Kitap ekle</strong> — ISBN yaz, kapak fotoğrafı çek ya da başlığı elle gir. Bot Google Books ve Open Library'ye sorup metadata + kapağı kendisi getirir.</li>
+          <li><strong>Okurken not al</strong> — sesli mesaj, sayfanın vurguladığın kısımlarının fotoğrafı, ya da düz yazı. Gemini hepsini metne döker, kategorilere ayırır.</li>
+          <li><strong>Fotoğrafa soru sor</strong> — fotoğrafa caption yazarsan "şu cümleyi al + tanımını ekle" gibi talimatlar Gemini tarafından yapılır.</li>
+          <li><strong>Sözlüğü Gemini büyütsün</strong> — Kelime ve Kavram notlarına otomatik tanım eklenir; kitap özelinde soru sorabilirsin.</li>
+          <li><strong>Kitap bitince PDF günlüğü</strong> — kapak, künye, okuma takvimi, kelime bulutu, favori alıntılar, kitaba eklediğin fotoğraflar dahil tasarımlı bir PDF.</li>
+          <li><strong>Paylaşılabilir alıntı kartları</strong> — sevdiğin bir alıntıyı twit kart tarzı 5 farklı boyutta, 6 yazı tipiyle dışa al.</li>
+        </ul>
+        <p class="sub-caption" style="margin-top: 10px;">
+          Aşağıdaki kartlarda her özelliği görsel olarak göreceksin — oklarla gezin.
+        </p>
+      </div>
       <p class="input-help">Aşağıdaki kartlar arasında oklarla gezin — bot'un kurulumdan sonra neler yapabileceğini kart açıklamalarında okuyabilirsin.</p>
 
       <div class="intro-cards-container">
@@ -1031,100 +1099,44 @@
               <div class="ss-placeholder">[ekran görüntüsü:<br/>kitap ekleme]</div>
             </div>
             <div class="intro-card-title">📚 Kitap ekle</div>
-            <div class="intro-card-cap">ISBN yaz, başlığı yaz, ya da kapağının fotoğrafını çek — kapak/yazar/sayfa otomatik gelir.</div>
+            <div class="intro-card-cap">ISBN yaz, başlığı yaz ya da kapağın fotoğrafını çek. Bot Google Books'tan metadata + kapağı kendi getirir; bulamazsa Open Library'ye otomatik geçer.</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
-              <div class="ss-emoji">📸</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>kapak ile ekleme]</div>
+              <div class="ss-emoji">🏠</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kütüphane]</div>
             </div>
-            <div class="intro-card-title">📸 Kapak fotosuyla ekle</div>
-            <div class="intro-card-cap">Kitap kapağının fotoğrafını çek — Gemini ISBN/başlık/yazar tanır, gerisini Google Books doldurur.</div>
+            <div class="intro-card-title">🏠 Kütüphane düzeni</div>
+            <div class="intro-card-cap">Her kitaba kendi emoji ikonunu ver, raflara grupla, "Raf kodu" ya da "Ödünç verildi" gibi kendi alanlarını ekle. Kapakları topluca albüm halinde de görebilirsin.</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
               <div class="ss-emoji">▶️</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>oturum başlatma]</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>oturum]</div>
             </div>
-            <div class="intro-card-title">▶️ Okumaya başla</div>
-            <div class="intro-card-cap">Kitap seç, kaç sayfadan başlıyorsun söyle. Oturum açılır.</div>
+            <div class="intro-card-title">▶️ Okuma oturumu</div>
+            <div class="intro-card-cap">Kaç sayfadan başlıyorsun söyle, oturum açılır. Aynı anda birden çok kitap okuyabilirsin — bot doğru oturuma yönlendirir. Bitirirken sayfa düzelt, sil ya da özet at.</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
-              <div class="ss-emoji">🎤</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>sesli not]</div>
+              <div class="ss-emoji">📝</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>not alma]</div>
             </div>
-            <div class="intro-card-title">🎤 Sesli not</div>
-            <div class="intro-card-cap">Telefonuna konuş, bot yazıya çevirip kaydeder. Yazmana gerek yok.</div>
+            <div class="intro-card-title">📝 Not at</div>
+            <div class="intro-card-cap">Ses kaydı, sayfanın altını çizdiğin kısmın fotoğrafı (sadece vurgulanan metin alınır) ya da yazı. Gemini hepsini metne döker, kategori önerir.</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
-              <div class="ss-emoji">📷</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>sayfa fotoğrafı]</div>
+              <div class="ss-emoji">💬</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>foto + caption]</div>
             </div>
-            <div class="intro-card-title">📷 Sayfa fotoğrafı</div>
-            <div class="intro-card-cap">Kitap sayfasını çek, metin otomatik çıkar. Alıntı yazmaya gerek yok.</div>
+            <div class="intro-card-title">💬 Foto + caption = AI talimatı</div>
+            <div class="intro-card-cap">Fotoğrafa caption yazarsan ("şu cümleyi al + idealist'in tanımını ekle" gibi karmaşık talimatlar dahil) Gemini sayfayı okur, talimatın her parçasını yapar.</div>
           </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">🏷️</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>kategori önerisi]</div>
-            </div>
-            <div class="intro-card-title">🏷️ Otomatik kategori</div>
-            <div class="intro-card-cap">Alıntı / Fikir / Kavram / Yeni Bilgi / Kelime / Özet — Gemini önerir, sen onaylarsın.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📚</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>kelime tanımı]</div>
-            </div>
-            <div class="intro-card-title">📚 Kelime + Kavram tanımı</div>
-            <div class="intro-card-cap">"Bu kavramı yeni öğrendim" dersen Gemini otomatik 2-3 cümlelik tanım ekler.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">❓</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>soru-cevap]</div>
-            </div>
-            <div class="intro-card-title">❓ Soru sor</div>
-            <div class="intro-card-cap">"Bu kavram neydi?" diye sor — okuduğun kitap ve aldığın notlarla cevap gelir.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📋</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>oturum özeti]</div>
-            </div>
-            <div class="intro-card-title">📋 Oturum özeti</div>
-            <div class="intro-card-cap">Bitirirken kısa özet at, bot sonraki oturum başında hatırlatır.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📕</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>PDF günlük]</div>
-            </div>
-            <div class="intro-card-title">📕 PDF okuma günlüğü</div>
-            <div class="intro-card-cap">Kitap bittiğinde kapak + oturum dökümü + sözlük + istatistikli PDF üretilir.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📤</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>export menü]</div>
-            </div>
-            <div class="intro-card-title">📤 Esnek export</div>
-            <div class="intro-card-cap">PDF, JSON, CSV, Markdown, ZIP — verileri istediğin yere taşı (Notion, Obsidian, NotebookLM).</div>
-          </div>
-
-          <!-- ── v1.0.2 yenilikleri ── -->
 
           <div class="intro-card">
             <div class="intro-screenshot">
@@ -1132,193 +1144,70 @@
               <div class="ss-placeholder">[ekran görüntüsü:<br/>sahne fotoğrafı]</div>
             </div>
             <div class="intro-card-title">🖼️ Sahne fotoğrafı</div>
-            <div class="intro-card-cap">Kitapla ilgisi olmayan görsel — bir manzara, bir not — kısa bir yorum yaz, PDF günlüğüne "📷 sahne" olarak girer.</div>
+            <div class="intro-card-cap">Kitaba dair olmayan bir görsel atarsan (manzara, çağrışım, ekran görüntüsü) — kısa bir not yazarsın, bot "sahne" notu olarak saklar. PDF günlüğünde de görünür.</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
-              <div class="ss-emoji">📚</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>raflar]</div>
+              <div class="ss-emoji">🏷️</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kategoriler]</div>
             </div>
-            <div class="intro-card-title">📚 Raflar</div>
-            <div class="intro-card-cap">10+ kitabın olunca raf sistemi devreye girer. "Felsefe", "Polisiye", "Yarım kalanlar"… İstediğin kadar raf, sınırsız.</div>
+            <div class="intro-card-title">🏷️ Akıllı kategoriler</div>
+            <div class="intro-card-cap">Alıntı / Fikir / Yeni Bilgi / Kelime / Kavram / Özet — Gemini önerir, sen onaylarsın. Kelime ve Kavram için otomatik tanım. Kendi kategorilerini sınırsız ekleyebilirsin.</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
-              <div class="ss-emoji">🎨</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>kitap ikonu]</div>
+              <div class="ss-emoji">❓</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>gemini soru]</div>
             </div>
-            <div class="intro-card-title">🎨 Kitap ikonu</div>
-            <div class="intro-card-cap">Her kitap kendi emoji ikonunu alır (📕📘📗 ya da 🐉⚔️🌹). Listede ilk bakışta tanırsın.</div>
+            <div class="intro-card-title">❓ Gemini'ye sor</div>
+            <div class="intro-card-cap">"Bu kavram neydi?" gibi sor. Gemini kitap + tüm notlarınla cevap verir, altına "Kaynak: KOD1, KOD2" dipnotu koyar. Bir notu büyütmek istersen "Açıkla" butonu da var.</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
-              <div class="ss-emoji">🛠️</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>özel alanlar]</div>
+              <div class="ss-emoji">🔍</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>notlarım]</div>
             </div>
-            <div class="intro-card-title">🛠️ Özel alanlar</div>
-            <div class="intro-card-cap">"Raf kodu", "Ödünç verildi", "İlk okuma tarihi" — kendi sütunlarını sınırsız ekle. PDF künyede de görünür.</div>
+            <div class="intro-card-title">🔍 Notlarım</div>
+            <div class="intro-card-cap">Tüm notların sayımlarıyla tek menüde: Alıntı (7), Fikir (2)… Notion-style etiket bulutuyla sözlük, FTS5 ile tam-metin arama, uzun notlarda "devamını oku".</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
-              <div class="ss-emoji">📸</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>kapak grid]</div>
+              <div class="ss-emoji">📊</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>istatistik]</div>
             </div>
-            <div class="intro-card-title">📸 Kapak albümü</div>
-            <div class="intro-card-cap">Kütüphane kapaklarını Telegram'da topluca gör — 10'arlı albümler halinde, bir bakışta tüm raf.</div>
+            <div class="intro-card-title">📊 İstatistik + takvim</div>
+            <div class="intro-card-cap">Okuma süresi, oturum sayısı, streak, en verimli zaman dilimi. PDF günlüğünde ay-ay takvim grid'i; yoğun günler koyu, sakin günler açık renkle.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🏁</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>bitirme + pdf]</div>
+            </div>
+            <div class="intro-card-title">🏁 Bitirme + PDF günlüğü</div>
+            <div class="intro-card-cap">Kitabı bitirince puan ver, tek cümlelik yorumunu yaz, favori 3 alıntını seç. Sonuç: kapak + künye (yayınevi + yazarın diğer kitapları) + okuma takvimi + sözlük bulutu + notlara eklediğin fotoğraflar dahil tasarımlı PDF.</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
               <div class="ss-emoji">📤</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>not paylaş]</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>paylaş + export]</div>
             </div>
-            <div class="intro-card-title">📤 Not paylaş</div>
-            <div class="intro-card-cap">Sevdiğin bir alıntıyı twit kartı gibi paylaş — Kare, Instagram Post, Story, A4, A5 boyutlarında PDF.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">🌐</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>ISBN fallback]</div>
-            </div>
-            <div class="intro-card-title">🌐 İki kaynaktan metadata</div>
-            <div class="intro-card-cap">ISBN'i Google Books'ta bulamazsa bot otomatik Open Library'ye geçer. Türkçe yerel yayınlarda bile yüksek isabet.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📅</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>takvim]</div>
-            </div>
-            <div class="intro-card-title">📅 Okuma takvimi</div>
-            <div class="intro-card-cap">PDF günlüğünde ay-ay takvim grid'i: hangi günlerde okudun, ne kadar süre — yoğun günler koyu, az günler açık.</div>
-          </div>
-
-          <!-- ── v1.0.3 yenilikleri ── -->
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📷</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>vurgu OCR]</div>
-            </div>
-            <div class="intro-card-title">📷 Vurgu OCR</div>
-            <div class="intro-card-cap">Sayfa fotoğrafı çek — bot sadece altı çizili / fosforlu kısımları alır, tam sayfayı değil. İstemediğin metin notlarına girmiyor.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">💬</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>foto+caption]</div>
-            </div>
-            <div class="intro-card-title">💬 Foto + caption = soru</div>
-            <div class="intro-card-cap">Fotoğrafa caption yaz: "şu cümleyi al + idealist'in tanımını ekle". Bot sayfayı okur, soruna cevap verir, not kaydeder. Karmaşık talimatlar OK.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📝</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>notlarım]</div>
-            </div>
-            <div class="intro-card-title">📝 Notlarım hub</div>
-            <div class="intro-card-cap">Tüm not türleri tek menüde: Alıntı (7), Fikir (2), Kavram (3), Kelime (4)… Sayım belirteçleriyle. Kendi kategorilerini de ekleyebilirsin.</div>
+            <div class="intro-card-title">📤 Paylaş + dışa aktar</div>
+            <div class="intro-card-cap">Bir alıntıyı twit kartı tarzında paylaş — 6 yazı tipi, 5 boyut (Kare / IG Post / IG Story / A4 / A5). Tüm verini JSON, CSV, Markdown ya da ZIP olarak dışa aktar.</div>
           </div>
 
           <div class="intro-card">
             <div class="intro-screenshot">
               <div class="ss-emoji">⚡</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>hızlı butonlar]</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kullanım]</div>
             </div>
-            <div class="intro-card-title">⚡ Hızlı butonlar</div>
-            <div class="intro-card-cap">Chat input kutusu altında 4 kalıcı buton: 🟢 Oturumlar / ⏹️ Bitir / 📖 Kitaplar / ➕ Yeni. Tek tap'le menüye dönmenin yolu.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">🪟</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>tek menü]</div>
-            </div>
-            <div class="intro-card-title">🪟 Tek aktif menü</div>
-            <div class="intro-card-cap">Eski menü mesajı yeni ekran açılırken otomatik silinir. Sohbet kalabalıklaşmıyor, her zaman tek aktif menü.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📜</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>devamını oku]</div>
-            </div>
-            <div class="intro-card-title">📜 …devamını oku</div>
-            <div class="intro-card-cap">10 satırdan / 500 karakterden uzun notlar listede kısa görünür; tek tap'le tam metin açılır. Telefon ekranını rahatlatır.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📤</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>klasik twit]</div>
-            </div>
-            <div class="intro-card-title">📤 Klasik Twit paylaş</div>
-            <div class="intro-card-cap">Alıntıyı pull-quote kart olarak paylaş — 6 yazı tipi (Crimson Pro, Playfair, Cormorant…), 5 boyut. Uzun metinde font otomatik küçülür.</div>
-          </div>
-
-          <!-- ── v1.0.4 yenilikleri ── -->
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">➕</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>custom kategori]</div>
-            </div>
-            <div class="intro-card-title">➕ Kendi kategorin</div>
-            <div class="intro-card-cap">Hazır 6 kategoriye ek olarak kendi etiketlerini ekle: "Refleksiyon", "Tartışma", "Açıklama bekliyor". Sınırsız.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">🖼️</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>pdf foto embed]</div>
-            </div>
-            <div class="intro-card-title">🖼️ PDF'te fotoğraflar</div>
-            <div class="intro-card-cap">Notlarına eklediğin fotoğraflar PDF günlüğünde gerçekten görünür — Telegram'dan indirilip sayfada gömülü olarak gösterilir.</div>
-          </div>
-
-          <!-- ── v1.0.5 yenilikleri ── -->
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">🎯</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>hassas OCR]</div>
-            </div>
-            <div class="intro-card-title">🎯 Hassas vurgu OCR</div>
-            <div class="intro-card-cap">temperature=0 + chain-of-thought + renk tespiti. Vurgu kenarı artık çok daha katı — "bazen" gibi yakın kelimeler artık karışmıyor.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">📎</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>kaynak dipnotu]</div>
-            </div>
-            <div class="intro-card-title">📎 Kaynak dipnotu</div>
-            <div class="intro-card-cap">Gemini soru cevabının altına otomatik "Kaynak: KOD1, KOD2" satırı koyar — hangi notlardan yararlandığı şeffaf.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">⏳</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>buton feedback]</div>
-            </div>
-            <div class="intro-card-title">⏳ Anında feedback</div>
-            <div class="intro-card-cap">Her buton tıklamasında hemen "Hazırlanıyor…" toast'u. "Tıkladım mı?" tereddüdü artık yok.</div>
-          </div>
-
-          <div class="intro-card">
-            <div class="intro-screenshot">
-              <div class="ss-emoji">🖼️</div>
-              <div class="ss-placeholder">[ekran görüntüsü:<br/>tg foto detay]</div>
-            </div>
-            <div class="intro-card-title">🖼️ Notlarda foto</div>
-            <div class="intro-card-cap">Bir nota fotoğraf eklediysen, not açıldığında Telegram'da o foto da caption ile birlikte görünür.</div>
+            <div class="intro-card-title">⚡ Kullanım kolaylığı</div>
+            <div class="intro-card-cap">Chat altında 4 kalıcı hızlı buton (Oturumlar / Bitir / Kitaplar / Yeni). Her tıklamadan sonra anında toast geri bildirimi. Sohbette her zaman tek aktif menü. "Uzun süredir okumadın" gibi opsiyonel hatırlatmalar. Ayarlar tek menüde.</div>
           </div>
 
         </div>
@@ -1386,7 +1275,7 @@
         <p style="margin: 4px 0 6px;">İki tür adım var:</p>
         <ul style="margin: 4px 0 10px; padding-left: 20px;">
           <li><span class="verify-mode auto"><span class="vi">✅</span> Otomatik</span> Kurulum arka planda servisi çağırıp doğruluyor (örn: GitHub fork URL, Cloud Run URL)</li>
-          <li><span class="verify-mode manual"><span class="vi">✋</span> Manuel</span> Token ve key gibi secret'lar manuel olarak senin tik atmanla onaylanır çünkü kurulum sihirbazı ya da bir başkası bunları görmemeli ve kaydetmemelidir.</li>
+          <li><span class="verify-mode manual"><span class="vi">✋</span> Manuel</span> Token ve key gibi secret'ları senin tik atmanla onaylıyoruz; bu sayfa ya da başka kimse onları görmesin / kaydetmesin diye.</li>
         </ul>
         <p style="margin: 0;"><strong>Sonraki butonu her zaman aktif</strong> — doğrulama yanlışlıkla hata verirse takılmayasın diye.</p>
       </div>
@@ -1423,7 +1312,7 @@
 
       <!-- ─── SECURITY ─── -->
       <div class="info">
-        <strong>🔒 Güvenlik:</strong> Aldığın token ve API key'leri bu sihirbaza yapıştırman <em>gerekmiyor</em>. Hepsi doğrudan senin Google Cloud Secret Manager'ına gidiyor. Sihirbaz onları okumuyor.
+        <strong>🔒 Güvenlik:</strong> Aldığın token ve API key'leri bu sayfaya yapıştırman <em>gerekmiyor</em>. Hepsi doğrudan senin Google Cloud Secret Manager'ına gidiyor. Bu sayfa onları okumuyor.
       </div>
 
       <!-- ─── 3 YOL KARŞILAŞTIRMA (v1.0.5) ─── -->
@@ -1453,7 +1342,7 @@
 
         <div class="path-card">
           <div class="path-icon">📋</div>
-          <div class="path-title">Normal Wizard</div>
+          <div class="path-title">Normal Kurulum</div>
           <div class="path-time">~45-55 dakika</div>
           <ul class="path-features">
             <li>📖 Her adımı görsel olarak görürsün</li>
@@ -1466,7 +1355,7 @@
             <strong>Kim için:</strong> Adımları görüp<br/>öğrenmek isteyen.
           </div>
           <button class="btn btn-secondary" onclick="goTo('telegram')" style="width:100%;margin-top:8px;">
-            📋 Wizard'a Başla →
+            📋 Normal Kuruluma Başla →
           </button>
         </div>
 
@@ -1507,10 +1396,10 @@
         <label class="pre-item">
           <input type="checkbox" class="pre-cb" />
           <div class="pre-content">
-            <div class="pre-head">📧 <strong>Gmail hesabım var ve giriş yapmışım</strong></div>
+            <div class="pre-head">📧 <strong>Gmail hesabım var ve giriş yaptım</strong></div>
             <div class="pre-detail">
               Hesabın yoksa: <a href="https://accounts.google.com/signup" target="_blank">accounts.google.com/signup</a> — telefon doğrulamayla 3 dakika.
-              Zaten varsa <a href="https://myaccount.google.com" target="_blank">myaccount.google.com</a>'a giderek "şu hesapla giriş yaptım" diye emin ol.
+              Hesabın varsa <a href="https://myaccount.google.com" target="_blank">myaccount.google.com</a>'a girip oturum açtığından emin ol.
             </div>
           </div>
         </label>
@@ -1520,7 +1409,11 @@
           <div class="pre-content">
             <div class="pre-head">💳 <strong>Kredi/banka kartım yanımda</strong></div>
             <div class="pre-detail">
-              Google "ücretsiz kullanım" için kart bilgisi istiyor (fraud önleme). <strong>Senden para çekilmeyecek</strong> — Kitabi'nin kullandığı servisler tamamen ücretsiz katmanda. Prepaid (önödemeli) kart da olur, sanal kart da.
+              Kart bilgilerini <strong>bu sayfaya girmiyorsun</strong>. Sırası geldiğinde Google'ın kendi billing ekranı açılacak, bilgileri oraya gireceksin — bu sayfa kart numaranı görmez.
+              <br/><br/>
+              Google ücretsiz kullanım için kart bilgisi istiyor (hesabın gerçek olduğunu doğrulamak için). <strong>Senden para çekilmeyecek</strong>; Kitabi'nin kullandığı servisler tamamen ücretsiz katmanın altında kalıyor.
+              <br/><br/>
+              💡 <strong>Limit güvencesi için sanal kart öneriyoruz.</strong> Pek çok banka ve dijital ödeme hizmeti tek seferlik ya da aylık limitli sanal kart üretiyor — kendi bankanın mobil uygulamasına bakman yeterli. Olası bir limit aşımı senaryosunda gerçek kartının çekilmesini engeller. Sanal kartı 100-200 TL limitle açıp Google'a tanıtmak en güvenli yol.
             </div>
           </div>
         </label>
@@ -1528,9 +1421,9 @@
         <label class="pre-item">
           <input type="checkbox" class="pre-cb" />
           <div class="pre-content">
-            <div class="pre-head">📱 <strong>Telefonumda Telegram kurulu ve giriş yapmışım</strong></div>
+            <div class="pre-head">📱 <strong>Telefonumda Telegram kurulu ve giriş yaptım</strong></div>
             <div class="pre-detail">
-              Yoksa: <a href="https://telegram.org" target="_blank">telegram.org</a>'dan indirip telefon numarasıyla 2 dakikada giriş yap. Sonra Telegram'ı bilgisayar tarayıcısında da açabilirsin (<a href="https://web.telegram.org" target="_blank">web.telegram.org</a>) — kopyala-yapıştır kolay olur.
+              Yoksa: <a href="https://telegram.org" target="_blank">telegram.org</a>'dan indirip telefon numaranla 2 dakikada giriş yap. Sonra <a href="https://web.telegram.org" target="_blank">web.telegram.org</a>'u bilgisayar tarayıcısında da açarsan kopyala-yapıştır işin kolaylaşır.
             </div>
           </div>
         </label>
@@ -1538,9 +1431,9 @@
         <label class="pre-item">
           <input type="checkbox" class="pre-cb" />
           <div class="pre-content">
-            <div class="pre-head">💻 <strong>Bilgisayar başındayım (telefon da yanımda olsun)</strong></div>
+            <div class="pre-head">💻 <strong>Bilgisayar başındayım (telefon da yanımda)</strong></div>
             <div class="pre-detail">
-              Mobilde de çalışır ama Cloud Shell penceresi küçük gözükür. Telefon Telegram için kullanılacak.
+              Mobilde de çalışır ama Cloud Shell penceresi küçük gözükür. Telefonu Telegram için kullanacaksın.
             </div>
           </div>
         </label>
@@ -1548,9 +1441,9 @@
         <label class="pre-item">
           <input type="checkbox" class="pre-cb" />
           <div class="pre-content">
-            <div class="pre-head">⏱️ <strong>15 dakika boş zamanım var</strong></div>
+            <div class="pre-head">⏱️ <strong>15 dakika ayırabilirim</strong></div>
             <div class="pre-detail">
-              Yarıda kesilirse sorun değil, script kaldığı yerden devam eder. Ama bir oturuşta bitirmek daha rahat.
+              Yarıda kesersen sorun değil — script kaldığı yerden devam eder. Yine de bir oturuşta bitirmek rahat olur.
             </div>
           </div>
         </label>
@@ -1610,7 +1503,10 @@
           <div class="slc-title">A — Telegram bot token</div>
           <div class="slc-steps">
             <ol>
-              <li><a href="https://t.me/BotFather" target="_blank">t.me/BotFather</a></li>
+              <li>Telegram'ı aç:<br/>
+                  📱 mobil: <a href="https://t.me/BotFather" target="_blank">t.me/BotFather</a><br/>
+                  💻 web: <a href="https://web.telegram.org/k/#@BotFather" target="_blank">web.telegram.org/k/#@BotFather</a>
+              </li>
               <li><code>/newbot</code> yaz</li>
               <li>Bot'a iki ad ver (görünür ad + username)</li>
               <li>Verdiği <code>123456:ABCdef...</code> token'ı kopyala</li>
@@ -1623,7 +1519,10 @@
           <div class="slc-title">B — Telegram user ID</div>
           <div class="slc-steps">
             <ol>
-              <li><a href="https://t.me/userinfobot" target="_blank">t.me/userinfobot</a></li>
+              <li>Telegram'ı aç:<br/>
+                  📱 mobil: <a href="https://t.me/userinfobot" target="_blank">t.me/userinfobot</a><br/>
+                  💻 web: <a href="https://web.telegram.org/k/#@userinfobot" target="_blank">web.telegram.org/k/#@userinfobot</a>
+              </li>
               <li><code>/start</code> yaz</li>
               <li>"Id: 123456789" diye dönecek</li>
               <li>Sadece sayıyı kopyala</li>
@@ -1651,7 +1550,7 @@
       <div class="info">
         <strong>Script bir hatada durursa:</strong> hata mesajını oku, çoğu hatada "şu URL'i aç, şunu yap, geri dön" diye yönlendiriyor. Yine takılırsan:
         <ul style="margin-top:8px;">
-          <li>Bu sihirbazın <strong>📋 Normal Wizard</strong> yoluna geç — adımlar görsel olarak anlatılıyor.</li>
+          <li>Bu sayfanın <strong>📋 Normal Kurulum</strong> yoluna geç — adımlar görsel olarak anlatılıyor.</li>
           <li><strong>Cloud Shell'i kapatma!</strong> Açık kalsın, <code>cat ~/.kitabi-install-state</code> ile script'in nerede kaldığını görebilirsin.</li>
           <li>TROUBLESHOOTING.md'de yaygın hatalar listeli.</li>
         </ul>
@@ -1661,7 +1560,7 @@
         <button class="btn btn-secondary" onclick="goTo('welcome')">← Geri</button>
         <div style="display:flex; gap:10px;">
           <button class="btn btn-secondary" onclick="goTo('telegram')">
-            Normal wizard'a geç →
+            Normal kuruluma geç →
           </button>
           <a href="https://shell.cloud.google.com" target="_blank" class="btn btn-primary">
             🚀 Cloud Shell'i Aç
@@ -2062,19 +1961,26 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
         <div class="fp-title">📂 poeple-app/kitabi</div>
         <div class="fp-sub">Fork etmeden önce neyi alacağını gör — her dosyaya tıklayıp GitHub'da içeriğini inceleyebilirsin.</div>
         <div class="files-tree">
-          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/README.md" target="_blank">README.md</a><span class="ft-desc">— Proje tanıtımı, kurulum yönergeleri</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/README.md" target="_blank">README.md</a><span class="ft-desc">— Proje tanıtımı, 3 kurulum yolu, özellik tablosu, sürüm geçmişi</span></div>
           <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/LICENSE" target="_blank">LICENSE</a><span class="ft-desc">— MIT (serbest kullanım)</span></div>
-          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md" target="_blank">TROUBLESHOOTING.md</a><span class="ft-desc">— Detaylı sorun-giderme rehberi</span></div>
-          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/pyproject.toml" target="_blank">pyproject.toml</a><span class="ft-desc">— Python paket meta ve bağımlılıklar</span></div>
-          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/Dockerfile" target="_blank">Dockerfile</a><span class="ft-desc">— Cloud Run container tarifi</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/TROUBLESHOOTING.md" target="_blank">TROUBLESHOOTING.md</a><span class="ft-desc">— Adım adım sorun-giderme + yeni özellik FAQ'ları</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/wizard.html" target="_blank">wizard.html</a><span class="ft-desc">— Kurulum sayfası (şu an okuduğun)</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/install.sh" target="_blank">install.sh</a><span class="ft-desc">— ⚡ Hızlı kurulum scripti (Cloud Shell, GitHub gerektirmez)</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/update.sh" target="_blank">update.sh</a><span class="ft-desc">— Sürüm geldiğinde tek komutluk redeploy</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/pyproject.toml" target="_blank">pyproject.toml</a><span class="ft-desc">— Python paket meta, sürüm, bağımlılıklar</span></div>
+          <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/Dockerfile" target="_blank">Dockerfile</a><span class="ft-desc">— Cloud Run container tarifi + font kurulumu</span></div>
           <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/app.json" target="_blank">app.json</a><span class="ft-desc">— "Deploy to Cloud Run" otomatik konfigürasyon</span></div>
           <div class="ft-row ft-file"><a href="https://github.com/poeple-app/kitabi/blob/main/.env.example" target="_blank">.env.example</a><span class="ft-desc">— Hangi env değişkenlerin gerektiğini gösteren şablon</span></div>
-          <div class="ft-row ft-folder">kitabi/<span class="ft-desc">— Ana paket (4 Python dosyası)</span></div>
-          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/main.py" target="_blank">main.py</a><span class="ft-desc">— FastAPI giriş noktası, webhook handler</span></div>
-          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/bot.py" target="_blank">bot.py</a><span class="ft-desc">— Telegram menüleri, akışlar, handler'lar</span></div>
-          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/data.py" target="_blank">data.py</a><span class="ft-desc">— SQLite schema, ISBN lookup, PDF, export'lar</span></div>
-          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/ai.py" target="_blank">ai.py</a><span class="ft-desc">— Gemini wrapper (retry + 3-model fallback)</span></div>
-          <div class="ft-row ft-folder">templates/<span class="ft-desc">— PDF iskelet HTML+CSS</span></div>
+          <div class="ft-row ft-folder">kitabi/<span class="ft-desc">— Ana Python paketi (6 dosya)</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/__init__.py" target="_blank">__init__.py</a><span class="ft-desc">— Sürüm numarası</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/main.py" target="_blank">main.py</a><span class="ft-desc">— FastAPI giriş, webhook, lifecycle, /healthz, /cron/nudge</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/bot.py" target="_blank">bot.py</a><span class="ft-desc">— Telegram UI: ekranlar, callback'ler, reply-keyboard, hızlı butonlar</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/data.py" target="_blank">data.py</a><span class="ft-desc">— SQLite + migration + ISBN (Google Books/Open Library) + PDF + export'lar + foto embed</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/ai.py" target="_blank">ai.py</a><span class="ft-desc">— Gemini wrapper: ASR, OCR (vurgu modu), Q&A (kaynak dipnotu), kapak okuma</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/kitabi/dev.py" target="_blank">dev.py</a><span class="ft-desc">— Lokal polling modu (webhook olmadan test)</span></div>
+          <div class="ft-row ft-folder">templates/<span class="ft-desc">— PDF + paylaşım iskelet HTML+CSS</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/templates/journal.html" target="_blank">journal.html</a><span class="ft-desc">— Okuma günlüğü PDF iskeleti (kapak + künye + takvim + sözlük + kapanış)</span></div>
+          <div class="ft-row ft-file" style="padding-left: 20px;"><a href="https://github.com/poeple-app/kitabi/blob/main/templates/journal.css" target="_blank">journal.css</a><span class="ft-desc">— PDF print-optimize stiller</span></div>
         </div>
       </div>
 
@@ -2468,11 +2374,11 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
         <strong>Yetki not'u:</strong> Cloud Run'ın bu bucket'a yazabilmesi için service account'a
         <code>Storage Object Admin</code> rolü lazım. Çoğu durumda Cloud Run deploy sırasında
         otomatik veriliyor; vermezse Adım 7'den sonra bucket sayfasında <strong>Permissions</strong>
-        sekmesinde manuel eklenir. Wizard adım 7'deki troubleshoot link'i bunu da gösteriyor.
+        sekmesinde manuel eklenir. Kurulum adım 7'deki troubleshoot link'i bunu da gösteriyor.
       </div>
 
       <p class="input-label">Yarattığın bucket'ın adı</p>
-      <p class="input-help">Bu adı Adım 7'de Cloud Run'a env değişkeni olarak yazacaksın. Buraya not olarak yapıştırınca wizard senin için saklar (lokalstorage, dışarı çıkmaz).</p>
+      <p class="input-help">Bu adı Adım 7'de Cloud Run'a env değişkeni olarak yazacaksın. Buraya not olarak yapıştırınca sayfa senin için saklar (lokalstorage, dışarı çıkmaz).</p>
       <div class="input-row">
         <input class="text" id="gcsBucketName" placeholder="kitabi-poeple-app" />
         <div class="vstatus" id="gcsBucketStatus">⚪</div>
@@ -2651,7 +2557,7 @@ gcloud scheduler jobs create http kitabi-daily-nudge \
 
       <div style="text-align: center; margin: 30px 0;">
         <a class="btn btn-primary btn-huge" id="deployBtn" href="#" target="_blank" rel="noopener noreferrer">
-          🚀 Bilgisayarına Kur (Cloud Run)
+          🚀 Google Cloud'a Kur (Cloud Run)
         </a>
         <p class="url" style="font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin: 10px 0 4px; word-break: break-all;" id="deployUrl">Repo URL girince link aktif olur</p>
         <p style="font-size: 12px; color: var(--ink-dim); margin-top: 4px;">
@@ -3150,7 +3056,7 @@ gcloud storage buckets add-iam-policy-binding gs://&lt;BUCKET_NAME&gt; \
       </div>
 
       <div class="nav-row" style="justify-content: center;">
-        <button class="btn btn-ghost" onclick="resetWizard()">↺ Başa dön (sıfırla)</button>
+        <button class="btn btn-ghost" onclick="resetSetup()">↺ Başa dön (sıfırla)</button>
       </div>
     </div>
 
@@ -3331,10 +3237,12 @@ function goTo(step) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const target = document.querySelector(`.screen[data-step="${step}"]`);
   if (target) target.classList.add('active');
-  // Hide the network map sidebar in manual mode for a denser single-page view.
+  // Hide the network map sidebar on screens where it doesn't represent the
+  // active workflow (manual + quick install). The map visualises the 9-step
+  // wizard graph; in those modes it would just confuse the user.
   const mainEl = document.querySelector('main');
   const mapEl = document.querySelector('aside.map');
-  if (step === 'manual') {
+  if (step === 'manual' || step === 'quick') {
     if (mainEl) mainEl.style.gridTemplateColumns = '1fr';
     if (mapEl) mapEl.style.display = 'none';
   } else {
@@ -3349,7 +3257,7 @@ function goTo(step) {
   saveState();
 }
 
-function resetWizard() {
+function resetSetup() {
   if (!confirm('Tüm kurulum durumunu sıfırlamak istediğine emin misin?')) return;
   localStorage.removeItem(STATE_KEY);
   location.reload();
@@ -3705,23 +3613,38 @@ function copyGrantIamCmd(ev) {
   flashCopy(ev?.target);
 }
 
-// Intro cards: scroll one card width per click and update button states.
+// v1.0.5 — Intro carousel artık disabled olmuyor, başa/sona varınca döngüsel
+// olarak en sona/başa atlıyor. Kullanıcı oka bastığında her zaman bir şey olur.
 function scrollIntroCards(direction) {
   const wrap = document.getElementById('introCards');
   if (!wrap) return;
   const card = wrap.querySelector('.intro-card');
   const step = card ? (card.getBoundingClientRect().width + 14 /* gap */) : 240;
+  const atStart = wrap.scrollLeft <= 2;
+  const atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 2;
+  // Cyclic: at the ends, jump to the opposite side
+  if (direction > 0 && atEnd) {
+    wrap.scrollTo({ left: 0, behavior: 'smooth' });
+    return;
+  }
+  if (direction < 0 && atStart) {
+    wrap.scrollTo({ left: wrap.scrollWidth, behavior: 'smooth' });
+    return;
+  }
   wrap.scrollBy({ left: direction * step, behavior: 'smooth' });
 }
 function updateIntroScrollBtns() {
+  // Buttons stay enabled — visual feedback for "loops to start/end" instead.
   const wrap = document.getElementById('introCards');
   const prev = document.getElementById('introScrollPrev');
   const next = document.getElementById('introScrollNext');
   if (!wrap || !prev || !next) return;
+  prev.disabled = false;
+  next.disabled = false;
   const atStart = wrap.scrollLeft <= 2;
   const atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 2;
-  prev.disabled = atStart;
-  next.disabled = atEnd;
+  prev.title = atStart ? "Başa dön ↺ — son karta atlar" : "Önceki kart";
+  next.title = atEnd ? "Başa dön ↺ — ilk karta atlar" : "Sonraki kart";
 }
 document.getElementById('introCards')?.addEventListener('scroll', updateIntroScrollBtns);
 window.addEventListener('resize', updateIntroScrollBtns);
@@ -3758,6 +3681,19 @@ function flashCopy(btn) {
 }
 
 restoreFromState();
+
+// v1.0.5 — Her sayfanın altına "↺ Başa dön (sıfırla)" linki ekle.
+// Karşılama ekranı hariç tüm screen'lere otomatik DOM injection.
+document.querySelectorAll('.screen').forEach(screen => {
+  const step = screen.dataset.step;
+  if (step === 'welcome') return;
+  if (screen.querySelector('.screen-reset-link')) return;
+  const link = document.createElement('div');
+  link.className = 'screen-reset-link';
+  link.innerHTML = '<button class="btn-link" onclick="resetSetup()">↺ Başa dön (kurulumu sıfırla)</button>';
+  screen.appendChild(link);
+});
+
 goTo(state.current || 'welcome');
 if (document.getElementById('repoUrl')?.value) validateRepoUrl(document.getElementById('repoUrl').value.trim());
 if (document.getElementById('gcpProjectId')?.value) validateProjectId(document.getElementById('gcpProjectId').value.trim());
