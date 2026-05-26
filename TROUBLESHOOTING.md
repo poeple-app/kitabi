@@ -410,6 +410,61 @@ gcloud storage buckets list --project=<PROJECT_ID>
 
 ## Yeni özelliklere özel sorunlar (v1.0.1+) {#yeni-ozellikler}
 
+### OCR'da yine "bazen" gibi vurgu dışı kelimeler eklendi (v1.0.5+)
+
+v1.0.5'te 3 katmanlı iyileştirme uygulandı:
+- `temperature=0` — vision çağrılarında karar tutarlılığı
+- Chain-of-thought — model önce sayfayı analiz eder, sonra çıkar
+- Renk tespiti zorunluluğu — `RENK:` satırı modelden vurguya dikkat etmesini ister
+
+Hâlâ taşma görüyorsan:
+- Vurgu kenarı bulanık çekilmiş olabilir — kalemi ya da fosforu daha belirgin çek
+- "Aday" kelimenin tam sınırda olması: model "yarım kelime alma, tamamını al" diyor, yine de bir sonraki kelimeye geçmez. Eğer geçiyorsa loglarda `ai.ocr_image.success color_detected` field'i ne diyor bak — model rengi tespit edemediyse vurguyu da net göremiyor demektir.
+
+### Kelime ortasında tire ve satır sonu — "tahak- küm" diye kaydedildi (v1.0.5 fix)
+
+v1.0.5'ten itibaren OCR ve foto+caption cevaplarında otomatik post-processing: `r'(\w)-\s*\n\s*(\w)'` regex'i satır sonu kelime kırılmalarını birleştirir. Eski notlarda var olan tireler şu anlık DB'de kalır; yeni notlarda görünmez.
+
+Eski notları düzeltmek için: not detay → "✏️ Transkripti düzelt" → tire'siz versiyonu yapıştır.
+
+### Not detayında fotoğraf görünmüyor (v1.0.5+)
+
+v1.0.5'ten itibaren not açıldığında, varsa fotoğrafı caption ile birlikte gösterir. Görünmüyorsa:
+- Not v1.0.4 öncesinde oluşturulmuş olabilir → `photo_file_id` boş, gösterecek bir şey yok
+- Telegram file_id 18 ay valid; daha eski fotoğraflar artık indirilemez
+- Container eski revision'da olabilir → `/healthz` versionunu kontrol et
+
+### Gemini cevabında "Kaynak:" footer'ı yok (v1.0.5+)
+
+v1.0.5 PROMPT_ANSWER'a "Kaynak: KOD1, KOD2" zorunluluğu eklendi. Görünmüyorsa:
+- Soru cevaplama akışı (`question:ask`) dışındaki AI yanıtları (explain, define_term) kaynak vermez — sadece "soru sor" akışında var
+- Gemini bazen formattan sapabilir; bu durumda `_split_answer_and_sources` bulamayınca cevap olduğu gibi gösterilir, kaynak satırı çıkmaz
+- "bilgi tabanı" diye dönüyorsa Gemini notlardan değil kendi bilgisinden cevapladı demektir — şeffaflık için doğru davranış
+
+### Buton tıkladığımda hâlâ feedback gelmiyor (v1.0.5)
+
+v1.0.5'ten itibaren her callback ilk 50ms içinde "⏳ Hazırlanıyor…" toast'u atar. Görmüyorsan:
+- Toast Telegram'ın native popup'ı — bazı eski mobil sürümlerde küçük görünür, üst banner alanına yakın bak
+- Eski revision olabilir → `/healthz` versionunu kontrol et
+
+### "Tek aktif menü" hâlâ iki menü gösteriyor (v1.0.5 sıkılaştırma)
+
+v1.0.5'te `handle_text/voice/photo` başlarına `_delete_previous_menu` çağrıları eklendi. Ek olarak `_send_screen` callback dalında "tracked başka menü" varsa siliyor. Hâlâ görüyorsan:
+- Silinemeyen menü 48 saatten eski → Telegram silmeye izin vermiyor, sahnede kalıyor
+- Bot bazı durumlarda track edilmemiş ekstra mesaj atmış olabilir (örn screen_note_confirm sonrası reply_text). Bu mesajlar henüz takip edilmiyor; gelecek sürümde `_send_menu_reply` helper'ı tüm noktalara yayılacak.
+
+### Foto+caption cevabında "Vurgu:" yerine artık tırnaklı italic var (v1.0.5)
+
+Yeni format: ilk paragraf çift tırnak içinde italic (OCR çıktısı), altta `TANIM:`, `CEVAP:`, `ÖZET:`, `BAĞLAM:` gibi büyük harfli etiketlerle ek bilgi paragrafları. Bu, görsel ayrımı netleştiriyor. PDF tarafında da aynı görsel ayrım var.
+
+### PDF kelime bulutu hâlâ cümle gösteriyor (v1.0.5 fix)
+
+v1.0.5'te cloud builder katı filtre uygular: ≤30 karakter VE ≤3 kelime olan girişler cloud'da, fazlası alfabetik listede. Eski notlardaki cümle-uzunluğunda transkriptler artık cloud'da görünmez. Cloud'da görmek istediğin bir terim varsa "✏️ Transkripti düzelt" ile kısalt.
+
+### PDF'te foto sola gelmedi / yazı altında duruyor (v1.0.5+)
+
+v1.0.5 CSS `.note-photo { float: left; width: 35mm; }` + body clearfix. Bu sadece yeni render'da görünür. Eski PDF'i yeniden üretmek için kitap detay → "📕 PDF üret" tekrar bas.
+
 ### Foto attım, OCR bütün sayfayı aldı — vurguları beklemiyordum (v1.0.3+)
 
 v1.0.3'ten itibaren default davranış değişti: bot artık SADECE altı çizili / fosforlu / kalemle vurgulanmış metni çıkarır. Tam sayfa OCR'ı görüyorsan iki ihtimal var:

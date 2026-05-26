@@ -16,6 +16,7 @@ in one place.
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from typing import Any
 
@@ -110,6 +111,7 @@ async def _call_gemini(
     *,
     operation: str,
     timeout_s: float = DEFAULT_TIMEOUT_S,
+    temperature: float | None = None,
 ) -> str:
     """Call Gemini with automatic retry + model fallback.
 
@@ -117,6 +119,8 @@ async def _call_gemini(
         contents: List of parts to send to Gemini (text strings, types.Part, ...)
         operation: Short tag for logging (e.g. "transcribe_voice", "answer_question")
         timeout_s: Per-call timeout
+        temperature: Optional override (None = model default ~1.0). Use 0 for
+            vision tasks where boundary precision matters (OCR, cover extraction).
 
     Returns:
         The model's text response (stripped).
@@ -127,6 +131,10 @@ async def _call_gemini(
     client = _client_or_raise()
     last_error: Exception | None = None
     t_total = time.time()
+    # Build optional GenerateContentConfig (only when caller asks for it).
+    gen_config = None
+    if temperature is not None:
+        gen_config = types.GenerateContentConfig(temperature=temperature)
 
     for model_index, model in enumerate(MODEL_FALLBACK):
         for attempt in range(MAX_RETRIES_PER_MODEL):
@@ -138,12 +146,32 @@ async def _call_gemini(
                     model=model,
                     model_index=model_index,
                     attempt=attempt + 1,
+                    temperature=temperature,
                 )
                 response = await asyncio.wait_for(
-                    client.aio.models.generate_content(model=model, contents=contents),
+                    client.aio.models.generate_content(
+                        model=model, contents=contents,
+                        **({"config": gen_config} if gen_config is not None else {}),
+                    ),
                     timeout=timeout_s,
                 )
                 text = (response.text or "").strip()
+                # Log finish_reason to detect truncation (Madde 3 — kesinti kontrolü).
+                finish_reason = None
+                try:
+                    cand = (response.candidates or [None])[0]
+                    if cand is not None:
+                        fr = getattr(cand, "finish_reason", None)
+                        finish_reason = str(fr) if fr is not None else None
+                except Exception:
+                    pass
+                if finish_reason and "MAX_TOKENS" in finish_reason.upper():
+                    logger.warning(
+                        "ai._call_gemini.truncated",
+                        operation=operation, model=model,
+                        finish_reason=finish_reason,
+                        chars_returned=len(text),
+                    )
                 # Success — log if we had to fall back to a non-primary model
                 if model_index > 0:
                     logger.warning(
@@ -159,6 +187,7 @@ async def _call_gemini(
                         operation=operation,
                         model=model,
                         duration_ms=int((time.time() - t0) * 1000),
+                        finish_reason=finish_reason,
                     )
                 return text
 
@@ -285,7 +314,7 @@ Kitap: {book_title}
 Yazar: {book_author}
 Tür: {book_genre}
 
-Kullanıcının bu kitap için aldığı notlar (en yenisi son):
+Kullanıcının bu kitap için aldığı notlar (en yenisi son, her birinin başında kodu var):
 {notes_block}
 
 Kullanıcının sorusu:
@@ -293,7 +322,12 @@ Kullanıcının sorusu:
 
 {style}
 
-KESİN LİMİT: cevabın en fazla 3 cümle olsun. Notlardan referans verirken kod kullan (örn "SVC002 notunda…"), uzun alıntı yapma. Eğer 1 cümleyle yeterli cevap verilebiliyorsa, 1 cümleyle ver.
+KESİN LİMİT: cevabın en fazla 3 cümle olsun. Eğer 1 cümleyle yeterli cevap verilebiliyorsa, 1 cümleyle ver. Uzun alıntı yapma.
+
+ÇIKTI FORMATI (TAM uy):
+- Önce cevap (1-3 cümle).
+- Boş satır.
+- Son satır: "Kaynak: KOD1, KOD2" — cevap üretirken hangi notlardan yararlandıysan o notların kodlarını listele (en fazla 3). Eğer not dışı kendi bilginden cevapladıysan "Kaynak: bilgi tabanı" yaz. Karışıksa "Kaynak: KOD1, bilgi tabanı".
 
 Cevap:
 """
@@ -314,20 +348,41 @@ PROMPT_OCR_HIGHLIGHTED = """\
 Bu bir kitap sayfası fotoğrafı. Kullanıcı SADECE altını çizdiği, vurguladığı,
 fosforladığı ya da kutu içine aldığı parçaları not olarak almak istiyor.
 
-Yapacakların:
-1. Sayfadaki altı çizili / fosforlu / kalemle vurgulanmış / kutu içine alınmış
-   metinleri bul ve çıkar.
-2. Sayfa numarasını üst ya da alt margin'den oku (varsa).
-3. EĞER hiçbir vurgu işareti YOKSA, "VURGU_YOK" yaz — tam sayfayı KESİNLİKLE
-   kopyalama. Kullanıcının seçmediği metni kaydetmek istemiyoruz.
+ÖNCE (çıktıya YAZMADAN) kendi kendine şunları say:
+- Sayfada kaç ayrı vurgu var?
+- Her birinin rengi ne (yeşil/sarı/pembe/mavi/kurşun)?
+- Her vurgunun BAŞLADIĞI ilk kelime ve BİTTİĞİ son kelime hangisi?
+
+Sonra çıktıyı oluştur. KESİN KURALLAR:
+1. Sadece vurguların KAPSADIĞI kelimeleri yaz. Vurgu cümlenin ortasında bitse
+   bile o cümlenin tamamını alma. Vurgudan ÖNCEKİ / SONRAKİ kelimeleri ekleme.
+2. Vurgu yarım kelimenin ortasında bitiyorsa o kelimenin TAMAMINI al (yarım
+   kelime yazma), ama BİR SONRAKİ kelimeye GEÇME.
+3. Satır sonu tirelerini kaldır, kelimeleri birleştir
+   (örn: "tahak-\\nküm" → "tahakküm", "ye-\\nme" → "yeme").
+4. Sayfa numarasını üst veya alt margin'den oku.
+5. EĞER hiçbir vurgu işareti YOKSA "VURGU_YOK" yaz — tam sayfayı KESİNLİKLE
+   kopyalama.
+
+ÖRNEK 1 (vurgu cümle ortasında bitiyor):
+  Sayfa: "...Bourdieu için de bunu söylemek mümkündür. Her kiniğin arkasında
+  hayal kırıklığına uğramış bir idealistin bulunduğu söylenir bazen. Fransız
+  eğitim sisteminde..."
+  Vurgulanan kısım: "Her kiniğin arkasında hayal kırıklığına uğramış bir
+  idealistin"
+  → SENİN ÇIKARMAN GEREKEN: "Her kiniğin arkasında hayal kırıklığına uğramış
+  bir idealistin"
+  → YAZMAMAN GEREKEN: "bulunduğu söylenir bazen" (vurgu burada bitti, yazma!)
 
 Cevabını TAM olarak şu formatta ver, başka hiçbir şey yazma:
 PAGE: <sayfa numarası veya YOK>
+RENK: <vurgu rengi, birden fazlaysa virgülle, yoksa YOK>
 ---
 <sadece vurgulu kısımlar; birden çok parça varsa her birini ayrı satıra koy>
 
 veya hiç vurgu yoksa:
 PAGE: <sayfa numarası veya YOK>
+RENK: YOK
 ---
 VURGU_YOK
 """
@@ -339,32 +394,35 @@ Kullanıcı bir kitap sayfasının fotoğrafını gönderdi ve fotoğrafın capt
 
 TALİMAT: {question}
 
-Caption serbest bir talimat — soru olabilir, OCR isteği olabilir, "şu alıntıyı
-al + şunun tanımını ekle" gibi karmaşık olabilir. Talimatı dikkatlice oku ve
-TÜM parçalarını yerine getir.
+Caption serbest bir talimat — soru, OCR isteği, "şu alıntıyı al + şunun
+tanımını ekle" gibi karmaşık olabilir. Talimatın TÜM parçalarını yerine getir.
 
 Görevin:
 1. Sayfada altı çizili / vurgulanmış / kalemle işaretlenmiş bir kısım VARSA
-   onu BİREBİR OCR ile çıkar (vurgu yoksa tam sayfa metnine bak).
-   Eklediğin/eksilttiğin kelime olmasın — fotoğrafta ne yazıyorsa o.
-2. Caption'ın istediği EK işleri sırayla yap: kelime tanımı eklemek, özet
-   çıkarmak, ilişki kurmak, soruyu cevaplamak — caption'da ne istenmişse.
-3. Bilgi yalnız sayfada/genel bilgide var olabilir. Sayfa-dışı bilgi (kelime
-   anlamı gibi) eklemek serbest, ama o bilginin "ek olarak" eklendiğini
-   üstüpaten belirt — kullanıcı neyin sayfadan neyin senden geldiğini
-   görebilsin.
+   onu BİREBİR OCR ile çıkar. Yoksa tam sayfaya bak.
+   Satır sonu tirelerini kaldır, kelimeleri birleştir
+   ("tahak-\\nküm" → "tahakküm").
+2. Caption'ın istediği EK işleri yap.
+3. Sayfa-dışı bilgi (kelime anlamı, bağlam vb.) eklemek serbest.
 
-Bağlam (varsa):
+Bağlam:
 - Kitap: {book_title}
 - Yazar: {book_author}
 
 {style}
 
-ÇIKTI FORMATI (TAM olarak uy):
-- Önce OCR (vurgu varsa "Vurgu:" başlığıyla, yoksa "Sayfa:" başlığıyla)
-- Sonra caption'ın istediği ek işler ayrı satırlarda, her birinin başında
-  ne yapıldığını belirten kısa bir etiket (örn "Tanım:", "Özet:", "Cevap:").
-- Toplam çıktın en fazla 6 cümle olsun. Dolgu kelimesi yok.
+ÇIKTI FORMATI (TAM olarak uy — başka format kullanma):
+İlk satır: OCR çıktısını ÇİFT TIRNAK içine al, başka etiket yok.
+Boş satır.
+Ardından her ek bilgi için yeni satırda büyük harfle başlayan kısa etiket
+artı iki nokta, ardından metin: TANIM:, CEVAP:, ÖZET:, BAĞLAM:, vb.
+
+ÖRNEK:
+"Her kiniğin arkasında hayal kırıklığına uğramış bir idealistin"
+
+TANIM: İdealist — gerçeklere değil idealine bağlı kalan kişi.
+
+KESİN LİMİT: toplam çıktın en fazla 6 cümle. Dolgu yok.
 
 Çıktı:
 """
@@ -463,26 +521,47 @@ async def ocr_image(
             prompt_text,
         ],
         operation=operation,
+        temperature=0.0,  # Vision boundary precision — same call, no extra cost
     )
     page: int | None = None
+    color: str | None = None
     text = raw
-    if raw.upper().startswith("PAGE:"):
-        first_line, _, rest = raw.partition("\n")
-        page_str = first_line[5:].strip()
-        if page_str and page_str.upper() != "YOK":
-            try:
-                page = int("".join(c for c in page_str if c.isdigit()))
-            except ValueError:
-                page = None
-        # Strip optional `---` divider from the body
-        body = rest
-        if body.lstrip().startswith("---"):
-            body = body.split("---", 1)[-1]
-        text = body.strip()
+    # New format (v1.0.5): PAGE: …\nRENK: …\n---\n<body>
+    # Older format still tolerated: PAGE: …\n---\n<body>
+    lines_buf = raw.splitlines()
+    body_idx = 0
+    for i, line in enumerate(lines_buf):
+        upper = line.strip().upper()
+        if upper.startswith("PAGE:"):
+            page_str = line.split(":", 1)[1].strip()
+            if page_str and page_str.upper() != "YOK":
+                try:
+                    page = int("".join(c for c in page_str if c.isdigit()))
+                except ValueError:
+                    page = None
+            body_idx = i + 1
+        elif upper.startswith("RENK:"):
+            c_raw = line.split(":", 1)[1].strip()
+            if c_raw and c_raw.upper() != "YOK":
+                color = c_raw
+            body_idx = i + 1
+        elif line.strip() == "---":
+            body_idx = i + 1
+            break
+        else:
+            # Body starts at first non-header non-divider line
+            break
+    text = "\n".join(lines_buf[body_idx:]).strip()
+    if not text:  # fall back to whole response if header parse missed
+        text = raw.strip()
+    # Strip mid-word soft-hyphen line breaks (Madde 6 — kitap dizimi).
+    # Examples: "tahak-\nküm" → "tahakküm", "içeri- \nsinde" → "içerisinde"
+    text = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", text)
     logger.info(
         "ai.ocr_image.success",
         text_length=len(text),
         page_detected=page,
+        color_detected=color,
         mode=mode,
         duration_ms=int((time.time() - t0) * 1000),
     )
@@ -519,7 +598,10 @@ async def answer_about_image(
             ),
         ],
         operation="answer_about_image",
+        temperature=0.2,  # Vision + light reasoning — low but not zero
     )
+    # Strip mid-word soft-hyphen line breaks (same as ocr_image).
+    answer = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", answer)
     logger.info(
         "ai.answer_about_image.success",
         answer_length=len(answer),
@@ -641,8 +723,10 @@ async def answer_question(question: str, book: Book, notes: list[Note]) -> str:
         note_count=len(notes),
     )
     # Cap to last 50 notes to avoid token bloat. 50 short notes ≈ <10K tokens.
+    # v1.0.5: prefix each block with the note's CODE so PROMPT_ANSWER's
+    # "Kaynak: KOD1, KOD2" instruction has stable references to cite.
     notes_block = "\n".join(
-        f"- [s.{n.page or '—'} · {n.category.value}] {n.transcript[:200]}"
+        f"- [{n.code}] [s.{n.page or '—'} · {n.category.value}] {n.transcript[:200]}"
         for n in notes[-50:]
     ) or "(henüz not yok)"
     answer = await _call_gemini(

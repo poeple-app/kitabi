@@ -365,26 +365,31 @@ p, li {
 .cal-cell.cal-mid    { background: #d8b994; color: #fff7e5; border-color: #a07d56; }
 .cal-cell.cal-strong { background: var(--accent); color: #fff7e5; border-color: #5a2d11; }
 
-/* ─────────────── Tag cloud (v1.0.2) ─────────────── */
+/* ─────────────── Tag cloud (v1.0.5 — Notion multi-select tarzı) ─────────────── */
+/* Tüm tag'ler aynı boyutta. Pill shape, hafif background, etiket gibi. */
 .cloud {
   text-align: center;
-  line-height: 1.9;
-  padding: 4mm 6mm;
-  background: linear-gradient(135deg, rgba(122,62,31,.06), rgba(122,62,31,.02));
+  line-height: 2.2;
+  padding: 4mm 5mm;
+  background: linear-gradient(135deg, rgba(122,62,31,.04), rgba(122,62,31,.01));
   border-radius: 1.5mm;
   border: 0.4px solid var(--line);
   margin-bottom: 2mm;
 }
 .cloud-term {
   display: inline-block;
-  margin: 0.6mm 2mm;
-  font-family: Georgia, serif;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: -0.2px;
+  margin: 0.8mm 1mm;
+  padding: 0.6mm 2.8mm;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  font-size: 9.5pt;
+  font-weight: 500;
+  color: #fff;
+  background: var(--cat-kelime);
+  border-radius: 3mm;
+  letter-spacing: 0.1px;
 }
-.cloud-term.cloud-WORD    { color: var(--cat-kelime); }
-.cloud-term.cloud-CONCEPT { color: var(--cat-kavram); }
+.cloud-term.cloud-WORD    { background: var(--cat-kelime); }
+.cloud-term.cloud-CONCEPT { background: var(--cat-kavram); }
 
 /* ─────────────── Other-books list (v1.0.2) ─────────────── */
 .other-books {
@@ -395,19 +400,28 @@ p, li {
 }
 .other-books li { margin-bottom: 1.2mm; }
 
-/* ─────────────── Embedded note photo (v1.0.4) ─────────────── */
+/* ─────────────── Embedded note photo (v1.0.4 → v1.0.5 layout) ─────────────── */
+/* v1.0.5: foto sola float, yazı sağında akar → daha sıkı yerleşim */
 .note-photo {
-  margin: 2mm 0 3mm;
-  text-align: center;
+  float: left;
+  width: 35mm;
+  margin: 0 4mm 2mm 0;
   page-break-inside: avoid;
   break-inside: avoid;
 }
 .note-photo img {
-  max-width: 100%;
-  max-height: 80mm;
+  width: 100%;
+  max-height: 50mm;
+  object-fit: cover;
   border-radius: 1.5mm;
   border: 0.4px solid var(--rule);
-  box-shadow: 0 1mm 2mm rgba(122, 62, 31, 0.15);
+  box-shadow: 0 0.5mm 1.5mm rgba(122, 62, 31, 0.15);
+}
+/* Clearfix so the next note doesn't ride up under the floated photo */
+.note .body::after {
+  content: "";
+  display: table;
+  clear: both;
 }
 
 /* ─────────────── Orphan photo note (v1.0.2) ─────────────── */

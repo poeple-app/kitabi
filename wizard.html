@@ -834,7 +834,7 @@
       <!-- ─── INTRO CARDS (NEW) ─── -->
       <h2 class="section-h">Kitabi ne yapıyor?</h2>
       <p class="lede" style="max-width: none;">
-        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: kitabını ISBN'i yazarak, kapağının fotoğrafını çekerek ya da elle ekleyebilirsin (ISBN bulunmazsa Google Books → Open Library otomatik fallback'i devreye girer). Okurken sesli mesaj gönderir, sayfanın altını çizdiğin yerleri fotoğraflar (bot sadece vurguladığın metni alır, tam sayfayı kopyalamaz) ya da yazarsın; istersen fotoğrafa caption ekleyip "şu cümleyi al + idealist'in tanımını ekle" gibi karmaşık talimat verirsin, bot Gemini AI ile metne döker ve istediğini yapar. Notlar 6 hazır + kendi eklediğin sınırsız kategoride saklanır. Kütüphanen 10 kitabı geçince raf sistemi devreye girer; her kitaba kendi ikonunu ve özel alanlarını ekleyebilirsin. Chat input kutusu altında 4 kalıcı hızlı buton (Oturumlar / Bitir / Kitaplar / Yeni) hep elinin altında. Alıntıları "Klasik Twit" pull-quote tarzında 6 farklı yazı tipiyle paylaşır, kitap bittiğinde istatistikleri (okuma takvimi, kelime bulutu, yayınevi + yazarın diğer kitapları + notlara eklediğin fotoğraflar dahil) zengin bir PDF okuma günlüğüne dönüştürür.
+        Kitabi, Telegram'da yaşayan kişisel bir okuma günlüğü botudur: kitabını ISBN'i yazarak, kapağının fotoğrafını çekerek ya da elle ekleyebilirsin (ISBN bulunmazsa Google Books → Open Library otomatik fallback'i devreye girer). Okurken sesli mesaj gönderir, sayfanın altını çizdiğin yerleri fotoğraflar (bot temperature=0 + chain-of-thought ile sadece vurguladığın metni alır, tam sayfayı kopyalamaz, satır sonu kelime kırılmalarını da temizler) ya da yazarsın; istersen fotoğrafa caption ekleyip "şu cümleyi al + idealist'in tanımını ekle" gibi karmaşık talimat verirsin, bot Gemini AI ile metne döker ve tırnaklı italik OCR + TANIM/CEVAP etiketleriyle yapılandırılmış cevap döner. Soru sorduğunda cevabın altına otomatik "Kaynak: KOD1, KOD2" dipnotu konur — hangi notlardan yararlanıldığı şeffaf. Notlar 6 hazır + kendi eklediğin sınırsız kategoride saklanır. Kütüphanen 10 kitabı geçince raf sistemi devreye girer; her kitaba kendi ikonunu ve özel alanlarını ekleyebilirsin. Chat input kutusu altında 4 kalıcı hızlı buton (Oturumlar / Bitir / Kitaplar / Yeni) hep elinin altında, her tıklama anında toast feedback'i ile karşılanır, sohbette her zaman tek aktif menü kalır. Alıntıları "Klasik Twit" pull-quote tarzında 6 farklı yazı tipiyle paylaşır, kitap bittiğinde istatistikleri (okuma takvimi, Notion-style multi-select etiket bulutu, yayınevi + yazarın diğer kitapları + notlara eklediğin fotoğraflar sola float'lanmış olarak dahil) zengin bir PDF okuma günlüğüne dönüştürür.
       </p>
       <p class="input-help">Aşağıdaki kartlar arasında oklarla gezin — bot'un kurulumdan sonra neler yapabileceğini kart açıklamalarında okuyabilirsin.</p>
 
@@ -1099,6 +1099,44 @@
             </div>
             <div class="intro-card-title">🖼️ PDF'te fotoğraflar</div>
             <div class="intro-card-cap">Notlarına eklediğin fotoğraflar PDF günlüğünde gerçekten görünür — Telegram'dan indirilip sayfada gömülü olarak gösterilir.</div>
+          </div>
+
+          <!-- ── v1.0.5 yenilikleri ── -->
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🎯</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>hassas OCR]</div>
+            </div>
+            <div class="intro-card-title">🎯 Hassas vurgu OCR</div>
+            <div class="intro-card-cap">temperature=0 + chain-of-thought + renk tespiti. Vurgu kenarı artık çok daha katı — "bazen" gibi yakın kelimeler artık karışmıyor.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">📎</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>kaynak dipnotu]</div>
+            </div>
+            <div class="intro-card-title">📎 Kaynak dipnotu</div>
+            <div class="intro-card-cap">Gemini soru cevabının altına otomatik "Kaynak: KOD1, KOD2" satırı koyar — hangi notlardan yararlandığı şeffaf.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">⏳</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>buton feedback]</div>
+            </div>
+            <div class="intro-card-title">⏳ Anında feedback</div>
+            <div class="intro-card-cap">Her buton tıklamasında hemen "Hazırlanıyor…" toast'u. "Tıkladım mı?" tereddüdü artık yok.</div>
+          </div>
+
+          <div class="intro-card">
+            <div class="intro-screenshot">
+              <div class="ss-emoji">🖼️</div>
+              <div class="ss-placeholder">[ekran görüntüsü:<br/>tg foto detay]</div>
+            </div>
+            <div class="intro-card-title">🖼️ Notlarda foto</div>
+            <div class="intro-card-cap">Bir nota fotoğraf eklediysen, not açıldığında Telegram'da o foto da caption ile birlikte görünür.</div>
           </div>
 
         </div>

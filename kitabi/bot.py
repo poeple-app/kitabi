@@ -1,4 +1,4 @@
-"""Telegram bot logic for Kitabi (v1.0.4)."""
+"""Telegram bot logic for Kitabi (v1.0.5)."""
 
 from __future__ import annotations
 
@@ -161,6 +161,7 @@ async def _send_screen(
     keyboard: InlineKeyboardMarkup,
     *,
     photo_url: str | None = None,
+    photo_file_id: str | None = None,
 ) -> None:
     """Edit-in-place when triggered by callback; new bubble when user sent input.
 
@@ -172,18 +173,29 @@ async def _send_screen(
     """
     cid = _chat_id(update)
     sent_msg = None
+    # Telegram captions are limited to ~1024 chars; trim long screens when
+    # we have to attach the text to a photo.
+    photo_obj = photo_url or photo_file_id
+    if photo_obj and len(text) > 1000:
+        # Move long captions to a follow-up text message
+        long_caption_overflow = text
+        text = text[:1000].rsplit("\n", 1)[0] + "\n\n<i>(devamı aşağıda)</i>"
+    else:
+        long_caption_overflow = None
 
     if update.callback_query:
-        try:
-            await update.callback_query.answer()
-        except Exception as e:
-            logger.debug("bot.send_screen.answer_failed", error=str(e))
         msg = update.callback_query.message
+        # If a *different* tracked menu lingers in the chat (e.g. user navigated
+        # via reply keyboard, leaving an older inline menu floating), delete it
+        # before rendering the new one. The current message is what we're about
+        # to edit/replace, so it's excluded.
+        await _delete_previous_menu(cid, context, except_id=msg.message_id)
         try:
-            if photo_url:
+            if photo_obj:
+                # Photo screens always delete + send (Telegram can't edit text↔photo)
                 await msg.delete()
                 sent_msg = await context.bot.send_photo(
-                    chat_id=msg.chat_id, photo=photo_url,
+                    chat_id=msg.chat_id, photo=photo_obj,
                     caption=text, reply_markup=keyboard, parse_mode=ParseMode.HTML,
                 )
             elif msg.photo:
@@ -208,9 +220,9 @@ async def _send_screen(
         # Fresh bubble in response to user input. Delete the previously tracked
         # menu first so the chat stays clean.
         await _delete_previous_menu(cid, context)
-        if photo_url:
+        if photo_obj:
             sent_msg = await update.message.reply_photo(
-                photo=photo_url, caption=text,
+                photo=photo_obj, caption=text,
                 reply_markup=keyboard, parse_mode=ParseMode.HTML,
             )
         else:
@@ -219,9 +231,48 @@ async def _send_screen(
                 parse_mode=ParseMode.HTML, disable_web_page_preview=True,
             )
 
+    # If the photo caption was trimmed, send the rest as a follow-up.
+    if long_caption_overflow and sent_msg is not None:
+        try:
+            await context.bot.send_message(
+                chat_id=sent_msg.chat_id,
+                text=long_caption_overflow[1000:],
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+            )
+        except Exception as e:
+            logger.debug("bot.send_screen.overflow_failed", error=str(e))
+
     # Track the new active menu
     if sent_msg is not None and hasattr(sent_msg, "message_id"):
         await _track_last_menu(cid, sent_msg.message_id)
+
+
+async def _send_menu_reply(
+    msg, context: ContextTypes.DEFAULT_TYPE,
+    text: str, keyboard: InlineKeyboardMarkup,
+    *, photo_file_id: str | None = None,
+) -> None:
+    """Reply to a user message with a NEW menu bubble, deleting the previously
+    tracked menu first. Use this anywhere we previously did
+    `msg.reply_text(..., reply_markup=kb)` outside of `_send_screen`
+    (screen_note_confirm follow-ups, end_session reply, etc.). This is the
+    "Madde 9 — tek aktif menü" guarantee for the input-driven path.
+    """
+    cid = msg.chat_id if msg else None
+    await _delete_previous_menu(cid, context)
+    if photo_file_id:
+        sent = await msg.reply_photo(
+            photo=photo_file_id, caption=text[:1000],
+            reply_markup=keyboard, parse_mode=ParseMode.HTML,
+        )
+    else:
+        sent = await msg.reply_text(
+            text, reply_markup=keyboard,
+            parse_mode=ParseMode.HTML, disable_web_page_preview=True,
+        )
+    if sent is not None and hasattr(sent, "message_id"):
+        await _track_last_menu(cid, sent.message_id)
 
 
 # Persistent chat-state shims (over data.EphemeralState)
@@ -859,19 +910,27 @@ async def screen_note_confirm(draft: dict[str, Any]) -> ScreenResult:
     settings = await data.get_settings()
     custom_cats = list(getattr(settings, "custom_categories", None) or [])
 
+    # v1.0.5 (Madde 8): uzun transkript / tanım / açıklama'yı kısalt + buton
+    transcript_full = draft.get("transcript") or ""
+    transcript_view, t_trunc = _truncate_with_marker(transcript_full)
     parts = [
         f"🏠 Ana › 🟢 Okuyor › 📝 <b>Yeni Not</b>  ·  <code>{esc(short)}</code> {esc(title)}",
-        "", "✅ Transkript:", f"<i>“{esc(draft['transcript'])}”</i>", "",
+        "", "✅ Transkript:", f"<i>“{esc(transcript_view)}”</i>", "",
     ]
     if current_label:
         parts.append(f"🏷️ Kategori: <b>{esc(current_label)}</b> (özel)")
     else:
         parts.append(f"🤖 Kategori: <b>{esc(current)}</b>")
     parts.append(f"📄 Sayfa: s.{draft.get('page') or '—'}")
+    show_full_button = t_trunc
     if draft.get("definition"):
-        parts += ["", f"📚 Otomatik tanım: {esc(draft['definition'])}"]
+        d_view, d_trunc = _truncate_with_marker(draft["definition"])
+        parts += ["", f"📚 Otomatik tanım: {esc(d_view)}"]
+        show_full_button = show_full_button or d_trunc
     if draft.get("explanation"):
-        parts += ["", f"💡 Gemini açıklaması: {esc(draft['explanation'])}"]
+        e_view, e_trunc = _truncate_with_marker(draft["explanation"])
+        parts += ["", f"💡 Gemini açıklaması: {esc(e_view)}"]
+        show_full_button = show_full_button or e_trunc
 
     def _cat_btn(c):
         active = (c.value == current and not current_label)
@@ -895,6 +954,8 @@ async def screen_note_confirm(draft: dict[str, Any]) -> ScreenResult:
                 kb.append(row); row = []
         if row:
             kb.append(row)
+    if show_full_button:
+        kb.append([BTN("📖 …devamını oku (taslakta tam metin)", "voice:full")])
     kb += [
         [BTN(f"📄 s.{draft.get('page') or '—'}", "voice:page"),
          BTN("✏️ Transkripti düzelt", "voice:edit")],
@@ -914,15 +975,42 @@ def screen_question_idle(book: data.Book) -> ScreenResult:
 
 
 def screen_question_answer(book: data.Book, question: str, answer: str) -> ScreenResult:
+    # v1.0.5 — render "Kaynak: …" footer as small italic dim text on its own
+    # paragraph so the citation is visible but not noisy.
+    body, sources = _split_answer_and_sources(answer)
+    rendered = f"🤖 {esc(body)}"
+    if sources:
+        rendered += f"\n\n<i>📎 Kaynak: {esc(sources)}</i>"
     text = (
         f"🏠 Ana › ❓ <b>Soru › Cevap</b>  ·  {esc(book.title)}\n\n"
-        f"❓ <i>{esc(question)}</i>\n\n🤖 {esc(answer)}"
+        f"❓ <i>{esc(question)}</i>\n\n{rendered}"
     )
     return text, KB([
         [BTN("📝 Not olarak kaydet", _cb("question", "save", book.id))],
         [BTN("🔁 Yeni soru", _cb("question", "ask", book.id))],
         [BTN("📖 Kitaba dön", _cb("book", book.id))],
     ])
+
+
+def _split_answer_and_sources(answer: str) -> tuple[str, str]:
+    """Pull the "Kaynak: …" footer off a Gemini answer.
+
+    Returns (body, sources). If no source line is found, sources is "".
+    """
+    if not answer:
+        return "", ""
+    lines = answer.strip().splitlines()
+    # Find last non-empty line; check if it starts with "Kaynak:" (case-insens)
+    for i in range(len(lines) - 1, -1, -1):
+        line = lines[i].strip()
+        if not line:
+            continue
+        if line.lower().startswith("kaynak:") or line.lower().startswith("kaynaklar:"):
+            sources = line.split(":", 1)[1].strip()
+            body = "\n".join(lines[:i]).strip()
+            return body, sources
+        break  # Source line must be last; stop at first non-empty non-source
+    return answer.strip(), ""
 
 
 def screen_end_session_summary_prompt(session_id: int) -> ScreenResult:
@@ -1090,6 +1178,56 @@ _NOTE_PREVIEW_CHARS = 500
 _NOTE_PREVIEW_LINES = 10
 
 
+# v1.0.5 — Photo+caption Gemini answer formatter.
+# Gemini PROMPT_PHOTO_QUESTION'a göre şu formatta cevap döner:
+#   "OCR alıntısı"
+#
+#   TANIM: ...
+#   CEVAP: ...
+# Bunu HTML olarak render et: ilk tırnaklı satır italic blok, ETIKET: satırları
+# bold etiketli paragraflar. Diğer satırlar olduğu gibi geçer.
+_PHOTO_LABEL_PREFIXES = (
+    "TANIM:", "CEVAP:", "ÖZET:", "OZET:", "BAĞLAM:", "BAGLAM:",
+    "AÇIKLAMA:", "ACIKLAMA:", "İLİŞKİ:", "ILISKI:", "NOT:",
+)
+
+
+def _format_photo_answer_html(raw: str) -> str:
+    """Render Gemini's photo-question reply as Telegram HTML.
+
+    Treats the first quoted block (lines wrapped in " or ") as italic OCR;
+    subsequent "ETIKET: …" lines as <b>ETIKET:</b> normal text.
+    """
+    if not raw:
+        return ""
+    raw = raw.strip()
+    parts: list[str] = []
+    paragraphs = [p.strip() for p in raw.split("\n\n") if p.strip()]
+    first_done = False
+    for para in paragraphs:
+        if not first_done and (para.startswith('"') or para.startswith('“')):
+            # OCR quote — italic
+            text = para.strip('"').strip("“”")
+            parts.append(f"<i>“{esc(text)}”</i>")
+            first_done = True
+            continue
+        # Detect "ETIKET: …" lines (case-insensitive)
+        up = para.upper()
+        label_match = None
+        for lab in _PHOTO_LABEL_PREFIXES:
+            if up.startswith(lab):
+                label_match = lab
+                break
+        if label_match:
+            value = para[len(label_match):].strip()
+            parts.append(f"<b>{esc(label_match)}</b> {esc(value)}")
+        else:
+            # Just normal paragraph
+            parts.append(esc(para))
+        first_done = True
+    return "\n\n".join(parts)
+
+
 def _truncate_with_marker(text: str, *, chars: int = _NOTE_PREVIEW_CHARS,
                           lines: int = _NOTE_PREVIEW_LINES) -> tuple[str, bool]:
     """Return (display_text, was_truncated). Cuts at the smaller of char or
@@ -1111,10 +1249,15 @@ def _truncate_with_marker(text: str, *, chars: int = _NOTE_PREVIEW_CHARS,
     return text_l + ("…" if truncated_by_line else ""), truncated_by_line
 
 
-async def screen_note_detail(note_id: int, *, full: bool = False) -> ScreenResult:
+async def screen_note_detail(
+    note_id: int, *, full: bool = False,
+) -> tuple[str, InlineKeyboardMarkup, str | None]:
+    """v1.0.5: returns (text, kb, photo_file_id) so callers can render the
+    attached photo (if any) above the caption.
+    """
     note = await data.get_note(note_id)
     if not note:
-        return "Not bulunamadı.", KB([_nav_row()])
+        return "Not bulunamadı.", KB([_nav_row()]), None
     book = await data.get_book(note.book_id)
     title = book.title if book else "?"
     ts = to_local(note.created_at).strftime("%d %b %Y · %H:%M") if note.created_at else ""
@@ -1156,7 +1299,9 @@ async def screen_note_detail(note_id: int, *, full: bool = False) -> ScreenResul
         [BTN("🗑️ Notu sil", _cb("note_del", note.id))],
         _nav_row(),
     ]
-    return "\n".join(lines), KB(kb_rows)
+    # Photo present? Tell the caller — _send_screen will use it.
+    file_id = getattr(note, "photo_file_id", None)
+    return "\n".join(lines), KB(kb_rows, pad=False if file_id else True), file_id
 
 
 async def screen_sessions_for_book(book_id: int) -> ScreenResult:
@@ -1527,6 +1672,8 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     msg = update.message
     logger.info("bot.voice.received", user_id=update.effective_user.id,
                 file_id=msg.voice.file_id, duration=msg.voice.duration)
+    # v1.0.5 (Madde 9) — tek aktif menü: önceki menüyü user input geldiğinde sil
+    await _delete_previous_menu(cid, context)
 
     mode = await _get(cid, "mode") if cid else None
     if isinstance(mode, dict) and mode.get("name") == "question":
@@ -1584,6 +1731,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     cid = _chat_id(update)
     msg = update.message
     logger.info("bot.photo.received", user_id=update.effective_user.id)
+    # v1.0.5 (Madde 9) — tek aktif menü
+    await _delete_previous_menu(cid, context)
 
     # Route 1: newbook cover photo (mode set by "Yeni Kitap → Kapak fotoğrafıyla")
     mode = await _get(cid, "mode") if cid else None
@@ -1628,24 +1777,27 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             )
         except Exception as e:
             logger.warning("bot.photo.qa_save_failed", error=str(e))
+        # Format answer (Madde 3): first quoted line italic, label rows bold.
+        formatted = _format_photo_answer_html(answer)
         # Post-save action buttons so the user always knows where to go next
-        # (Madde 29 — "fotoğraf menüyü yukarı itti, kullanıcı nereye gideceğini
-        #  bilemeyebilir" geri bildirimine cevap).
         post_kb = KB([
             [BTN("🟢 Aktif Oturuma Dön", _cb("session_open", session.id))],
             [BTN("📝 Bu Notu Aç", _cb("notes", session.book_id, 0)),
              BTN("📷 Yeni fotoğraf at", "noop")],
             [BTN("🏠 Ana Menü", "main")],
         ])
+        # Cap visible response (Madde 2 — devamını oku yayılımı).
+        body_short, _was_trunc = _truncate_with_marker(formatted, chars=900, lines=14)
         await msg.reply_text(
             f"📷 <b>Fotoğraf + talimat</b>  ·  "
             f"<code>{esc(book.short_code if book else '')}</code> "
             f"{esc(book.title if book else '')}\n\n"
             f"❓ <i>{esc(caption)}</i>\n\n"
-            f"🤖 {esc(answer)}\n\n"
+            f"{body_short}\n\n"
             f"<i>Not olarak kaydedildi. Bir sonraki adımı seç:</i>",
             reply_markup=post_kb,
             parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
         )
         return
 
@@ -1747,6 +1899,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     msg = update.message
     text = (msg.text or "").strip()
     logger.info("bot.text.received", user_id=update.effective_user.id, length=len(text))
+    # v1.0.5 (Madde 9) — tek aktif menü
+    await _delete_previous_menu(cid, context)
 
     # v1.0.2 — quick reply-keyboard buttons (Madde 5).
     # We intercept these BEFORE the question/awaiting/note routes so the user
@@ -2253,8 +2407,14 @@ async def _await_note_edit_field(update, context, text, awaiting):
         await data.update_note(note_id, page=page)
     if cid is not None:
         await _clear(cid, "awaiting")
-    s_text, kb = await screen_note_detail(note_id)
-    await msg.reply_text(s_text, reply_markup=kb, parse_mode=ParseMode.HTML)
+    s_text, kb, file_id = await screen_note_detail(note_id)
+    if file_id:
+        await msg.reply_photo(
+            photo=file_id, caption=s_text[:1000],
+            reply_markup=kb, parse_mode=ParseMode.HTML,
+        )
+    else:
+        await msg.reply_text(s_text, reply_markup=kb, parse_mode=ParseMode.HTML)
 
 
 async def _await_session_edit_page(update, context, text, awaiting):
@@ -2501,13 +2661,24 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         logger.warning("bot.callback.unknown", head=head)
         await query.answer(f"Bilinmeyen eylem: {head}", show_alert=True)
         return
+    # v1.0.5 (Madde 8) — Acknowledge the tap IMMEDIATELY with a toast.
+    # This is the SAME single query.answer() the framework requires; we just
+    # moved it from _send_screen's end to here, with text added. No extra API
+    # call.  Telegram shows a small popup so the user sees "✅ tıklandı"
+    # while the handler runs.
+    try:
+        await query.answer(text="⏳ Hazırlanıyor…", cache_time=0)
+    except Exception as e:
+        # Already answered or expired — fine.
+        logger.debug("bot.callback.answer_failed", error=str(e))
     await handler(update, context, args)
 
 
 # ── individual callback handlers ──
 
 async def _cb_noop(update, context, args):
-    await update.callback_query.answer()
+    # handle_callback already called query.answer() — nothing to do here.
+    pass
 
 
 async def _cb_main(update, context, args):
@@ -2603,14 +2774,14 @@ async def _cb_notes(update, context, args):
 
 
 async def _cb_note(update, context, args):
-    text, kb = await screen_note_detail(int(args[0]))
-    await _send_screen(update, context, text, kb)
+    text, kb, file_id = await screen_note_detail(int(args[0]))
+    await _send_screen(update, context, text, kb, photo_file_id=file_id)
 
 
 async def _cb_note_full(update, context, args):
     """Show the full transcript / definition / explanation (Madde 4)."""
-    text, kb = await screen_note_detail(int(args[0]), full=True)
-    await _send_screen(update, context, text, kb)
+    text, kb, file_id = await screen_note_detail(int(args[0]), full=True)
+    await _send_screen(update, context, text, kb, photo_file_id=file_id)
 
 
 async def _cb_note_fav(update, context, args):
@@ -2618,8 +2789,8 @@ async def _cb_note_fav(update, context, args):
     n = await data.get_note(note_id)
     if n:
         await data.update_note(note_id, is_favorite=not n.is_favorite)
-    text, kb = await screen_note_detail(note_id)
-    await _send_screen(update, context, text, kb)
+    text, kb, file_id = await screen_note_detail(note_id)
+    await _send_screen(update, context, text, kb, photo_file_id=file_id)
 
 
 async def _cb_note_edit(update, context, args):
@@ -2990,6 +3161,22 @@ async def _cb_voice(update, context, args):
             await _set(cid, "draft_note", draft)
         text, kb = await screen_note_confirm(draft)
         await _send_screen(update, context, text, kb)
+
+    elif sub == "full":
+        # v1.0.5 (Madde 8) — show the draft's full transcript / definition /
+        # explanation as a plain follow-up message. Keeps the editor menu
+        # active above; the user can still edit/save afterwards.
+        body_parts: list[str] = []
+        if draft.get("transcript"):
+            body_parts.append(f"<b>Transkript</b>:\n{esc(draft['transcript'])}")
+        if draft.get("definition"):
+            body_parts.append(f"<b>Tanım</b>:\n{esc(draft['definition'])}")
+        if draft.get("explanation"):
+            body_parts.append(f"<b>Açıklama</b>:\n{esc(draft['explanation'])}")
+        full_text = "\n\n".join(body_parts) or "(taslak boş)"
+        await query.message.reply_text(
+            full_text, parse_mode=ParseMode.HTML, disable_web_page_preview=True,
+        )
 
     elif sub == "page":
         await _prompt(update, context, "Sayfa numarasını yaz ve gönder.",

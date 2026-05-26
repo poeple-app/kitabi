@@ -1934,16 +1934,22 @@ async def render_pdf(book_id: int) -> bytes:
             glossary_notes = [
                 n for n in notes if n.category in (Category.WORD, Category.CONCEPT)
             ]
-            # Tag-cloud weights: relative font-size from 0.9em to 1.8em based
-            # on rank — most-recent first since we have no real "frequency"
-            # signal (each glossary note is unique). Newest = biggest.
+            # v1.0.5 — Tag cloud "kelime" odaklı (cümle yok, hep aynı boyut).
+            # Notion multi-select tag mantığı. Cümle gibi uzun girişler (≥30
+            # karakter veya >3 kelime) cloud dışında bırakılır; klasik
+            # alfabetik liste onları zaten gösterir.
             glossary_cloud = []
-            for idx, n in enumerate(reversed(glossary_notes)):
-                weight = 1.0 + (0.6 * (1.0 - idx / max(len(glossary_notes) - 1, 1)))
+            for n in glossary_notes:
+                term = (n.transcript or "").strip()
+                if not term:
+                    continue
+                if len(term) > 30:
+                    continue
+                if len(term.split()) > 3:
+                    continue
                 glossary_cloud.append({
-                    "term": (n.transcript or "")[:60],
+                    "term": term,
                     "category": n.category.value,
-                    "weight_em": round(weight, 2),
                     "note_code": n.code,
                 })
 

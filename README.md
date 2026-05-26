@@ -33,8 +33,12 @@ Toplam süre: **~40-55 dakika**. Toplam maliyet: **0 TL** (tüm servislerin ücr
 | Özellik | Detay |
 |---|---|
 | 🎤 **Sesli not** | Telegram'a ses gönder → Gemini transkript eder → kategori önerir → kaydeder |
-| 📷 **Vurgu odaklı sayfa OCR** | Foto gönder → bot SADECE altı çizili / fosforlu / kalemle vurgulanmış metni çıkarır, tam sayfayı kopyalamaz |
-| 💬 **Foto + caption = soru** | Fotoğrafa caption (açıklama) eklersen → Gemini sayfayı okur, talimatını yapar. Karmaşık komutlar da OK: "şu cümleyi al + 'idealist'in sözlük anlamını ekle". Çıktı OCR + Tanım/Cevap/Özet bloğu |
+| 📷 **Vurgu odaklı sayfa OCR** | Foto gönder → bot SADECE altı çizili / fosforlu / kalemle vurgulanmış metni çıkarır, tam sayfayı kopyalamaz. v1.0.5: temperature=0 + chain-of-thought + renk tespiti ile sınır doğruluğu yüksek |
+| 💬 **Foto + caption = soru** | Fotoğrafa caption (açıklama) eklersen → Gemini sayfayı okur, talimatını yapar. Karmaşık komutlar da OK: "şu cümleyi al + 'idealist'in sözlük anlamını ekle". Çıktı tırnaklı italic OCR + TANIM/CEVAP/ÖZET etiketleri |
+| ✂️ **Tire fix** | OCR'da "tahak-\nküm" → "tahakküm" otomatik; satır sonu kelime kırılmaları temizlenir |
+| 🖼️ **Telegram'da not foto** | Not detayı açıldığında, eklenmiş fotoğraf da caption ile birlikte gösterilir (kitap kapağı pattern'iyle aynı) |
+| 📎 **Kaynak dipnotu** | Gemini cevaplarında otomatik "Kaynak: KOD1, KOD2" footer'ı — soruyu cevaplarken hangi notlardan yararlanıldığı şeffaf |
+| ⏳ **Anında buton feedback** | Her tıklama sonrası 50ms içinde toast popup; uzun callback'lerde de kullanıcı "tıklandı" bilgisi alır, ekstra API call yok |
 | 📸 **Kapak fotoğrafıyla kitap ekleme** | Kitap kapağını çek → Gemini ISBN/başlık/yazar tanır → metadata + kapak otomatik gelir |
 | 🌐 **ISBN çift kaynak** | Google Books başarısız olursa Open Library'ye otomatik fallback; 429 / boş sonuç olsa bile kitap bulunur. Tire/boşluk içeren ISBN'ler otomatik temizlenir |
 | 🖼️ **Orphan photo (sahne)** | Vurgu/OCR yoksa bot kitapla ilgisi olmayan görsel sayar; senden bir not alır, PDF'te "📷 Sahne" olarak gösterir |
@@ -85,7 +89,20 @@ Telegram'ın `/` menüsünde her özelliğe kestirme komut var:
 
 ## Sürüm geçmişi — neler değişti
 
-### v1.0.4 (en son)
+### v1.0.5 (en son)
+- 🎯 **OCR doğruluğu** — temperature=0 + chain-of-thought + renk tespiti. Vurgu sınırları artık katı; "bazen" gibi yakın kelimeler eklenmiyor
+- ✂️ **Tire fix** — satır sonu "tahak-\\nküm" → "tahakküm". OCR ve foto+caption cevaplarında otomatik
+- 🖼️ **Telegram not detayında foto** — note'a eklenmiş görsel, not açıldığında caption ile birlikte gösterilir (PDF'tekiyle aynı pattern)
+- 📎 **Gemini cevaplarına kaynak dipnotu** — "Kaynak: SVC002, SVC007" formatında not referansları otomatik gelir
+- ⏳ **Buton tıklama feedback** — her tıklamadan hemen sonra "⏳ Hazırlanıyor…" toast'u; ekstra API call yok, mevcut answer çağrısı öne çekildi
+- 🪟 **Tek aktif menü sıkılaştırma** — user input (text/voice/photo) geldiğinde önceki menü otomatik silinir; callback edit dalında "yetim" başka menüler varsa onlar da temizlenir
+- 📜 **"…devamını oku" yayılımı** — not taslağında (yeni not ekleme ekranında) uzun transkript / tanım / açıklama kısaltılır, "devamını oku" butonu tam metni gösterir
+- 🏷️ **Kelime bulutu yeniden** — Notion-style multi-select tag chip'leri; tüm tag'ler aynı boyutta, ≤30 char/≤3 kelimeli olanlar cloud'da, cümleler alfabetik listede
+- 🎨 **PDF foto layout** — notlara eklenmiş fotoğraflar artık SOLA float, yazı SAĞA akar — yer daha verimli kullanılır
+- 📷 **Photo+caption format** — Gemini çıktısı yapılandırıldı: tırnaklı italic OCR + altta "TANIM:", "CEVAP:" gibi bold etiketli paragraflar
+- 🔍 **Gemini truncate log** — `finish_reason=MAX_TOKENS` durumu loglanır, "yarıda kesildi mi" sorusu artık net cevaplanabilir
+
+### v1.0.4
 - 🪲 **Çift ikon fix**: kitap listesinde "📖 📖" yerine tek 📖
 - 🔢 **Notlarım sayım belirteçleri**: Fikir (2), Yeni Bilgi (5), Kavram (3)…
 - ➕ **Custom not kategorileri**: kullanıcı kendi etiketlerini ekler (Refleksiyon, Tartışma…). Note.category_label + AppSettings.custom_categories

@@ -360,11 +360,11 @@
     {% if glossary_cloud %}
     <div class="cloud">
       {% for t in glossary_cloud %}
-        <span class="cloud-term cloud-{{ t.category }}" style="font-size: {{ t.weight_em }}em;">{{ t.term }}</span>
+        <span class="cloud-term cloud-{{ t.category }}">{{ t.term }}</span>
       {% endfor %}
     </div>
     <p style="color: var(--ink-dim); font-size: 10px; margin: 4mm 0 5mm; font-style: italic; text-align: center;">
-      ↑ kelime bulutu — sonradan eklenenler daha büyük
+      ↑ tüm Kelime + Kavram etiketleri (uzun cümleler aşağıdaki listede)
     </p>
     {% endif %}
 
