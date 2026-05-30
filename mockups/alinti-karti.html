@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>Kitabi — Klasik Twit alıntı kartı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  @page { size: 110mm 140mm; margin: 0; }
+  :root {
+    --paper:  #fdfaf3;
+    --ink:    #2a2520;
+    --ink-dim:#6e6358;
+    --accent: #7a3e1f;
+    --rule:   #c8b99e;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: white;
+    font-family: 'Crimson Pro', Georgia, 'Iowan Old Style', serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    width: 110mm; height: 140mm;
+    padding: 12mm 11mm 10mm;
+    background: var(--paper);
+    background-image:
+      radial-gradient(circle at 12% 8%,  rgba(122, 62, 31, 0.04), transparent 45%),
+      radial-gradient(circle at 88% 92%, rgba(122, 62, 31, 0.04), transparent 45%);
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 8.5pt; letter-spacing: 0.32em;
+    color: var(--accent); text-transform: uppercase;
+    font-weight: 600;
+  }
+  .header .tagline {
+    letter-spacing: 0.06em; text-transform: none;
+    font-style: italic; color: var(--ink-dim); font-weight: 400;
+  }
+  .quote-mark {
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 56pt; line-height: 0.6;
+    color: var(--accent); opacity: 0.55;
+    margin-top: 9mm; margin-bottom: 1mm;
+    user-select: none;
+  }
+  .quote {
+    font-size: 17pt; line-height: 1.32;
+    color: var(--ink);
+    font-weight: 500;
+    margin-top: 1mm;
+    /* Hanging-indent to align text with the quote mark visually */
+  }
+  .spacer { flex: 1; }
+  .book {
+    margin-top: 4mm;
+  }
+  .book-title {
+    font-size: 12pt; font-weight: 600; color: var(--ink);
+  }
+  .book-author {
+    font-size: 11pt; font-style: italic; color: var(--ink-dim);
+    margin-top: 0.5mm;
+  }
+  .rule {
+    border: none; border-top: 1px solid var(--rule);
+    margin: 4mm 0 3mm; width: 60%;
+  }
+  .meta {
+    display: flex; justify-content: space-between;
+    font-size: 9pt; color: var(--ink-dim);
+    letter-spacing: 0.02em;
+  }
+  .meta .code { font-feature-settings: "tnum"; }
+  .footer {
+    text-align: center; margin-top: 4mm;
+    font-size: 7.5pt; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--ink-dim); opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <span class="brand">K I T A B I</span>
+      <span class="tagline">okuma günlüğü</span>
+    </div>
+
+    <div class="quote-mark">&ldquo;</div>
+    <div class="quote">
+      İki kere iki dört eder, gene de iki kere iki beş eder bazen, hoş bir şeycik olabilir.
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="book">
+      <div class="book-title">Yeraltından Notlar</div>
+      <div class="book-author">Fyodor Dostoyevski</div>
+    </div>
+
+    <hr class="rule" />
+
+    <div class="meta">
+      <span class="code">s.62 · YAN012</span>
+      <span>Defne · 25.05.2026</span>
+    </div>
+
+    <div class="footer">github.com/poeple-app/kitabi</div>
+  </div>
+</body>
+</html>

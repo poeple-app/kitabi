@@ -23,6 +23,23 @@ env = Environment(
     autoescape=select_autoescape(["html"]),
 )
 
+# Mirror kitabi.data's locale-independent Turkish date filter so the mockup
+# renders the same Turkish month names the production PDF does. Both %B and
+# %b resolve to the full Turkish name — see _tr_date in kitabi/data.py.
+_TR_MONTHS_FULL = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+                   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+
+
+def _tr_date(dt, fmt="%d %B %Y"):
+    if dt is None:
+        return ""
+    name = _TR_MONTHS_FULL[dt.month - 1]
+    resolved = fmt.replace("%B", name).replace("%b", name)
+    return dt.strftime(resolved)
+
+
+env.filters["tr_date"] = _tr_date
+
 
 class Category(enum.Enum):
     QUOTE = "Alıntı"

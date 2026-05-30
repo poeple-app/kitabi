@@ -58,7 +58,7 @@ Kurulum sayfasının karşılama ekranında "🛠️ Manuel kurulum" — `gcloud
 | Özellik | Detay |
 |---|---|
 | 🎤 **Sesli not** | Telegram'a ses gönder → Gemini transkript eder → kategori önerir → kaydeder |
-| 📷 **Vurgu odaklı sayfa OCR** | Foto gönder → bot SADECE altı çizili / fosforlu / kalemle vurgulanmış metni çıkarır, tam sayfayı kopyalamaz. v1.0.5: temperature=0 + chain-of-thought + renk tespiti ile sınır doğruluğu yüksek |
+| 📷 **Vurgu odaklı sayfa OCR** | Foto gönder → bot SADECE altı çizili / fosforlu / kalemle vurgulanmış metni çıkarır, tam sayfayı kopyalamaz. temperature=0 + chain-of-thought + renk tespiti ile sınır doğruluğu yüksek |
 | 💬 **Foto + caption = soru** | Fotoğrafa caption (açıklama) eklersen → Gemini sayfayı okur, talimatını yapar. Karmaşık komutlar da OK: "şu cümleyi al + 'idealist'in sözlük anlamını ekle". Çıktı tırnaklı italic OCR + TANIM/CEVAP/ÖZET etiketleri |
 | ✂️ **Tire fix** | OCR'da "tahak-\nküm" → "tahakküm" otomatik; satır sonu kelime kırılmaları temizlenir |
 | 🖼️ **Telegram'da not foto** | Not detayı açıldığında, eklenmiş fotoğraf da caption ile birlikte gösterilir (kitap kapağı pattern'iyle aynı) |
@@ -98,51 +98,38 @@ Kurulum sayfasının karşılama ekranında "🛠️ Manuel kurulum" — `gcloud
 
 ## Örnek çıktılar (Yeraltından Notlar — Dostoyevski)
 
-Botun ne ürettiğini somut görmek için örnek bir okumadan derlenmiş kısa bir kesit. Aşağıdaki içerikler bir gerçek okuma oturumundan değil, **göstermelik mockup** — kendi okumanda yapı aynı olur, doldurma sen olursun.
+Botun ürettiği iki PDF çıktısı. **Göstermelik mockup** — Dostoyevski'nin _Yeraltından Notlar_'ı üzerinden derlenmiş; kendi okumanda yapı aynı olur, doldurma sen olursun. Tıklayınca GitHub'ın yerleşik PDF görüntüleyicisinde açılır.
 
 <table>
   <tr>
     <td align="center" width="180">
-      <a href="mockups/yeralt-notlar.html">
+      <a href="mockups/yeralt-notlar.pdf">
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/PDF_file_icon.svg/120px-PDF_file_icon.svg.png" width="64" alt="PDF" /><br/>
-        <strong>📕 Örnek günlük</strong><br/>
-        <sub>Tarayıcıda aç → tüm sayfaları gör → istersen Ctrl+P ile PDF olarak indir</sub>
+        <strong>📕 Okuma günlüğü</strong><br/>
+        <sub>11 sayfa A4 — kitap bittiğinde<br/>otomatik üretilir</sub>
       </a>
     </td>
     <td>
       <b>Yeraltından Notlar</b> — Dostoyevski<br/>
       <i>İletişim Yayınları, 2017 · 188 sayfa · 6 oturum · 23 not</i><br/><br/>
-      Bot bittiğinde böyle bir PDF üretiyor: <b>kapak</b> (rating + tek-cümlelik review) → <b>künye</b> (yayınevi + yazarın diğer 3 kitabı + senin özel alanların) → <b>istatistik</b> (okuma takvimi + kategori dağılımı + kelime/kavram sayısı) → <b>oturum kronolojisi</b> (alıntılar / fikirler / kavramlar zaman sırasıyla) → <b>favori alıntılar</b> → <b>kelime + kavram sözlüğü</b> (Notion-style etiket bulutu + tanımlar) → <b>kapanış sayfası</b>.
+      <b>kapak</b> (rating + tek-cümlelik review) → <b>künye</b> (yayınevi + yazarın diğer 3 kitabı + senin özel alanların) → <b>istatistik</b> (okuma takvimi + kategori dağılımı + kelime/kavram sayısı) → <b>oturum kronolojisi</b> (alıntılar / fikirler / kavramlar zaman sırasıyla) → <b>favori alıntılar</b> → <b>kelime + kavram sözlüğü</b> (Notion-style etiket bulutu + tanımlar) → <b>kapanış sayfası</b>.
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="180">
+      <a href="mockups/alinti-karti.pdf">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/PDF_file_icon.svg/120px-PDF_file_icon.svg.png" width="64" alt="PDF" /><br/>
+        <strong>📤 Alıntı kartı</strong><br/>
+        <sub>Tek sayfa kart — bir notu<br/>paylaşırken üretilir</sub>
+      </a>
+    </td>
+    <td>
+      <b>Klasik Twit · Crimson Pro</b><br/>
+      <i>Tek alıntı, kitap adı, sayfa + kod, tarih, repo imzası</i><br/><br/>
+      Bir notu "Paylaş" derken bot tek sayfalık kart formatında PDF üretir: sıcak ton arka plan, serif font (Crimson Pro), büyük açılış tırnağı, alıntı metni, kitap-yazar bilgisi, sayfa numarası ve not kodu. Telegram'a dosya olarak düşer; oradan istediğin sosyal medyaya yükleyebilirsin.
     </td>
   </tr>
 </table>
-
-### 📕 Kitap detay ekranı (Telegram)
-
-```
-🏠 Ana › 📚 Kitaplarım › Yeraltından Notlar
-
-📖 Yeraltından Notlar  ·  YAN
-✍️ Fyodor Dostoyevski
-🏢 İletişim Yayınları · 2017
-🏷️ Roman › Felsefi Roman
-🌐 ISBN: 9789750507380
-📚 Raf: 📚 Felsefi roman
-
-📊 142 / 188 sayfa (%75)
-📅 6 oturum
-📝 23 not
-🔖 Durum: Okuyor
-
-🛒 İdefix · 67 TL
-   12 Mart 2026
-
-🏷️ #klasik #19yy #rus #varoluş
-
-[ Kişisel alanlar: ]
-  • Önerildi mi: Bir arkadaş (Defne)
-  • İlk okuma: Hayır
-```
 
 ### 💬 Birkaç örnek not
 
@@ -155,64 +142,20 @@ Botun ne ürettiğini somut görmek için örnek bir okumadan derlenmiş kısa b
 | `YAN018` | 📷 Sahne | s.110 | *(fotoğraf eklenmiş)* "Kahvaltıda kahvemin yanında okurken çarpılarak işaretlediğim sayfa." |
 | `YAN021` | 🏷️ Refleksiyon | s.134 | (Kullanıcı tanımlı kategori) Bu adamın özgürlük diye sunduğu şey aslında kendi içine hapsolma. Belki bir tür Stockholm. |
 
-### 📤 Paylaşılabilir alıntı kartı (Klasik Twit — Crimson Pro)
+### PDF günlüğün iskeleti
 
-```
-┌──────────────────────────────────────────────┐
-│  K I T A B I              okuma günlüğü      │
-│                                              │
-│  "                                           │
-│                                              │
-│  İki kere iki dört eder, gene de iki         │
-│  kere iki beş eder bazen, hoş bir            │
-│  şeycik olabilir.                            │
-│                                              │
-│                                              │
-│  Yeraltından Notlar                          │
-│  Fyodor Dostoyevski                          │
-│  ──────────────────────────────────          │
-│  s.62 · YAN012          Faruk · 25.05.2026   │
-│                                              │
-│           github.com/poeple-app/kitabi       │
-└──────────────────────────────────────────────┘
-```
+Kitap bittiğinde üretilen PDF'in sayfa sırası:
 
-### 📕 PDF okuma günlüğü — içindekiler özeti
-
-Kitap bittiğinde üretilen PDF'in iskeleti:
-
-1. **Kapak sayfası** — Yeraltından Notlar / Fyodor Dostoyevski / ⭐⭐⭐⭐⭐ / *"Modernliğin temellerini sarsan kısa bir başyapıt."* / 12 Mart - 28 Mayıs 2026
+1. **Kapak sayfası** — Yeraltından Notlar / Fyodor Dostoyevski / ⭐⭐⭐⭐⭐ / *"Modernliğin temellerini sarsan kısa bir başyapıt."* / 12 Mart — 28 Mayıs 2026
 2. **Künye** — yayınevi, ISBN, sayfa sayısı, satın alma bilgisi, etiketler, **Dostoyevski'nin diğer önemli eserleri** *(Suç ve Ceza, Karamazov Kardeşler, Budala — Gemini'den)*, kişisel alanlar
 3. **Okuma istatistikleri** —
    - 6 oturum · 11 saat 23 dakika · 188 sayfa
-   - **Okuma takvimi** (Mart-Mayıs ay grid'i, yoğun günler koyu)
+   - **Okuma takvimi** (Mart–Mayıs ay grid'i, yoğun günler koyu)
    - Kategori dağılımı: 8 Alıntı, 5 Fikir, 4 Yeni Bilgi, 3 Kavram, 2 Kelime, 1 Özet
 4. **Okuma günlüğü** — 6 oturum kronolojik sırada, her oturumda alınan notlar (fotoğraflar sola float'lanmış olarak)
 5. **Favori Alıntılar** — bitirme ritüelinde seçtiğin 3 favori
 6. **Kelime ve Kavram Sözlüğü** — Notion-style etiket bulutu (Bilinç, Yeraltı, İrade, Aşırı bilinç, Determinizm…) + alfabetik liste + tanımlar
 7. **Kapanış** — bir bakışta tüm sayılar, oturum özetleri (kronolojik), tarih + imza
-
-### Örnek bir "foto + caption = soru" akışı
-
-Kullanıcı bir sayfayı çekti, yeşil fosforla **"İki kere iki dört eder"** cümlesinin altını çizdi. Caption olarak yazdı:
-> *"alıntıyı al + bu cümlenin felsefi anlamını da ekle"*
-
-Bot şunu üretti:
-
-```
-📷 Fotoğraf + talimat  ·  YAN  Yeraltından Notlar
-
-❓ alıntıyı al + bu cümlenin felsefi anlamını da ekle
-
-🤖 "İki kere iki dört eder, gene de iki kere iki beş eder
-   bazen, hoş bir şeycik olabilir."
-
-   AÇIKLAMA: Bu cümle, anlatıcının aklın mutlak otoritesine
-   karşı çıkışıdır. "İki kere iki" rasyonel sertlik, "beş"
-   ise iradenin keyfi seçimi — özgürlük matematik dışıdır.
-
-   Not olarak kaydedildi.
-```
 
 ---
 
@@ -254,52 +197,6 @@ gcloud scheduler jobs create http kitabi-keep-warm \
 
 İstemiyorsan atla; bot yine çalışır, sadece uzun aradan sonraki ilk tıklama yavaş olur.
 
-## Sürüm geçmişi — neler değişti
-
-### v1.0.5 (en son)
-- 🎯 **OCR doğruluğu** — temperature=0 + chain-of-thought + renk tespiti. Vurgu sınırları artık katı; "bazen" gibi yakın kelimeler eklenmiyor
-- ✂️ **Tire fix** — satır sonu "tahak-\\nküm" → "tahakküm". OCR ve foto+caption cevaplarında otomatik
-- 🖼️ **Telegram not detayında foto** — note'a eklenmiş görsel, not açıldığında caption ile birlikte gösterilir (PDF'tekiyle aynı pattern)
-- 📎 **Gemini cevaplarına kaynak dipnotu** — "Kaynak: SVC002, SVC007" formatında not referansları otomatik gelir
-- ⏳ **Buton tıklama feedback** — her tıklamadan hemen sonra "⏳ Hazırlanıyor…" toast'u; ekstra API call yok, mevcut answer çağrısı öne çekildi
-- 🪟 **Tek aktif menü sıkılaştırma** — user input (text/voice/photo) geldiğinde önceki menü otomatik silinir; callback edit dalında "yetim" başka menüler varsa onlar da temizlenir
-- 📜 **"…devamını oku" yayılımı** — not taslağında (yeni not ekleme ekranında) uzun transkript / tanım / açıklama kısaltılır, "devamını oku" butonu tam metni gösterir
-- 🏷️ **Kelime bulutu yeniden** — Notion-style multi-select tag chip'leri; tüm tag'ler aynı boyutta, ≤30 char/≤3 kelimeli olanlar cloud'da, cümleler alfabetik listede
-- 🎨 **PDF foto layout** — notlara eklenmiş fotoğraflar artık SOLA float, yazı SAĞA akar — yer daha verimli kullanılır
-- 📷 **Photo+caption format** — Gemini çıktısı yapılandırıldı: tırnaklı italic OCR + altta "TANIM:", "CEVAP:" gibi bold etiketli paragraflar
-- 🔍 **Gemini truncate log** — `finish_reason=MAX_TOKENS` durumu loglanır, "yarıda kesildi mi" sorusu artık net cevaplanabilir
-
-### v1.0.4
-- 🪲 **Çift ikon fix**: kitap listesinde "📖 📖" yerine tek 📖
-- 🔢 **Notlarım sayım belirteçleri**: Fikir (2), Yeni Bilgi (5), Kavram (3)…
-- ➕ **Custom not kategorileri**: kullanıcı kendi etiketlerini ekler (Refleksiyon, Tartışma…). Note.category_label + AppSettings.custom_categories
-- 💬 **Foto + caption iyileştirme**: caption serbest talimat — OCR + Tanım/Cevap/Özet etiketleriyle yapılandırılmış çıktı
-- 🟢 **Post-save action butonları**: foto+caption sonrası "Aktif Oturuma Dön / Bu Notu Aç / Yeni Foto / Ana Menü"
-- 🖼️ **PDF'te foto embed**: notlara eklenmiş fotoğraflar artık PDF günlüğünde gerçekten görünür. render_pdf öncesi Telegram API'den indirilip base64 data URI olarak HTML'e gömülür
-
-### v1.0.3
-- 💬 **Foto + caption = Q&A**: fotoğrafa caption yazarsan sayfayı okuyup talimatını uygular
-- 📷 **Vurgu odaklı OCR**: caption yoksa sadece altı çizili/vurgulu metni alır, tam sayfayı kopyalamaz
-- 📝 **Notlarım hub**: ana menüye yeni "📝 Notlarım" çatısı (Alıntı/Fikir/Yeni Bilgi/Kavram/Kelime/Özet tek menüde)
-- 🪟 **Tek aktif menü**: yeni ekran açılırken eski bot menüsü otomatik silinir
-- 📜 **"…devamını oku"**: 10 satırdan / 500 karakterden uzun notlar listede kısa görünür, tıklayınca açılır
-- ⚡ **Hızlı butonlar** (ReplyKeyboard): 🟢 Oturumlar / ⏹️ Bitir / 📖 Kitaplar / ➕ Yeni — chat kutusu altında kalıcı
-- 📤 **"Klasik Twit" not paylaşımı**: pull-quote tasarımı, 6 Google Font seçeneği (Crimson Pro, Playfair, Cormorant, EB Garamond, Lora, Merriweather), uzun metinde font otomatik küçülür
-
-### v1.0.2
-- 🌐 **ISBN çift kaynak**: Google Books başarısız olursa Open Library devreye girer (anonim Cloud Run IP'leriyle 429 sorunu çözüldü)
-- 📷 **Orphan photo akışı**: OCR'siz görseli "sahne" notu olarak sakla, PDF'te ayrı stillendirilmiş bölüm
-- 📕 **Yeniden tasarlanmış PDF**: okuma takvimi (ay grid), kelime bulutu, yazarın diğer 3 kitabı, özel alanlar, yeniden organize edilmiş kapanış sayfası
-- 🛠️ **Zenginleştirilmiş kitap düzenleme**: title/yazar/yayınevi/yıl/genre/ISBN dahil tüm alanlar düzenlenebilir; kullanıcı kendi alanını ekleyebilir (Book.extra_fields JSON)
-- 🎨 **Kitap ikonu + raf sistemi**: her kitap kendi emoji'sini alır; 10+ kitapta otomatik raf landing sayfası
-- 📸 **Kapak grid albümü**: kapakları Telegram media group olarak topluca gönder
-- 📤 **Not paylaş**: bir notu twit görseli gibi 5 farklı boyutta PDF olarak çıkar
-- ✂️ **Daha öz Gemini cevapları**: 12 dolgu kelimesi açıkça yasaklı, ≤3 cümle kuralı
-- ⬇️ **"Daha fazla göster" pagination**: alıntı/sözlük/arama listelerinde
-- 🔄 **Progress mesajları her uzun işlemde**: PDF, export, AI çağrıları
-- 📋 **`/oturumlar` ve `/yardim` slash komutları**
-- 🗂️ **Otomatik DB migration**: v1.0.1 → v1.0.2 geçişi tek redeploy ile (yeni sütunlar ALTER TABLE ile eklenir)
-
 ## Mimari
 
 **Tek bir Google Cloud Project içinde 4 servis:**
@@ -318,7 +215,7 @@ gcloud scheduler jobs create http kitabi-keep-warm \
 
 **Persistence:** Cloud Run diski uçucu — bot SQLite'ı her 60 sn'de bir Cloud Storage bucket'a SQLite Online Backup API ile tutarlı snapshot olarak yedekliyor; container açılırken indiriyor.
 
-**Şema migration:** Her container başlangıcında `_migrate_add_missing_columns` çalışır. ORM modelinde olup tablodaki olmayan sütunları `ALTER TABLE ADD COLUMN` ile ekler. v1.0.1 DB'si v1.0.2 koduyla otomatik uyumlu hale gelir — manuel migration script gerekmez.
+**Şema migration:** Her container başlangıcında `_migrate_add_missing_columns` çalışır. ORM modelinde olup tablodaki olmayan sütunları `ALTER TABLE ADD COLUMN` ile ekler — eski DB'ler yeni kod ile otomatik uyumlu hale gelir, manuel migration script gerekmez.
 
 **Kod yapısı (5 Python dosyası):**
 

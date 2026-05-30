@@ -56,8 +56,8 @@
       {% endif %}
       {% if stats.started_at %}
       <div class="range">
-        {{ stats.started_at.strftime('%d %B %Y') }}{% if stats.ended_at %}
-        — {{ stats.ended_at.strftime('%d %B %Y') }}{% endif %}
+        {{ stats.started_at | tr_date('%d %B %Y') }}{% if stats.ended_at %}
+        — {{ stats.ended_at | tr_date('%d %B %Y') }}{% endif %}
       </div>
       {% endif %}
       <div>{{ stats.session_count }} oturum · {{ stats.note_count }} not
@@ -113,7 +113,7 @@
         <div class="val">
           {% if book.bought_from %}{{ book.bought_from }}{% endif %}
           {% if book.price_tl %}{% if book.bought_from %} · {% endif %}{{ book.price_tl }} TL{% endif %}
-          {% if book.bought_at %}{% if book.bought_from or book.price_tl %}<br/>{% endif %}{{ book.bought_at.strftime('%d %B %Y') }}{% endif %}
+          {% if book.bought_at %}{% if book.bought_from or book.price_tl %}<br/>{% endif %}{{ book.bought_at | tr_date('%d %B %Y') }}{% endif %}
         </div>
       </div>
       {% endif %}
@@ -241,7 +241,7 @@
       <div class="ssum-head">
         <span class="ssum-num">Oturum {{ loop.index }}</span>
         <span class="ssum-meta">
-          {{ sess.started_at.strftime('%d %b %Y · %H:%M') }}
+          {{ sess.started_at | tr_date('%d %b %Y · %H:%M') }}
           {% if sess.duration_min %} · {{ sess.duration_min }} dk{% endif %}
           {% if sess.start_page and sess.end_page %} · s.{{ sess.start_page }} → s.{{ sess.end_page }}{% endif %}
         </span>
@@ -267,7 +267,7 @@
         <div class="num">{{ loop.index }}. Oturum</div>
       </div>
       <div class="meta">
-        {{ sess.started_at.strftime('%d %b %Y · %H:%M') }}
+        {{ sess.started_at | tr_date('%d %b %Y · %H:%M') }}
         {% if sess.duration_min %} · {{ sess.duration_min }} dk{% endif %}
         {% if sess.start_page %} · s.{{ sess.start_page }}{% if sess.end_page %} → s.{{ sess.end_page }}{% endif %}{% endif %}
       </div>
@@ -326,7 +326,7 @@
     <div class="note">
       <div class="top">
         <span class="cat cat-{{ note.category.name }}">{{ note.category.value }}</span>
-        <span>{{ note.code }} · s.{{ note.page or '—' }} · {{ note.created_at.strftime('%d %b %H:%M') }}</span>
+        <span>{{ note.code }} · s.{{ note.page or '—' }} · {{ note.created_at | tr_date('%d %b %H:%M') }}</span>
         {% if note.is_favorite %}<span class="cat" style="background: #c9a227;">⭐</span>{% endif %}
       </div>
       <div class="body">
@@ -401,7 +401,7 @@
       {% if note.definition %}
       <div class="def">{{ note.definition }}</div>
       {% endif %}
-      <div class="src">s.{{ note.page or '—' }} · {{ note.created_at.strftime('%d %b %Y') }}</div>
+      <div class="src">s.{{ note.page or '—' }} · {{ note.created_at | tr_date('%d %b %Y') }}</div>
     </div>
     {% endfor %}
   </div>
@@ -422,13 +422,13 @@
       {% if stats.started_at %}
       <div class="meta-block">
         <div class="meta-label">Başlama</div>
-        <div class="val">{{ stats.started_at.strftime('%d %B %Y') }}<br/><span class="dim">{{ stats.started_at.strftime('%H:%M') }}</span></div>
+        <div class="val">{{ stats.started_at | tr_date('%d %B %Y') }}<br/><span class="dim">{{ stats.started_at.strftime('%H:%M') }}</span></div>
       </div>
       {% endif %}
       {% if stats.ended_at %}
       <div class="meta-block">
         <div class="meta-label">Bitirme</div>
-        <div class="val">{{ stats.ended_at.strftime('%d %B %Y') }}<br/><span class="dim">{{ stats.ended_at.strftime('%H:%M') }}</span></div>
+        <div class="val">{{ stats.ended_at | tr_date('%d %B %Y') }}<br/><span class="dim">{{ stats.ended_at.strftime('%H:%M') }}</span></div>
       </div>
       {% endif %}
       <div class="meta-block">
@@ -465,7 +465,7 @@
     <p class="closing-summary">
       "{{ s.transcript }}"
       <span class="closing-summary-meta">
-        — s.{{ s.page or '—' }}, {{ s.created_at.strftime('%d %b %Y') }}
+        — s.{{ s.page or '—' }}, {{ s.created_at | tr_date('%d %b %Y') }}
       </span>
     </p>
     {% endfor %}
@@ -474,7 +474,7 @@
     <div class="ornament">· · · ·</div>
 
     <div class="closing">
-      <div class="sig">Kitabi tarafından üretildi · {{ generated_at.strftime('%d %B %Y') }}</div>
+      <div class="sig">Kitabi tarafından üretildi · {{ generated_at | tr_date('%d %B %Y') }}</div>
     </div>
 
   </div>

@@ -1573,6 +1573,35 @@ _jinja_env = Environment(
 )
 
 
+# Locale-independent Turkish date formatting for the PDF journal.
+# `strftime('%B'/'%b')` is locale-bound and renders English month names
+# ("March", "May") under the Cloud Run container's default C locale, which
+# looks unfinished in an otherwise-Turkish journal. This filter substitutes
+# Turkish month names before delegating the rest to strftime.
+_TR_MONTHS = [
+    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+]
+
+
+def _tr_date(dt: Any, fmt: str = "%d %B %Y") -> str:
+    """Format a datetime with Turkish month names, locale-independent.
+
+    Both ``%B`` and ``%b`` resolve to the full Turkish month name — Turkish
+    month names are already short (≤ 7 chars) and the official TDK three-letter
+    abbreviations ("May") visually collide with English, undermining the
+    finished-product feel of the journal.
+    """
+    if dt is None:
+        return ""
+    name = _TR_MONTHS[dt.month - 1]
+    resolved = fmt.replace("%B", name).replace("%b", name)
+    return dt.strftime(resolved)
+
+
+_jinja_env.filters["tr_date"] = _tr_date
+
+
 # v1.0.6 — Kitabi logosu PDF render'ında inline (base64 data URI) olarak
 # template'e geçer. Container'da /app/kitabilogo.png olarak; lokal dev'de
 # paket kökünün bir üstünde. İlk okumada cache'lenir.
