@@ -215,23 +215,29 @@
 
     {% if stats.calendar %}
     <h2 class="section">Okuma Takvimi</h2>
+    {# Responsive grid: 1 month → single centered column, 2-3 → two columns,
+       4+ → three columns. Keeps the entire calendar on one page regardless of
+       how long the book took. #}
+    {% set _calcount = stats.calendar | length %}
+    <div class="cal-months-wrap {% if _calcount == 1 %}cal-single{% elif _calcount == 2 %}cal-few{% else %}cal-multi{% endif %}">
     {% for month in stats.calendar %}
-    <div class="cal-month">
-      <div class="cal-month-label">{{ month.label }}</div>
-      <div class="cal-grid">
-        <div class="cal-dow">Pt</div><div class="cal-dow">Sa</div><div class="cal-dow">Ça</div><div class="cal-dow">Pe</div><div class="cal-dow">Cu</div><div class="cal-dow">Ct</div><div class="cal-dow">Pz</div>
-        {% for _ in range(month.first_weekday) %}<div class="cal-cell cal-empty"></div>{% endfor %}
-        {% for d in range(1, month.days_in_month + 1) %}
-          {% if d in month.active_days %}
-            {% set mins = month.minutes_per_day[d] %}
-            <div class="cal-cell cal-active{% if mins >= 60 %} cal-strong{% elif mins >= 30 %} cal-mid{% endif %}">{{ d }}</div>
-          {% else %}
-            <div class="cal-cell">{{ d }}</div>
-          {% endif %}
-        {% endfor %}
+      <div class="cal-month">
+        <div class="cal-month-label">{{ month.label }}</div>
+        <div class="cal-grid">
+          <div class="cal-dow">Pt</div><div class="cal-dow">Sa</div><div class="cal-dow">Ça</div><div class="cal-dow">Pe</div><div class="cal-dow">Cu</div><div class="cal-dow">Ct</div><div class="cal-dow">Pz</div>
+          {% for _ in range(month.first_weekday) %}<div class="cal-cell cal-empty"></div>{% endfor %}
+          {% for d in range(1, month.days_in_month + 1) %}
+            {% if d in month.active_days %}
+              {% set mins = month.minutes_per_day[d] %}
+              <div class="cal-cell cal-active{% if mins >= 60 %} cal-strong{% elif mins >= 30 %} cal-mid{% endif %}">{{ d }}</div>
+            {% else %}
+              <div class="cal-cell">{{ d }}</div>
+            {% endif %}
+          {% endfor %}
+        </div>
       </div>
-    </div>
     {% endfor %}
+    </div>
     {% endif %}
 
     {% if sessions %}

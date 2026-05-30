@@ -106,7 +106,7 @@ Botun ürettiği iki PDF çıktısı. **Göstermelik mockup** — Dostoyevski'ni
       <a href="mockups/yeralt-notlar.pdf">
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/PDF_file_icon.svg/120px-PDF_file_icon.svg.png" width="64" alt="PDF" /><br/>
         <strong>📕 Okuma günlüğü</strong><br/>
-        <sub>11 sayfa A4 — kitap bittiğinde<br/>otomatik üretilir</sub>
+        <sub>9 sayfa A4 — kitap bittiğinde<br/>otomatik üretilir</sub>
       </a>
     </td>
     <td>

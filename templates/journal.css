@@ -36,9 +36,13 @@ html, body {
   color: var(--ink);
   font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
   -webkit-font-smoothing: antialiased;
-  font-size: 11pt;
+  font-size: 10pt;
 }
 
+/* A4 page wrapper. min-height (not height) lets content-heavy sections like the
+   reading journal flow across multiple A4 sheets naturally — Chrome's print
+   engine inserts new pages where break-inside rules allow. Only the cover
+   hard-caps itself (see .cover .page-inner) so it never spills onto page 2. */
 .page {
   width: 210mm;
   min-height: 297mm;
@@ -46,7 +50,6 @@ html, body {
   page-break-after: always;
   break-after: page;
   position: relative;
-  overflow: hidden;
   background-image:
     radial-gradient(circle at 8% 12%, rgba(122, 62, 31, 0.025), transparent 40%),
     radial-gradient(circle at 90% 88%, rgba(122, 62, 31, 0.025), transparent 40%);
@@ -54,8 +57,7 @@ html, body {
 .page:last-of-type { page-break-after: auto; }
 
 .page-inner {
-  padding: 22mm 22mm 30mm;
-  min-height: 297mm;
+  padding: 18mm 22mm 24mm;
 }
 
 .page-footer {
@@ -81,7 +83,10 @@ html, body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 32mm 26mm;
+  padding: 20mm 24mm;
+  height: 297mm;          /* hard-cap so the cover never overflows onto page 2 */
+  min-height: auto;
+  overflow: hidden;
 }
 .cover-top {
   text-align: center;
@@ -126,13 +131,13 @@ html, body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 16mm 0;
+  padding: 6mm 0;
 }
 .cover-thumb {
-  width: 60mm;
-  height: 85mm;
+  width: 52mm;
+  height: 72mm;
   background: linear-gradient(135deg, #3d2614 0%, #1f1208 100%);
-  margin: 0 auto 12mm;
+  margin: 0 auto 8mm;
   border-radius: 2mm;
   box-shadow: 0 4mm 8mm rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.05);
   display: flex;
@@ -165,18 +170,18 @@ html, body {
   opacity: .85;
 }
 .cover-title {
-  font-size: 32pt;
+  font-size: 26pt;
   font-weight: 700;
   line-height: 1.1;
-  margin-bottom: 4mm;
+  margin-bottom: 3mm;
   letter-spacing: -0.5px;
   color: #f5e9d4;
 }
 .cover-author {
   font-style: italic;
-  font-size: 18pt;
+  font-size: 15pt;
   color: rgba(245, 233, 212, .85);
-  margin-bottom: 8mm;
+  margin-bottom: 5mm;
 }
 .cover-tagline {
   font-size: 10pt;
@@ -333,11 +338,28 @@ p, li {
 }
 .stat-card.alt .num { color: #5a3a1f; }
 
-/* ─────────────── Reading calendar (v1.0.2) ─────────────── */
-.cal-month { margin: 4mm 0 6mm; break-inside: avoid; page-break-inside: avoid; }
+/* ─────────────── Reading calendar — responsive grid ───────────────
+   The number of months is unbounded (1 to 10+). The wrapper auto-scales:
+   - 1 month  → single centered column (~85mm wide)
+   - 2-3 months → 2 columns
+   - 4+ months → 3 columns
+   This keeps the whole calendar on a single sheet regardless of duration. */
+.cal-months-wrap {
+  display: grid;
+  gap: 5mm 4mm;
+  margin: 4mm 0 6mm;
+}
+.cal-months-wrap.cal-single {
+  grid-template-columns: 85mm;
+  justify-content: center;
+}
+.cal-months-wrap.cal-few    { grid-template-columns: repeat(2, 1fr); }
+.cal-months-wrap.cal-multi  { grid-template-columns: repeat(3, 1fr); }
+
+.cal-month { break-inside: avoid; page-break-inside: avoid; }
 .cal-month-label {
   font-family: -apple-system, "Segoe UI", sans-serif;
-  font-size: 10pt;
+  font-size: 9.5pt;
   font-weight: 700;
   color: var(--accent);
   text-align: center;
@@ -347,30 +369,37 @@ p, li {
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.8mm;
+  gap: 0.6mm;
   font-family: -apple-system, "Segoe UI", sans-serif;
 }
+/* When several months sit side by side, cell width shrinks naturally and so
+   should the cell height — keeps each month-square legible without ballooning
+   the page. */
+.cal-months-wrap.cal-multi .cal-grid { gap: 0.4mm; }
 .cal-dow {
-  font-size: 7.5pt;
+  font-size: 6.5pt;
   text-align: center;
   color: var(--ink-dim);
   font-weight: 700;
   text-transform: uppercase;
-  padding-bottom: 1mm;
+  padding-bottom: 0.8mm;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 0.5mm;
+  margin-bottom: 0.4mm;
 }
 .cal-cell {
-  height: 7mm;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8pt;
+  font-size: 7pt;
   color: var(--ink-dim);
   border: 0.4px solid #ece1ce;
-  border-radius: 1mm;
+  border-radius: 0.8mm;
   background: #fbf6ec;
 }
+/* Single-month layout has more room — bump cell sizing up. */
+.cal-months-wrap.cal-single .cal-cell { font-size: 9pt; }
+.cal-months-wrap.cal-single .cal-dow  { font-size: 8pt; }
 .cal-cell.cal-empty {
   background: transparent;
   border-color: transparent;
@@ -541,12 +570,12 @@ p, li {
   text-align: right;
   color: var(--ink-dim);
 }
-.session-summary { margin: 2mm 0; padding: 2mm 0; border-bottom: 1px dotted var(--rule); }
+.session-summary { margin: 0; padding: 1.4mm 0; border-bottom: 1px dotted var(--rule); }
 .session-summary:last-child { border-bottom: 0; }
 .ssum-head {
   display: flex;
   justify-content: space-between;
-  font-size: 9.5pt;
+  font-size: 9pt;
 }
 .ssum-num { font-weight: 700; color: var(--accent); }
 .ssum-meta { color: var(--ink-dim); font-family: -apple-system, sans-serif; font-size: 9pt; }
@@ -555,9 +584,9 @@ p, li {
 .session-head {
   background: var(--accent);
   color: #fff7e5;
-  padding: 3.5mm 5mm;
+  padding: 3mm 5mm;
   border-radius: 1.5mm;
-  margin: 6mm 0 4mm;
+  margin: 5mm 0 3mm;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -565,6 +594,13 @@ p, li {
   page-break-after: avoid;
 }
 .session-head:first-of-type { margin-top: 0; }
+
+/* Keep the session header glued to its first note — never leave a header
+   stranded at the bottom of a page with its notes on the next. */
+.session-head + .note {
+  break-before: avoid;
+  page-break-before: avoid;
+}
 .session-head .num {
   font-family: -apple-system, "Segoe UI", sans-serif;
   font-size: 8pt;
